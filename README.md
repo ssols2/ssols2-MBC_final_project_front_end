@@ -1,5 +1,5 @@
-# Vue 3 + Vite
+# 비전 AI 기반 스마트 주차 관제 및 EV 충전 인프라 예지보전 솔루션
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+KDT 선도기업형 훈련과정
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+[에스트래픽] 스마트 모빌리티 DX Academy
