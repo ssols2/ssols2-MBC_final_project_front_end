@@ -3,7 +3,7 @@
 
         <aside class="side-main-tab-area">
             <div class="logo-area">
-                <img src="@/assets/txtlogo3.png" alt="서울에스병원 라이트로고" class="main-logo" v-if="false" />
+                <img src="@/assets/txtlogo3.png" alt="서울에스병원 라이트로고" class="main-logo" />
             </div>
 
             <ul class="main-tab-menu">
@@ -99,7 +99,7 @@
 
                 <div class="reservation-btn">
 
-                    금일 예약 건수 00건
+                    금일 예약 건수 건
                 </div>
             </div>
         </aside>
@@ -264,21 +264,49 @@ onUnmounted(() => {
 /* 사이드바 */
 .side-main-tab-area {
     width: 280px;
+    min-width: 280px; /* 고정 */
     background: #111114;
     border-right: 1px solid #27272a;
     display: flex;
     flex-direction: column;
+    height: 100vh;
+}
+
+/* ── 메인 영역 설정 ── */
+.main-area {
+    flex: 1; /* 남는 너비 다 가져가기 */
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* 메인 메뉴 (로고와 날씨 사이 공간을 다 먹어치움) */
+.main-tab-menu {
+    flex: 1;                
+    padding: 20px 0;
+    list-style: none;
+    overflow-y: auto; 
+}
+
+.main-header {
+    width: 100%;
+    height: 70px;
+}
+
+.content-container {
+    flex: 1;
+    width: 100%;
 }
 
 .logo-area {
-    padding: 30px;
+    padding: 22px;
     border-bottom: 1px solid #27272a;
     text-align: center;
 }
 
 .main-logo {
-    max-width: 180px;
-    filter: brightness(0) invert(1);
+    max-width: 190px;
 }
 
 /* PNG 로고 백색 반전 필요시 */
@@ -321,7 +349,7 @@ onUnmounted(() => {
     color: #18181b;
     border-radius: 12px;
     padding: 15px;
-    margin-bottom: 15px;
+    margin-bottom: 22px;
 }
 
 .weather-main {
@@ -402,13 +430,6 @@ onUnmounted(() => {
 
 .booking-box .count {
     color: #3b82f6;
-}
-
-/* 헤더 및 컨텐츠 */
-.main-area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
 }
 
 .main-header {
