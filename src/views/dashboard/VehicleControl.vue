@@ -53,6 +53,7 @@
                     <input type="date" v-model="endDate" :max="maxAllowedDate" class="date-input"
                         @change="fetchShortData" />
                 </div>
+
                 <button class="info-btn">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor">
                         <circle cx="12" cy="12" r="10"></circle>
@@ -68,8 +69,8 @@
                     <div class="card-title-wrap">
                         <h3 class="card-title">AI 단기 혼잡도 예측 <span class="sub-text">(시간별, ~Today ~ D+3)</span></h3>
                         <div class="legend-custom">
-                            <span class="l-item"><span class="box blue"></span>실제 입차 대수</span>
-                            <span class="l-item"><span class="box light-blue"></span>AI 예상 대수</span>
+                            <span class="l-item"><span class="legend-line dashed-mainblue"></span>실제 입차 대수</span>
+                            <span class="l-item"><span class="legend-line dashed-blue"></span>AI 예상 대수</span>
                         </div>
                     </div>
                     <div class="chart-wrap">
@@ -81,6 +82,9 @@
                 <div class="chart-card">
                     <div class="card-title-wrap">
                         <h3 class="card-title">AI 중기 혼잡도 예측 <span class="sub-text">(요일별, D+4 ~ D+11)</span></h3>
+                        <div class="legend-custom">
+                            <span class="l-item"><span class="legend-line dashed-og"></span>예측 주차 대수</span>
+                        </div>
                     </div>
                     <div class="chart-wrap">
                         <div v-if="midLoading" class="chart-loading">데이터 불러오는 중...</div>
@@ -251,16 +255,34 @@ const errorClass = (row) => {
 }
 
 // ── 필터 & 정렬 & 페이지네이션 ───────────────────────────────
-const filteredTableData = computed(() => {
-    let rows = congestionFilter.value
-        ? tableData.value.filter(r => r.congestionLabel === congestionFilter.value)
-        : [...tableData.value]
+// const filteredTableData = computed(() => {
+//     let rows = congestionFilter.value
+//         ? tableData.value.filter(r => r.congestionLabel === congestionFilter.value)
+//         : [...tableData.value]
 
-    rows.sort((a, b) =>
-        sortOrder.value === 'desc'
+//     rows.sort((a, b) =>
+//         sortOrder.value === 'desc'
+//             ? b.datetime.localeCompare(a.datetime)
+//             : a.datetime.localeCompare(b.datetime)
+//     )
+//     return rows
+// })
+const filteredTableData = computed(() => {
+    // 1. 일단 원본 데이터 복사
+    let rows = [...tableData.value]
+
+    // 2. 혼잡도 필터 적용 (값이 있을 때만)
+    if (congestionFilter.value) {
+        rows = rows.filter(r => r.congestionLabel === congestionFilter.value)
+    }
+
+    // 3. 정렬 적용
+    rows.sort((a, b) => {
+        return sortOrder.value === 'desc'
             ? b.datetime.localeCompare(a.datetime)
             : a.datetime.localeCompare(b.datetime)
-    )
+    })
+
     return rows
 })
 
@@ -377,23 +399,25 @@ const fetchShortData = async () => {
                 labels: allSlots,
                 datasets: [
                     {
-                        label: '실제 입차 대수',
-                        data: actualList,
-                        borderColor: '#3b82f6', // 시안 반영 블루
-                        backgroundColor: 'rgba(59,130,246,0.1)',
+                        label: '예측 주차대수',
+                        data: predList,
+                        borderColor: '#82c2e3',
+                        backgroundColor: 'rgba(79,134,247,0.1)',
                         tension: 0.4,
                         fill: true,
-                        pointRadius: 0,
+                        pointRadius: 2,
                         borderWidth: 2,
                     },
                     {
-                        label: 'AI 예상 대수',
-                        data: predList,
-                        borderColor: '#82c2e3', // 시안 반영 라이트 블루
+                        label: '실제 주차대수',
+                        data: actualList,
+                        borderColor: '#005baa',
+                        backgroundColor: 'rgba(52,196,139,0.06)',
                         tension: 0.4,
                         fill: false,
-                        pointRadius: 0,
+                        pointRadius: 2,
                         borderWidth: 2,
+                        borderDash: [5, 3],
                     },
                 ],
             },
@@ -401,10 +425,18 @@ const fetchShortData = async () => {
                 responsive: true,
                 maintainAspectRatio: false,
                 interaction: { mode: 'index', intersect: false },
-                plugins: { legend: { position: 'top' } },
+                //plugins: { legend: { position: 'top' } },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y}대`
+                        }
+                    }
+                },
                 scales: {
-                    y: { beginAtZero: true, title: { display: true, text: '주차 대수 (대)' }, ticks: { stepSize: 5 } },
-                    x: { ticks: { maxTicksLimit: 12 } },
+                    y: { beginAtZero: true, title: { display: true, text: '주차 대수 (대)', color: '#f5f5f5a9' }, ticks: { stepSize: 5, color: '#f5f5f5a9' }, grid: { color: 'rgba(255, 255, 255, 0.05)' } },
+                    x: { ticks: { maxTicksLimit: 12, color: '#f5f5f5a9', } },
                 },
             },
         })
@@ -445,7 +477,7 @@ const fetchMidData = async () => {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'top' },
+                    legend: { display: false },
                     tooltip: {
                         callbacks: {
                             label: ctx => `예측 주차대수: ${ctx.parsed.y}대`
@@ -453,8 +485,8 @@ const fetchMidData = async () => {
                     }
                 },
                 scales: {
-                    y: { beginAtZero: true, title: { display: true, text: '주차 대수 (대)' }, ticks: { stepSize: 5 } },
-                    x: { title: { display: true, text: '예측 날짜' } },
+                    y: { beginAtZero: true, title: { display: true, text: '주차 대수 (대)', color: '#f5f5f5a9' }, ticks: { stepSize: 5, color: '#f5f5f5a9' } },
+                    x: { title: { display: true, text: '예측 날짜', color: '#f5f5f5a9' }, ticks: { maxTicksLimit: 12, color: '#f5f5f5a9' } },
                 },
             },
         })
@@ -491,12 +523,39 @@ watch(activeTab, (newTab) => {
 
 <style scoped>
 .control-container {
-    color: #fff;
+    width: 100%;
+    height: 100vh;
+    overflow-y: auto;       
+    overflow-x: hidden;     
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 22px;
+    background-color: #000;
+    color: #f5f5f5;
+    box-sizing: border-box; /* 패딩이 너비 잡아먹는 거 방지 */
+}
+
+.control-container::-webkit-scrollbar {
+    width: 10px;
+}
+
+.control-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.control-container::-webkit-scrollbar-thumb {
+    background: #444D56;
+    border-radius: 4px;
+}
+
+.control-container::-webkit-scrollbar-thumb:hover {
+    background: #4f5963;
 }
 
 /* 상단 헤더 & 탭 */
 .page-header {
-    margin-bottom: 24px;
+    margin-bottom: 17px;
 }
 
 .header-title-area {
@@ -631,6 +690,7 @@ watch(activeTab, (newTab) => {
     grid-template-columns: 3fr 2fr;
     gap: 20px;
     margin-bottom: 20px;
+    width: 100%;  
 }
 
 .chart-card {
@@ -638,6 +698,7 @@ watch(activeTab, (newTab) => {
     border-radius: 12px;
     padding: 20px;
     border: 1px solid #27272a;
+    min-width: 0;      
 }
 
 .card-title-wrap {
@@ -665,7 +726,7 @@ watch(activeTab, (newTab) => {
     display: flex;
     gap: 15px;
     font-size: 12px;
-    color: #a1a1aa;
+    color: #f5f5f5a9;
 }
 
 .l-item {
@@ -674,18 +735,32 @@ watch(activeTab, (newTab) => {
     gap: 6px;
 }
 
-.box {
-    width: 10px;
-    height: 10px;
+.legend-line.dashed-mainblue {
+    display: inline-block;
+    width: 30px;
+    height: 15px;
+    background-color: rgba(79, 134, 247, 0.1);
+    border: 2px dashed #005baa;
     border-radius: 2px;
 }
 
-.box.blue {
-    background: #3b82f6;
+/* 예상 대수 점선 */
+.legend-line.dashed-blue {
+    display: inline-block;
+    width: 30px;
+    height: 15px;
+    background-color: rgba(79, 134, 247, 0.1);
+    border: 2px dashed #82c2e3;
+    border-radius: 2px;
 }
 
-.box.light-blue {
-    background: #82c2e3;
+.legend-line.dashed-og {
+    display: inline-block;
+    width: 30px;
+    height: 15px;
+    background-color: rgba(79, 134, 247, 0.1);
+    border: 2px dashed #fbb900;
+    border-radius: 2px;
 }
 
 .chart-wrap {
@@ -708,6 +783,8 @@ watch(activeTab, (newTab) => {
     border-radius: 12px;
     padding: 20px;
     border: 1px solid #27272a;
+    width: 100%;         
+    min-width: 0;         
 }
 
 .table-header {
@@ -747,7 +824,8 @@ watch(activeTab, (newTab) => {
 }
 
 .table-responsive {
-    overflow-x: auto;
+    width: 100%;
+    overflow-x: auto;       /* 화면이 작아지면 테이블 안에서만 가로 스크롤 생김 */
 }
 
 .dark-table {
@@ -852,7 +930,8 @@ watch(activeTab, (newTab) => {
     display: flex;
     justify-content: center;
     gap: 6px;
-    margin-top: 20px;
+    margin-top: 22px;
+    margin-bottom: 22px;
 }
 
 .page-btn {
@@ -880,5 +959,56 @@ watch(activeTab, (newTab) => {
 .page-btn:disabled {
     opacity: 0.3;
     cursor: not-allowed;
+}
+
+/* ── 달력 커스텀 CSS ───────────────────────────── */
+.date-range {
+    display: flex;
+    align-items: center;
+    background-color: #18181b; /* 다크 배경 */
+    border: 1px solid #27272a; /* 테두리 */
+    border-radius: 8px;
+    padding: 6px 12px;
+    width: 270px;
+    gap: 4px;
+}
+
+.date-input {
+    background: transparent;
+    border: none;
+    color: #e4e4e7;
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+    width: 105px;
+    font-family: inherit;
+}
+
+/* 브라우저 기본 달력 아이콘 밝게 (반전) */
+.date-input::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 0.5;
+    cursor: pointer;
+}
+
+.date-sep {
+    color: #52525b;
+    font-size: 13px;
+}
+
+/* 시안용 우측 아이콘 */
+.calendar-icon {
+    width: 14px;
+    height: 14px;
+    color: #71717a;
+    margin-left: auto;
+}
+
+/* 탭 2 상단 바 정렬 유지 */
+.stats-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
 }
 </style>
