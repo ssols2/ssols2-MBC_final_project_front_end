@@ -468,7 +468,7 @@ const fetchMidData = async () => {
                 datasets: [{
                     label: '예측 주차대수',
                     data: predList,
-                    backgroundColor: '#fbb900', // 시안 반영 옐로우
+                    backgroundColor: '#fbb900',
                     borderRadius: 4,
                     barPercentage: 0.5,
                 }],
