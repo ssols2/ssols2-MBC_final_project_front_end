@@ -66,6 +66,10 @@
               @click="changeView('admin_event')">병원 행사 관리</li>
           </template>
 
+          <!-- 최종 프로젝트: 결제 수단 관리 및 결제 내역 메뉴 추가 -->
+          <li :class="{ active: currentView === 'pay' }" @click="changeView('pay')">결제 수단 관리</li>
+          <li :class="{ active: currentView === 'receipt' }" @click="changeView('receipt')">결제 내역</li>
+
           <li :class="{ active: currentView === 'vehi' }" @click="changeView('vehi')">차량 관리</li>
           <li :class="{ active: currentView === 'edit' }" @click="changeView('edit')">개인 정보 수정</li>
         </ul>
@@ -82,12 +86,60 @@
       </header>
 
       <div class="dash-content-body">
-        <template v-if="currentView !== 'vehi' && currentView !== 'edit'">
-          <MemberDash v-if="userType === 'MEMBER'" :userInfo="userInfo" :currentView="currentView" @changeView="(val) => currentView = val"/>
-          <DoctorDash v-else-if="isDoctor" :userInfo="userInfo" :currentView="currentView" @changeView="(val) => currentView = val"/>
-          <NurseDash v-else-if="isNurse" :userInfo="userInfo" :currentView="currentView" @changeView="(val) => currentView = val"/>
-          <AdminDash v-else-if="userType === 'ADMIN'" :userInfo="userInfo" :currentView="currentView" @changeView="(val) => currentView = val"/>
+        <!-- 최종 프로젝트: 결제 수단 관리 및 결제 내역 메뉴 추가 -->
+        <template
+          v-if="currentView !== 'vehi' && currentView !== 'edit' && currentView !== 'pay' && currentView !== 'receipt'">
+          <MemberDash v-if="userType === 'MEMBER'" :userInfo="userInfo" :currentView="currentView"
+            @changeView="(val) => currentView = val" />
+          <DoctorDash v-else-if="isDoctor" :userInfo="userInfo" :currentView="currentView"
+            @changeView="(val) => currentView = val" />
+          <NurseDash v-else-if="isNurse" :userInfo="userInfo" :currentView="currentView"
+            @changeView="(val) => currentView = val" />
+          <AdminDash v-else-if="userType === 'ADMIN'" :userInfo="userInfo" :currentView="currentView"
+            @changeView="(val) => currentView = val" />
         </template>
+      </div>
+
+      <!-- 최종 프로젝트: [공통 화면] 결제 수단 관리 추가 -->
+      <div v-if="currentView === 'pay'" class="view-section">
+        <div class="section-card">
+          <div class="card-head">
+            <h3>결제 수단 관리</h3>
+            <button @click="openPayModal" class="btn-add-sm">+ 결제 수단 등록</button>
+          </div>
+          <table class="hospital-tbl">
+            <thead>
+              <tr>
+                <th>번호</th>
+                <th>등록 일자</th>
+                <th>결제 수단</th>
+                <th>금융사</th>
+                <th>등록된 카드/계좌 번호</th>
+                <!-- <th>잔액</th> -->
+                <th>대표 결제 수단</th>
+                <th class="txt-center">관리</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(pay, index) in myPaymentMethods" :key="pay.payment_method_id">
+                <td>{{ index + 1 }}</td>
+                <td>{{ formatDate(pay.create_time) }}</td>
+                <td>{{ pay.payment_method_type === 'CARD' ? '카드' : '계좌' }}</td>
+                <td>{{ pay.payment_method_name }}</td>
+                <td>{{ formatCardNumber(pay.payment_method_number) }}</td>
+                <!-- <td>{{ pay.payment_method_balance ? pay.payment_method_balance.toLocaleString() : 0 }}원</td> -->
+                <td class="txt-center">
+                  <span v-if="pay.is_default" style="color: blue; font-weight: bold;">✔ 대표</span>
+                  <button v-else @click="setDefaultPayment(pay.payment_method_id)" class="btn-update-table">대표 설정</button>
+                </td>
+                <td class="txt-center">
+                  <button @click="deletePayment(pay.payment_method_id)" class="btn-cancel-table">삭제</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-if="myPaymentMethods.length === 0" class="empty-msg">등록된 결제 수단이 없습니다.</div>
+        </div>
       </div>
 
       <!--[공통 화면] 차량 관리-->
@@ -100,15 +152,19 @@
           <table class="hospital-tbl">
             <thead>
               <tr>
+                <th>번호</th>
                 <th>차량번호</th>
-                <th>차종/유종</th>
+                <th>차종</th>
+                <th>유종</th>
                 <th class="txt-center">관리</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="car in myVehicles" :key="car.vehicleNum">
+              <tr v-for="(car, index) in myVehicles" :key="car.vehicleNum">
+                <td>{{ index + 1 }}</td>
                 <td class="bold-blue">{{ car.vehicleNum }}</td>
-                <td>{{ car.vehicleType }} / {{ car.fuelType }}</td>
+                <td>{{ car.vehicleType }}</td>
+                <td>{{ car.fuelType }}</td>
                 <td class="txt-center">
                   <button @click="openVehiEdit(car)" class="btn-update-table">수정</button>
                   <button @click="deleteVehicle(car.vehicleNum)" class="btn-cancel-table">차량 삭제</button>
@@ -120,6 +176,7 @@
         </div>
       </div>
 
+      <!--[공통 화면] 개인 정보 수정 관리-->
       <div v-if="currentView === 'edit'" class="view-section centered">
         <div class="edit-card-wrap">
 
@@ -158,16 +215,6 @@
                 </div>
               </template>
 
-              <!-- <div class="input-section">
-                <label>주소 <span class="req">*</span></label>
-                <div class="addr-flex-row">
-                  <input type="text" v-model="editForm.address" placeholder="주소 검색" readonly @click="openPostcode" />
-                  <button type="button" @click="openPostcode" class="check-btn">검색</button>
-                </div>
-                <input type="text" v-model="editForm.addressDetail" placeholder="상세 주소를 입력해 주세요" class="mt-8" @input="checkAddr" />
-                <p v-if="addrMsg" class="guide-msg error">{{ addrMsg }}</p>
-              </div> -->
-
               <div class="input-section">
                 <label>주소 <span class="req">*</span></label>
 
@@ -187,7 +234,9 @@
                 <label>전화번호 <span class="req">*</span></label>
                 <div class="tel-flex-row">
                   <select v-model="tel1">
-                    <option v-for="opt in ['010', '011', '070', '02', '031', '032', '051', '042']" :key="opt" :value="opt">{{ opt }}
+                    <option v-for="opt in ['010', '011', '070', '02', '031', '032', '051', '042']" :key="opt"
+                      :value="opt">
+                      {{ opt }}
                     </option>
                   </select>
                   <span class="tel-dash">-</span>
@@ -310,6 +359,7 @@
         </div>
       </div>
 
+      <!--[공통 화면] 회원 탈퇴 확인-->
       <div v-if="isWithdrawModalOpen" class="modal-overlay">
         <div class="modal-card auth-modal" style="text-align: left;">
           <h3 style="color: #dc3545;">회원 탈퇴 본인 확인</h3>
@@ -347,6 +397,7 @@
         </div>
       </div>
 
+      <!--[공통 화면] 차량 정보 수정 모달 -->
       <div v-if="showVehiModal" class="modal-overlay">
         <div class="modal-card auth-modal" style="width: 420px; text-align: left;">
           <h3 style="text-align: center; margin-bottom: 20px;">차량 정보 수정</h3>
@@ -386,10 +437,65 @@
               <button @click="submitVehiEdit" class="btn-modal-confirm">수정완료</button>
               <button @click="showVehiModal = false" class="btn-modal-cancel">취소</button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 최종 프로젝트: 결제 수단 등록 모달창 추가 -->
+      <div v-if="showPayModal" class="modal-overlay">
+        <div class="modal-card auth-modal" style="width: 420px; text-align: left;">
+          <h3 style="text-align: center; margin-bottom: 20px;">결제 수단 등록</h3>
+          <div class="edit-form">
+
+            <div class="f-row">
+              <span>카드/계좌번호</span>
+              <input v-model="cardInfo.payment_method_number" type="text" placeholder="- 제외하고 숫자만 입력"
+                style="flex:1; padding: 10px; border: 1px solid #ddd; border-radius: 4px;" />
+            </div>
+
+            <div class="f-row mt-10">
+              <span>결제 종류</span>
+              <select v-model="cardInfo.payment_method_type"
+                style="flex:1; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="CARD">신용카드</option>
+                <option value="CARD">체크카드</option>
+                <option value="BANK">계좌</option>
+              </select>
+            </div>
+
+            <div class="f-row mt-10">
+              <span>카드사 선택</span>
+              <select v-model="cardInfo.payment_method_name"
+                style="flex:1; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="신한">신한</option>
+                <option value="하나">하나</option>
+                <option value="KB국민">국민</option>
+                <option value="삼성">삼성</option>
+                <option value="현대">현대</option>
+                <option value="롯데">롯데</option>
+                <option value="우리">우리</option>
+                <option value="비씨">비씨</option>
+                <option value="씨티">씨티</option>
+                <option value="농협">농협</option>
+                <option value="IBK기업">기업</option>
+              </select>
+            </div>
+
+            <div class="f-row mt-15" style="justify-content: center; gap: 8px;">
+              <input type="checkbox" v-model="cardInfo.is_default"
+                style="width: 18px; height: 18px; accent-color: #005baa;" />
+              <span style="font-weight: bold; font-size: 14px; color: #333;">기본 대표 카드로 설정</span>
+            </div>
+
+            <div class="modal-btns" style="margin-top: 30px; display: flex; justify-content: center; gap: 10px;">
+              <button @click="registerCard" class="btn-modal-confirm">등록하기</button>
+              <button @click="closePayModal" class="btn-modal-cancel">취소</button>
+            </div>
 
           </div>
         </div>
       </div>
+
     </main>
   </div>
 
@@ -434,6 +540,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { updateInfoReq, withdrawReq, getMyInfoReq } from '@/api/member'
 import { getVehiReq, delVehiReq, editVehiReq } from '@/api/vehicle'
 import { getAdminInfoReq } from '@/api/customer.js';
+// 최종 프로젝트: 결제 수단 관리 api 연결 추가
+import { addPaymentReq, getPaymentReq, setDefaultPaymentReq, delPaymentReq } from '@/api/payment.js'
 
 import MemberDash from '@/components/mypage/MemberDash.vue'
 import DoctorDash from '@/components/mypage/DoctorDash.vue'
@@ -495,6 +603,21 @@ const editVehiForm = ref({          // 차량 수정 임시 데이터
   fuelType: ''
 })
 
+// 최종 프로젝트: 결제 수단 관리 추가 =================================================================
+// [상태 변수]
+const showPayModal = ref(false); // 모달창 온/오프 스위치
+const myPaymentMethods = ref([]); // 카드 목록 담을 배열
+const cardInfo = ref({ // 파이썬으로 보낼 새 카드 데이터 양식
+  mem_id: 0,
+  payment_method_type: 'CARD',
+  payment_method_name: '신한',
+  payment_method_number: '',
+  card_atr: null,
+  card_uid: null,
+  is_default: false,
+});
+
+
 // [탈퇴 관리]
 const isWithdrawModalOpen = ref(false) // 회원 탈퇴 확인 모달
 const withdrawData = ref({ id: '', pw: '' }); // 탈퇴 확인용 데이터
@@ -538,6 +661,14 @@ const changeView = (view) => {
 
     if (currentView.value === 'edit') {
       resetPwData();
+    }
+
+    if (view === 'pay') {
+      fetchPaymentMethods();
+    }
+
+    if (view === 'vehi') {
+      fetchVehicles();
     }
 
     currentView.value = view;
@@ -669,6 +800,134 @@ const deleteVehicle = async (num) => {
     alert("오류가 발생했습니다.");
   }
 };
+
+
+// ======================================= 최종 프로젝트: 결제 수단 관리 =======================================
+// 모달창 열고 닫기 함수
+const openPayModal = () => {
+  // 모달 열 때마다 이전 입력값 깔끔하게 초기화
+  cardInfo.value = {
+    mem_id: userInfo.value.memId,
+    payment_method_type: 'CARD',
+    payment_method_name: '신한',
+    payment_method_number: '',
+    card_atr: null,
+    card_uid: null,
+    is_default: false,
+  };
+  showPayModal.value = true;
+};
+
+const closePayModal = () => {
+  showPayModal.value = false;
+};
+
+const registerCard = async () => {
+  try {
+    const realNumber = userInfo.value.memId; 
+
+    // 현재 내 카드 목록이 0장이면 무조건 대표(true)로 강제 지정
+    let firstRegiPay = Boolean(cardInfo.value.is_default);
+    if (myPaymentMethods.value.length === 0) {
+      firstRegiPay = true;
+    }
+
+    const sendData = {
+      mem_id: Number(realNumber), 
+      payment_method_type: cardInfo.value.payment_method_type,
+      payment_method_name: cardInfo.value.payment_method_name,
+      payment_method_number: cardInfo.value.payment_method_number,
+      card_atr: null,
+      card_uid: null,
+      is_default: firstRegiPay
+    };
+
+    console.log("파이썬으로 쏘는 데이터:", sendData);
+    await addPaymentReq(sendData);
+    
+    alert('결제 수단이 성공적으로 등록되었습니다');
+    closePayModal(); 
+    fetchPaymentMethods(); 
+
+  } catch (error) {
+    console.error('파이썬이 오류 이유:', error.response?.data?.detail);
+    alert('등록 실패! 파이썬 응답을 확인해 주세요.');
+  }
+};
+
+// 결제 수단 목록 조회 (Read)
+const fetchPaymentMethods = async () => {
+  try {
+    const res = await getPaymentReq(userInfo.value.memId);
+    myPaymentMethods.value = res.data;
+  } catch (e) {
+    console.error("결제 수단 목록 조회 실패:", e);
+  }
+};
+
+// 대표 결제 수단 설정 (Update)
+const setDefaultPayment = async (methodId) => {
+  if (!confirm("이 카드를 대표 결제 수단으로 설정하시겠습니까?")) return;
+  try {
+    await setDefaultPaymentReq(methodId)
+    alert("대표 결제 수단이 변경되었습니다.");
+    fetchPaymentMethods(); // 변경 후 목록 새로고침
+  } catch (e) {
+    alert("통신 중 오류가 발생했습니다.");
+  }
+};
+
+// 결제 수단 삭제 (Delete) - 자동 물려주기 기능 추가
+const deletePayment = async (methodId) => {
+  if (!confirm("정말 이 결제 수단을 삭제하시겠습니까?")) return
+
+  try {
+    // 삭제 전, 이 카드가 대표 카드였는지 미리 찾아둠
+    const targetCard = myPaymentMethods.value.find(p => p.payment_method_id === methodId)
+    const isDefault = targetCard?.is_default
+
+    // 삭제 실행
+    await delPaymentReq(methodId)
+    
+    // 삭제 후 남은 목록 새로고침
+    await fetchPaymentMethods()
+
+    // 삭제한 카드가 대표 카드였고, 아직 지갑에 남은 카드가 있다면
+    if (isDefault && myPaymentMethods.value.length > 0) {
+      // 남은 카드 중 제일 첫 번째 카드한테 대표 씌워줌
+      const nextDefaultId = myPaymentMethods.value[0].payment_method_id
+      await setDefaultPaymentReq(nextDefaultId)
+      
+      // 한 번 더 새로고침
+      await fetchPaymentMethods()
+    } else {
+      alert("결제 수단이 삭제되었습니다")
+    }
+  } catch (e) {
+    alert("오류가 발생했습니다")
+  }
+}
+
+// 4자리마다 하이픈(-) 찍어주고 중간은 ****로 가려주는 함수
+const formatCardNumber = (num) => {
+  if (!num) return ''
+  const strNum = num.toString()
+
+  // 번호 길이가 8자리를 넘으면 (카드나 계좌) 앞 4자리, 뒤 4자리만 살리고 중간을 별표 처리함
+  if (strNum.length > 8) {
+    const front = strNum.slice(0, 4)
+    const back = strNum.slice(-2)
+    const masking = '*'.repeat(strNum.length - 8)
+    const maskedNum = front + masking + back
+
+    // 마스킹된 문자열을 다시 4자리씩 끊어서 하이픈(-) 붙이기
+    return maskedNum.replace(/(.{4})/g, '$1-').replace(/-$/, '')
+  }
+
+  // 번호가 너무 짧으면 기존처럼 숫자를 4자리씩 끊어서 하이픈만 붙여줌
+  return strNum.replace(/(.{4})/g, '$1-').replace(/-$/, '')
+}
+
 
 // ======================================= 유효성 검사 및 수정 저장 =======================================
 // 이름 검사
@@ -977,6 +1236,11 @@ onMounted(async () => {
     // 차량 관리 화면이면 데이터 미리 가져오기
     if (currentView.value === 'vehi') {
       fetchVehicles();
+    }
+
+    // 결제 수단 관리 화면이면 데이터 미리 가져오기
+    if (currentView.value === 'pay') {
+      fetchPaymentMethods();
     }
   }
   catch (e) {
@@ -1547,8 +1811,8 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
 
 /* 등록된 차량이 없습니다 */
 .empty-msg {
-    font-size: 20px;
-    margin-top: 30px;
-    text-align: center;
+  font-size: 20px;
+  margin-top: 30px;
+  text-align: center;
 }
 </style>
