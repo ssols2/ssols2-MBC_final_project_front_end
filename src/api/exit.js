@@ -1,14 +1,13 @@
-import axios from 'axios';
+import axios from 'axios'
 
-export function uploadExitImage(file) {
-  const formData = new FormData();
-  formData.append('file', file);
+const url = 'http://localhost:8000/api/parking-payment'
 
-  return axios.post('http://localhost:8080/api/ocr/exit', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  });
+// 1. 출차 요금 및 정보 조회 (파이썬 calculate_exit_fee 실행)
+export const getExitFeeReq = (plateNum) => {
+  return axios.post(`${url}/exit`, { vehicle_num: plateNum })
 }
 
-export function requestPayment(paymentData) {
-  return axios.post('http://localhost:8080/api/payment', paymentData);
+// 2. 출차 결제 승인 요청 (파이썬 process_exit_payment 실행)
+export const processPaymentReq = (data) => {
+  return axios.post(`${url}/pay`, data)
 }
