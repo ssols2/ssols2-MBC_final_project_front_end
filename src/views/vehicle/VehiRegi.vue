@@ -40,7 +40,7 @@
         <div class="input-section">
           <label>유종 선택</label>
           <div class="fuel-grid">
-            <label v-for="fuel in ['휘발유', '경유', 'LPG', '전기차']" :key="fuel" class="fuel-tile">
+            <label v-for="fuel in ['휘발유', '경유', 'LPG', '전기']" :key="fuel" class="fuel-tile">
               <input type="radio" :value="fuel" v-model="vehi.fuelType" class="hide-radio" />
               <span class="fuel-txt">{{ fuel }}</span>
             </label>

@@ -541,7 +541,7 @@ import { updateInfoReq, withdrawReq, getMyInfoReq } from '@/api/member'
 import { getVehiReq, delVehiReq, editVehiReq } from '@/api/vehicle'
 import { getAdminInfoReq } from '@/api/customer.js';
 // 최종 프로젝트: 결제 수단 관리 api 연결 추가
-import { addPaymentReq, getPaymentReq, setDefaultPaymentReq, delPaymentReq } from '@/api/payment.js'
+import { addPaymentReq, getPaymentReq, setDefaultPaymentReq, delPaymentReq } from '@/api/final-payment/method.js'
 
 import MemberDash from '@/components/mypage/MemberDash.vue'
 import DoctorDash from '@/components/mypage/DoctorDash.vue'
