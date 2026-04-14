@@ -127,10 +127,10 @@
                 <td>{{ pay.payment_method_type === 'CARD' ? '카드' : '계좌' }}</td>
                 <td>{{ pay.payment_method_name }}</td>
                 <td>{{ formatCardNumber(pay.payment_method_number) }}</td>
-                <!-- <td>{{ pay.payment_method_balance ? pay.payment_method_balance.toLocaleString() : 0 }}원</td> -->
                 <td class="txt-center">
                   <span v-if="pay.is_default" style="color: blue; font-weight: bold;">✔ 대표</span>
-                  <button v-else @click="setDefaultPayment(pay.payment_method_id)" class="btn-update-table">대표 설정</button>
+                  <button v-else @click="setDefaultPayment(pay.payment_method_id)" class="btn-update-table">대표
+                    설정</button>
                 </td>
                 <td class="txt-center">
                   <button @click="deletePayment(pay.payment_method_id)" class="btn-cancel-table">삭제</button>
@@ -139,6 +139,46 @@
             </tbody>
           </table>
           <div v-if="myPaymentMethods.length === 0" class="empty-msg">등록된 결제 수단이 없습니다.</div>
+        </div>
+      </div>
+
+      <!-- 최종 프로젝트: [공통 화면] 결제 내역 (영수증) 추가 -->
+      <div v-if="currentView === 'receipt'" class="view-section">
+        <div class="section-card">
+          <div class="card-head">
+            <h3>결제 내역 조회</h3>
+            <p class="sub-info-txt">* 주차 및 충전 결제 내역입니다</p>
+          </div>
+
+          <div class="table-scroll-wrap">
+            <table class="hospital-tbl">
+              <thead>
+                <tr>
+                  <th>번호</th>
+                  <th>결제 일시</th>
+                  <th>차량 번호</th>
+                  <th>결제 금액</th>
+                  <th>결제 수단</th>
+                  <th>영수증 번호</th>
+                  <th class="txt-center">상세</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(receipt, index) in myReceipts" :key="receipt.approval_number">
+                  <td>{{ index + 1 }}</td>
+                  <td>{{ formatDateTime(receipt.pay_date) }}</td>
+                  <td class="bold-blue">{{ receipt.vehicleNum || receipt.vehicle_num }}</td>
+                  <td class="bold-txt">{{ receipt.amount.toLocaleString() }}원</td>
+                  <td>{{ receipt.pay_method }}</td>
+                  <td class="receipt-id-txt">{{ receipt.approval_number }}</td>
+                  <td class="txt-center">
+                    <button @click="openReceiptDetail(receipt)" class="btn-update-table">상세보기</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-if="myReceipts.length === 0" class="empty-msg">최근 결제 내역이 존재하지 않습니다.</div>
         </div>
       </div>
 
@@ -496,6 +536,79 @@
         </div>
       </div>
 
+      <!-- 최종 프로젝트: 결제 내역 관리 모달창 추가 -->
+      <div v-if="showReceiptModal" class="modal-overlay">
+        <div class="modal-card receipt-detail-modal" style="width: 400px;">
+          <div class="receipt-paper">
+            <div class="receipt-header">
+              <h4>S-HOSPITAL PARKING</h4>
+              <p>전자 영수증</p>
+            </div>
+            <hr class="dash-line" />
+
+            <div class="receipt-body">
+              <div class="r-row"><span>결제 일시</span>
+                <p>{{ formatDateTime(selectedReceipt.pay_date) }}</p>
+              </div>
+              <div class="r-row"><span>영수증 번호</span>
+                <p>{{ selectedReceipt.approval_number }}</p>
+              </div>
+              <div class="r-row"><span>차량 번호</span>
+                <p>{{ selectedReceipt.vehicle_num }}</p>
+              </div>
+
+              <hr class="dash-line" />
+
+              <div class="r-row"><span>입차 시각</span>
+                <p>{{ formatDateTime(selectedReceipt.entry_time) }}</p>
+              </div>
+              <div class="r-row"><span>주차 이용 시간</span>
+                <p>{{ selectedReceipt.stay_minutes }}분</p>
+              </div>
+              <div v-if="selectedReceipt.ev_minutes > 0" class="r-row">
+                <span>전기차 충전 시간</span>
+                <p>{{ selectedReceipt.ev_minutes }}분</p>
+              </div>
+
+              <hr class="dash-line" />
+
+              <div class="r-row"><span>주차 요금</span>
+                <p>{{ (selectedReceipt.parking_fee || 0).toLocaleString() }}원</p>
+              </div>
+              <div v-if="selectedReceipt.ev_charging_fee > 0" class="r-row">
+                <span>충전 요금</span>
+                <p>+ {{ (selectedReceipt.ev_charging_fee || 0).toLocaleString() }}원</p>
+              </div>
+
+              <div v-if="selectedReceipt.discount_amount > 0" class="r-row discount-txt">
+                <span style="color: #005baa; font-weight: bold;">진료 연동 할인</span>
+                <p style="color: #005baa; font-weight: bold;">
+                  - {{ selectedReceipt.discount_amount.toLocaleString() }}원
+                </p>
+              </div>
+
+              <div class="r-row total-amount">
+                <span>합계 금액</span>
+                <p>{{ (selectedReceipt.amount || 0).toLocaleString() }}원</p>
+              </div>
+
+              <hr class="dash-line" />
+              <div class="r-row"><span>결제 수단</span>
+                <p>{{ selectedReceipt.pay_method }}</p>
+              </div>
+            </div>
+
+            <div class="receipt-footer">
+              <qrcode-vue :value="generateReceiptLink(selectedReceipt.approval_number)" :size="80" level="M" />
+              <p>QR을 스캔하여 모바일에서 확인하세요</p>
+            </div>
+          </div>
+          <div class="modal-btns mt-20">
+            <button @click="showReceiptModal = false" class="btn-modal-cancel" style="width: 100%;">닫기</button>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 
@@ -537,11 +650,14 @@
 
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import QrcodeVue from 'qrcode.vue'
 import { updateInfoReq, withdrawReq, getMyInfoReq } from '@/api/member'
 import { getVehiReq, delVehiReq, editVehiReq } from '@/api/vehicle'
 import { getAdminInfoReq } from '@/api/customer.js';
 // 최종 프로젝트: 결제 수단 관리 api 연결 추가
-import { addPaymentReq, getPaymentReq, setDefaultPaymentReq, delPaymentReq } from '@/api/payment.js'
+import { addPaymentReq, getPaymentReq, setDefaultPaymentReq, delPaymentReq } from '@/api/final-payment/method.js'
+// 최종 프로젝트: 결제 내역 api 연결 추가
+import { getMyReceiptsReq, getReceiptDetailReq } from '@/api/final-payment/receipt.js'
 
 import MemberDash from '@/components/mypage/MemberDash.vue'
 import DoctorDash from '@/components/mypage/DoctorDash.vue'
@@ -603,8 +719,7 @@ const editVehiForm = ref({          // 차량 수정 임시 데이터
   fuelType: ''
 })
 
-// 최종 프로젝트: 결제 수단 관리 추가 =================================================================
-// [상태 변수]
+// ================================================================= 최종 프로젝트: 결제 수단 관리 추가 =================================================================
 const showPayModal = ref(false); // 모달창 온/오프 스위치
 const myPaymentMethods = ref([]); // 카드 목록 담을 배열
 const cardInfo = ref({ // 파이썬으로 보낼 새 카드 데이터 양식
@@ -617,7 +732,12 @@ const cardInfo = ref({ // 파이썬으로 보낼 새 카드 데이터 양식
   is_default: false,
 });
 
+// ================================================================= 최종 프로젝트: 결제 내역 관련 상태 변수 =================================================================
+const myReceipts = ref([])
+const showReceiptModal = ref(false)
+const selectedReceipt = ref(null)
 
+// =================================================================
 // [탈퇴 관리]
 const isWithdrawModalOpen = ref(false) // 회원 탈퇴 확인 모달
 const withdrawData = ref({ id: '', pw: '' }); // 탈퇴 확인용 데이터
@@ -665,6 +785,10 @@ const changeView = (view) => {
 
     if (view === 'pay') {
       fetchPaymentMethods();
+    }
+
+    if (view === 'receipt') {
+      fetchMyReceipts()
     }
 
     if (view === 'vehi') {
@@ -824,7 +948,7 @@ const closePayModal = () => {
 
 const registerCard = async () => {
   try {
-    const realNumber = userInfo.value.memId; 
+    const realNumber = userInfo.value.memId;
 
     // 현재 내 카드 목록이 0장이면 무조건 대표(true)로 강제 지정
     let firstRegiPay = Boolean(cardInfo.value.is_default);
@@ -833,7 +957,7 @@ const registerCard = async () => {
     }
 
     const sendData = {
-      mem_id: Number(realNumber), 
+      mem_id: Number(realNumber),
       payment_method_type: cardInfo.value.payment_method_type,
       payment_method_name: cardInfo.value.payment_method_name,
       payment_method_number: cardInfo.value.payment_method_number,
@@ -844,10 +968,10 @@ const registerCard = async () => {
 
     console.log("파이썬으로 쏘는 데이터:", sendData);
     await addPaymentReq(sendData);
-    
+
     alert('결제 수단이 성공적으로 등록되었습니다');
-    closePayModal(); 
-    fetchPaymentMethods(); 
+    closePayModal();
+    fetchPaymentMethods();
 
   } catch (error) {
     console.error('파이썬이 오류 이유:', error.response?.data?.detail);
@@ -888,7 +1012,7 @@ const deletePayment = async (methodId) => {
 
     // 삭제 실행
     await delPaymentReq(methodId)
-    
+
     // 삭제 후 남은 목록 새로고침
     await fetchPaymentMethods()
 
@@ -897,7 +1021,7 @@ const deletePayment = async (methodId) => {
       // 남은 카드 중 제일 첫 번째 카드한테 대표 씌워줌
       const nextDefaultId = myPaymentMethods.value[0].payment_method_id
       await setDefaultPaymentReq(nextDefaultId)
-      
+
       // 한 번 더 새로고침
       await fetchPaymentMethods()
     } else {
@@ -916,7 +1040,7 @@ const formatCardNumber = (num) => {
   // 번호 길이가 8자리를 넘으면 (카드나 계좌) 앞 4자리, 뒤 4자리만 살리고 중간을 별표 처리함
   if (strNum.length > 8) {
     const front = strNum.slice(0, 4)
-    const back = strNum.slice(-2)
+    const back = strNum.slice(-1)
     const masking = '*'.repeat(strNum.length - 8)
     const maskedNum = front + masking + back
 
@@ -928,6 +1052,51 @@ const formatCardNumber = (num) => {
   return strNum.replace(/(.{4})/g, '$1-').replace(/-$/, '')
 }
 
+// ======================================= 최종 프로젝트: 결제 내역 관리 =======================================
+// [추가] 결제 내역 서버에서 불러오기
+const fetchMyReceipts = async () => {
+  try {
+    const realMemId = userInfo.value.mem_id || userInfo.value.memId
+
+    const res = await getMyReceiptsReq(realMemId)
+
+    myReceipts.value = res.data
+    console.log("서버에서 받아온 내역들:", res.data)
+  } catch (err) {
+    console.error('결제 내역 로드 실패:', err)
+  }
+}
+
+// [추가] 상세 영수증 모달 열기
+const openReceiptDetail = async (receipt) => {
+  try {
+    const res = await getReceiptDetailReq(receipt.approval_number)
+
+    selectedReceipt.value = res.data
+    showReceiptModal.value = true
+  } catch (err) {
+    console.error("상세 영수증 조회 에러:", err)
+    alert("영수증 상세 정보를 불러올 수 없습니다.")
+  }
+}
+
+const generateReceiptLink = (id) => {
+  const host = "192.168.137.178"
+  const port = window.location.port || "5173"
+  return `http://${host}:${port}/receipt/${id}`
+}
+
+const formatDateTime = (dateStr) => {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  const h = String(date.getHours()).padStart(2, '0')
+  const i = String(date.getMinutes()).padStart(2, '0')
+  const s = String(date.getSeconds()).padStart(2, '0')
+  return `${y}년 ${m}월 ${d}일 ${h}:${i}:${s}`
+}
 
 // ======================================= 유효성 검사 및 수정 저장 =======================================
 // 이름 검사
@@ -964,7 +1133,6 @@ const checkEmail = () => {
 };
 
 const checkAddr = () => {
-  a
   addrMsg.value = editForm.value.address ? "" : "주소를 입력해 주세요";
 };
 
@@ -1241,6 +1409,11 @@ onMounted(async () => {
     // 결제 수단 관리 화면이면 데이터 미리 가져오기
     if (currentView.value === 'pay') {
       fetchPaymentMethods();
+    }
+
+    // 결제 내역 화면이면 데이터 미리 가져오기
+    if (currentView.value === 'receipt') {
+      fetchMyReceipts();
     }
   }
   catch (e) {
