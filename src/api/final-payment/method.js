@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const url = 'http://localhost:8000/api/payment-methods'
+const url = 'http://localhost:8004/api/payment-methods'
 
 // 1. 결제 수단 등록 (Create)
 export const addPaymentReq = (data) => {
