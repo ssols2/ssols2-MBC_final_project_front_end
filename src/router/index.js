@@ -30,19 +30,18 @@ import vehicle from '@/router/vehicle/vehicle.js'
 import reservation from '@/router/reservation/reservation.js'
 import customer from '@/router/customer/customer.js'
 
-// 입출차
-import entry from '@/router/entry/entry.js'
-import exit from '@/router/exit/exit.js'
-
 // =================================================================================================================
 // ===============================================최종 프로젝트 ====================================================
 // 대시보드 레이아웃
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
+import KioskLayout from "@/layouts/KioskLayout.vue"
 
-// 대시보드 메인화면
+// 대시보드 각 화면 불러오기
+// 0. 대시보드 관리자 인증 화면
+import AdminLogin from '@/views/dashboard/AdminLogin.vue'
+// 1. 대시보드 메인화면
 import MainView from '@/views/dashboard/MainView.vue'
-
-// 출입 차량 관제 (방금 합친 파일) 불러오기
+// 2. 출입 차량 관제 불러오기
 import VehicleControl from '@/views/dashboard/VehicleControl.vue'
 
 // 라우터 설정 시작
@@ -134,10 +133,17 @@ const router = createRouter({
                 ...customer
             ]
         },
+        // 대시보드 로그인 화면
+        {
+            path: '/dashboard/admin-login',
+            name: 'AdminLogin',
+            component: AdminLogin
+        },
         // 관리자 전용 대시보드 그룹 (새로운 DashboardLayout 사용)
         {
             path: '/dashboard',
-            component: DashboardLayout, 
+            component: DashboardLayout,
+            redirect: '/dashboard/main',
             children: [
                 {
                     path: 'main', // 주소: /dashboard/main
@@ -156,9 +162,38 @@ const router = createRouter({
                 }
             ]
         },
-        // [B & C] 주차장/키오스크 파일들
-        ...entry,
-        ...exit,
+        // 주차장 키오스크 전용 그룹 (KioskLayout 사용)
+        {
+            path: '/kiosk',
+            component: KioskLayout,
+            redirect: '/kiosk/entry',
+            children: [
+                // 1. 입차 화면 (/kiosk/entry)
+                {
+                    path: 'entry',
+                    name: 'kiosk-entry',
+                    component: () => import('@/views/kiosk/Entry.vue')
+                },
+                // 2. 출차/정산 화면 (/kiosk/exit)
+                {
+                    path: 'exit',
+                    name: 'kiosk-exit',
+                    component: () => import('@/views/kiosk/Exit.vue')
+                },
+                // 3. 전기차 충전 화면 (/kiosk/evcharge)
+                {
+                    path: 'evcharge',
+                    name: 'kiosk-ev-charge',
+                    component: () => import('@/views/kiosk/EvCharge.vue')
+                },
+                // 4. 주차 현황 조회 화면 (/kiosk/status)
+                // {
+                //     path: 'status',
+                //     name: 'kiosk-status',
+                //     component: () => import('@/views/kiosk/Status.vue')
+                // }
+            ]
+        }
     ]
 })
 

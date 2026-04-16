@@ -401,7 +401,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import QrcodeVue from 'qrcode.vue'
 import axios from 'axios'
-import { getExitFeeByOcrReq, processPaymentReq, readNfcCardReq } from '@/api/final-payment/exit.js'
+import { getExitFeeByOcrReq, processPaymentReq, readNfcCardReq } from '@/api/parking/exit.js'
 
 // ================================================ 상태 변수 ================================================
 // 화면 제어 변수
