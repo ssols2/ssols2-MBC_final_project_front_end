@@ -42,7 +42,9 @@ import AdminLogin from '@/views/dashboard/AdminLogin.vue'
 // 1. 대시보드 메인화면
 import MainView from '@/views/dashboard/MainView.vue'
 // 2. 출입 차량 관제 불러오기
-import VehicleControl from '@/views/dashboard/VehicleControl.vue'
+import VehicleControlManage from '@/views/dashboard/VehicleControlManage.vue'
+// 3. 요금 정산 관리 불러오기
+import PaymentManage from '@/views/dashboard/PaymentManage.vue'
 
 // 라우터 설정 시작
 const router = createRouter({
@@ -126,7 +128,7 @@ const router = createRouter({
                     component: ParkingInfo
                 },
 
-                // 쪼개놓은 파일들 여기서 합치지 (Spread Operator)
+                // 쪼개놓은 파일들 합치기 (Spread Operator)
                 ...member,
                 ...vehicle,
                 ...reservation,
@@ -143,23 +145,28 @@ const router = createRouter({
         {
             path: '/dashboard',
             component: DashboardLayout,
-            redirect: '/dashboard/main',
+            redirect: '/dashboard/admin-login',
             children: [
+                // 대시보드 메인 화면
                 {
                     path: 'main', // 주소: /dashboard/main
                     name: 'dashboard-main',
                     component: MainView,
                     // meta: { requiresAuth: true, role: 'ADMIN' } // 보안 딱지
                 },
-
-
-                // 출입 차량 관제 화면 추가
+                // 출입 차량 관제 화면
                 {
                     path: 'vehicle-control', // 주소: /dashboard/vehicle-control
                     name: 'vehicle-control',
-                    component: VehicleControl,
+                    component: VehicleControlManage,
                     //meta: { requiresAuth: true, role: 'ADMIN' }
-                }
+                },
+                // 요금 정산 관리 화면
+                {
+                    path: 'payment', // 주소: /dashboard/payment
+                    name: 'payment-manage',
+                    component: PaymentManage,
+                },
             ]
         },
         // 주차장 키오스크 전용 그룹 (KioskLayout 사용)
