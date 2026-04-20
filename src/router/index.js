@@ -41,10 +41,15 @@ import KioskLayout from "@/layouts/KioskLayout.vue"
 import AdminLogin from '@/views/dashboard/AdminLogin.vue'
 // 1. 대시보드 메인화면
 import MainView from '@/views/dashboard/MainView.vue'
-// 2. 출입 차량 관제 불러오기
+// 2. 주차 모니터링 화면
+import ParkingMonitoring from '@/views/dashboard/ParkingMonitoring.vue'
+// 3. 출입 차량 관제
 import VehicleControlManage from '@/views/dashboard/VehicleControlManage.vue'
-// 3. 요금 정산 관리 불러오기
+// 4. 요금 정산 관리
 import PaymentManage from '@/views/dashboard/PaymentManage.vue'
+// 5. 영상 보안 관제
+import SecurityView from '@/views/dashboard/CctvView.vue'
+
 
 // 라우터 설정 시작
 const router = createRouter({
@@ -154,6 +159,13 @@ const router = createRouter({
                     component: MainView,
                     // meta: { requiresAuth: true, role: 'ADMIN' } // 보안 딱지
                 },
+                // 주차 모니터링 관제 화면
+                {
+                    path: 'monitoring', // 주소: /dashboard/monitoring
+                    name: 'monitoring',
+                    component: ParkingMonitoring,
+                    //meta: { requiresAuth: true, role: 'ADMIN' }
+                },
                 // 출입 차량 관제 화면
                 {
                     path: 'vehicle-control', // 주소: /dashboard/vehicle-control
@@ -166,6 +178,12 @@ const router = createRouter({
                     path: 'payment', // 주소: /dashboard/payment
                     name: 'payment-manage',
                     component: PaymentManage,
+                },
+                // 영상 보안 관제 화면
+                {
+                    path: 'cctv', // 주소: /dashboard/cctv
+                    name: 'cctv',
+                    component: SecurityView,
                 },
             ]
         },
