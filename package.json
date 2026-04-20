@@ -12,6 +12,7 @@
     "@vuepic/vue-datepicker": "^12.1.0",
     "axios": "^1.13.3",
     "chart.js": "^4.5.1",
+    "echarts": "^6.0.0",
     "mitt": "^3.0.1",
     "pinia": "^3.0.4",
     "qrcode.vue": "^3.8.1",

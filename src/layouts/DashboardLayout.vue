@@ -389,6 +389,38 @@ onUnmounted(() => {
     flex: 1;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+}
+
+.content-container {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    position: relative;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 스크롤바 전체 너비 */
+.content-container::-webkit-scrollbar {
+    width: 10px;
+}
+
+/* 스크롤바 배경 */
+.content-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* 스크롤바 막대기 */
+.content-container::-webkit-scrollbar-thumb {
+    background: #444D56;
+    border-radius: 4px;
+}
+
+/* 마우스 올렸을 때 살짝 밝아지는 디테일 추가 */
+.content-container::-webkit-scrollbar-thumb:hover {
+    background: #5a6570;
 }
 
 /* ── [2] 사이드바 영역 (Sidebar) ── */
