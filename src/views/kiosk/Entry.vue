@@ -144,7 +144,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { uploadEntryImage } from '@/api/entry.js'; // 실제 사용하는 axios 모듈에 맞게 경로 확인
+import { uploadEntryImage } from '@/api/parking/entry.js'; // 실제 사용하는 axios 모듈에 맞게 경로 확인
 
 // 자바 스프링부트 서버 주소 (포트가 다르면 수정하세요)
 const backendUrl = 'http://localhost:8080';

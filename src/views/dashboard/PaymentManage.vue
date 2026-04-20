@@ -2,20 +2,12 @@
     <div class="payment-manage-container">
         <header class="payment-header">
             <h2 class="page-title">요금 정산 관리</h2>
-            
+
             <div class="tab-button-group">
-                <button 
-                    class="tab-btn" 
-                    :class="{ active: currentTab === 'revenue' }"
-                    @click="currentTab = 'revenue'"
-                >
+                <button class="tab-btn" :class="{ active: currentTab === 'revenue' }" @click="currentTab = 'revenue'">
                     매출 통계 현황
                 </button>
-                <button 
-                    class="tab-btn" 
-                    :class="{ active: currentTab === 'analysis' }"
-                    @click="currentTab = 'analysis'"
-                >
+                <button class="tab-btn" :class="{ active: currentTab === 'analysis' }" @click="currentTab = 'analysis'">
                     결제 및 할인 분석
                 </button>
             </div>
@@ -40,7 +32,10 @@ const currentTab = ref('revenue')
 </script>
 
 <style scoped>
-.payment-manage-container { padding: 10px; color: #fff; }
+.payment-manage-container {
+    padding: 10px;
+    color: #fff;
+}
 
 .payment-header {
     display: flex;
@@ -49,12 +44,16 @@ const currentTab = ref('revenue')
     margin-bottom: 25px;
 }
 
-.page-title { font-size: 24px; font-weight: 700; }
+.page-title {
+    font-size: 24px;
+    font-weight: 700;
+}
 
 /* ── 탭 버튼 디자인 (설계서 반영) ── */
 .tab-button-group {
     display: flex;
-    background: #1e1e2d; /* 버튼 배경색 */
+    background: #1e1e2d;
+    /* 버튼 배경색 */
     padding: 4px;
     border-radius: 8px;
 }
@@ -72,11 +71,20 @@ const currentTab = ref('revenue')
 }
 
 .tab-btn.active {
-    background: #82c2e3; /* 포인트 블루 */
-    color: #000;         /* 활성화 시 글자색 반전 */
+    background: #82c2e3;
+    /* 포인트 블루 */
+    color: #000;
+    /* 활성화 시 글자색 반전 */
 }
 
 /* ── 부드러운 전환 효과 ── */
-.fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
 </style>

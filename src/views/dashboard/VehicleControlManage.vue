@@ -2,20 +2,12 @@
   <div class="vehicle-control-container">
     <header class="page-header">
       <h2 class="page-title">출입 차량 관제</h2>
-      
+
       <div class="tab-button-group">
-        <button 
-          class="tab-btn" 
-          :class="{ active: currentTab === 'log' }"
-          @click="currentTab = 'log'"
-        >
+        <button class="tab-btn" :class="{ active: currentTab === 'log' }" @click="currentTab = 'log'">
           입출차 로그
         </button>
-        <button 
-          class="tab-btn" 
-          :class="{ active: currentTab === 'prediction' }"
-          @click="currentTab = 'prediction'"
-        >
+        <button class="tab-btn" :class="{ active: currentTab === 'prediction' }" @click="currentTab = 'prediction'">
           주차 예측 통계
         </button>
       </div>
@@ -40,7 +32,17 @@ const currentTab = ref('log')
 </script>
 
 <style scoped>
-.vehicle-control-container { padding: 10px; color: #fff; }
+.vehicle-control-container {
+    padding: 10px;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+}
+
+.control-content {
+    display: flex;
+    flex-direction: column;
+}
 
 .page-header {
   display: flex;
@@ -49,7 +51,10 @@ const currentTab = ref('log')
   margin-bottom: 25px;
 }
 
-.page-title { font-size: 24px; font-weight: 700; }
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+}
 
 /* ── 탭 버튼 디자인 (공통 UI 가이드 반영) ── */
 .tab-button-group {
@@ -72,11 +77,19 @@ const currentTab = ref('log')
 }
 
 .tab-btn.active {
-  background: #82c2e3; /* 포인트 블루 */
+  background: #82c2e3;
+  /* 포인트 블루 */
   color: #000;
 }
 
 /* 전환 애니메이션 */
-.fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
 </style>
