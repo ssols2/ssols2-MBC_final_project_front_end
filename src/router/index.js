@@ -41,8 +41,15 @@ import KioskLayout from "@/layouts/KioskLayout.vue"
 import AdminLogin from '@/views/dashboard/AdminLogin.vue'
 // 1. 대시보드 메인화면
 import MainView from '@/views/dashboard/MainView.vue'
-// 2. 출입 차량 관제 불러오기
-import VehicleControl from '@/views/dashboard/VehicleControl.vue'
+// 2. 주차 모니터링 화면
+import ParkingMonitoring from '@/views/dashboard/ParkingMonitoring.vue'
+// 3. 출입 차량 관제
+import VehicleControlManage from '@/views/dashboard/VehicleControlManage.vue'
+// 4. 요금 정산 관리
+import PaymentManage from '@/views/dashboard/PaymentManage.vue'
+// 5. 영상 보안 관제
+import SecurityView from '@/views/dashboard/CctvView.vue'
+
 
 // 전기차 충전기 불러오기
 import EvInfraManage from '../views/dashboard/EvInfraManage.vue'
@@ -129,7 +136,7 @@ const router = createRouter({
                     component: ParkingInfo
                 },
 
-                // 쪼개놓은 파일들 여기서 합치지 (Spread Operator)
+                // 쪼개놓은 파일들 합치기 (Spread Operator)
                 ...member,
                 ...vehicle,
                 ...reservation,
@@ -146,28 +153,49 @@ const router = createRouter({
         {
             path: '/dashboard',
             component: DashboardLayout,
-            redirect: '/dashboard/main',
+            redirect: '/dashboard/admin-login',
             children: [
+                // 대시보드 메인 화면
                 {
                     path: 'main', // 주소: /dashboard/main
                     name: 'dashboard-main',
                     component: MainView,
                     // meta: { requiresAuth: true, role: 'ADMIN' } // 보안 딱지
                 },
-
-
-                // 출입 차량 관제 화면 추가
+                // 주차 모니터링 관제 화면
+                {
+                    path: 'monitoring', // 주소: /dashboard/monitoring
+                    name: 'monitoring',
+                    component: ParkingMonitoring,
+                    //meta: { requiresAuth: true, role: 'ADMIN' }
+                },
+                // 출입 차량 관제 화면
                 {
                     path: 'vehicle-control', // 주소: /dashboard/vehicle-control
                     name: 'vehicle-control',
-                    component: VehicleControl,
+                    component: VehicleControlManage,
                     //meta: { requiresAuth: true, role: 'ADMIN' }
                 },
+<<<<<<< HEAD
                 {
                     path: 'ev-infra',
                     name: 'ev-infra',
                     component: EvInfraManage,
                 }
+=======
+                // 요금 정산 관리 화면
+                {
+                    path: 'payment', // 주소: /dashboard/payment
+                    name: 'payment-manage',
+                    component: PaymentManage,
+                },
+                // 영상 보안 관제 화면
+                {
+                    path: 'cctv', // 주소: /dashboard/cctv
+                    name: 'cctv',
+                    component: SecurityView,
+                },
+>>>>>>> 607d16848c35656443af5dcc813009c40956a6c4
             ]
         },
         // 주차장 키오스크 전용 그룹 (KioskLayout 사용)

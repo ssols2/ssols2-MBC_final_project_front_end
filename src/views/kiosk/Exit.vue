@@ -398,6 +398,7 @@
 </template>
 
 <script setup>
+// npm install qrcode.vue 해야함!
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import QrcodeVue from 'qrcode.vue'
 import axios from 'axios'

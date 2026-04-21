@@ -1,49 +1,21 @@
 <template>
     <div class="control-container">
 
-        <div class="page-header">
+        <!-- <div class="page-header">
             <div class="header-title-area">
                 <h2 class="page-title">출입 차량 관리</h2>
                 <div class="tab-group">
-                    <button class="tab-btn" :class="{ active: activeTab === 'log' }" @click="activeTab = 'log'">
+                    <button class="tab-btn" @click="$router.push('/dashboard/vehicle-log')">
                         입출차 로그
                     </button>
-                    <button class="tab-btn" :class="{ active: activeTab === 'stats' }" @click="activeTab = 'stats'">
+                    <button class="tab-btn active">
                         주차 예측 통계
                     </button>
                 </div>
             </div>
-        </div>
+        </div> -->
 
-        <div v-show="activeTab === 'log'" class="tab-content">
-            <div class="filter-bar">
-                <div class="date-range">
-                    <input type="text" class="date-input" value="26.02.13 - 26.03.13" readonly />
-                    <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
-                </div>
-                <div class="search-box">
-                    <input type="text" placeholder="차량번호 검색(예: 12가 4567)" />
-                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                </div>
-            </div>
-
-            <div class="placeholder-box">
-                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#3f3f46" stroke-width="1.5">
-                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                </svg>
-                <p>입출차 로그 데이터 연동 준비 중입니다.</p>
-            </div>
-        </div>
-
-        <div v-show="activeTab === 'stats'" class="tab-content">
+        <div class="tab-content">
 
             <div class="stats-header-bar">
                 <div class="date-range">
@@ -255,18 +227,6 @@ const errorClass = (row) => {
 }
 
 // ── 필터 & 정렬 & 페이지네이션 ───────────────────────────────
-// const filteredTableData = computed(() => {
-//     let rows = congestionFilter.value
-//         ? tableData.value.filter(r => r.congestionLabel === congestionFilter.value)
-//         : [...tableData.value]
-
-//     rows.sort((a, b) =>
-//         sortOrder.value === 'desc'
-//             ? b.datetime.localeCompare(a.datetime)
-//             : a.datetime.localeCompare(b.datetime)
-//     )
-//     return rows
-// })
 const filteredTableData = computed(() => {
     // 1. 일단 원본 데이터 복사
     let rows = [...tableData.value]
@@ -425,7 +385,6 @@ const fetchShortData = async () => {
                 responsive: true,
                 maintainAspectRatio: false,
                 interaction: { mode: 'index', intersect: false },
-                //plugins: { legend: { position: 'top' } },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
@@ -451,24 +410,56 @@ const fetchShortData = async () => {
     }
 }
 
-// ── [우] 중기 막대 그래프 ──────────────────────────────────────
+// ── [우] 중기 막대 그래프 (요일 및 공휴일 색상 적용) ────────────────
 const fetchMidData = async () => {
     midLoading.value = true
     try {
         const res = await axios.get('http://localhost:8080/dashBoard/parkingChart/mid')
         midData.value = res.data
-        const labels = res.data.map(d => getDowLabel(d.date))
-        const predList = res.data.map(d => d.predictedCars)
+        
+        const labels = []         // X축에 표시될 글씨 (날짜, 공휴일명)
+        const labelColors = []    // X축 글씨 색상 (빨강, 파랑, 회색)
+        const predList = []
+
+        res.data.forEach(d => {
+            predList.push(d.predictedCars)
+
+            const dateObj = new Date(d.date + 'T00:00:00')
+            const day = dateObj.getDay() // 0: 일요일, 6: 토요일
+            const baseLabel = getDowLabel(d.date) // 예: "03-13 (수)"
+
+            // 1. 일요일 또는 공휴일 (빨간색)
+            if (d.isHoliday || day === 0) {
+                labelColors.push('#ef4444') // 다크모드용 밝은 빨강
+                
+                if (d.holidayName) {
+                    // 배열로 넣으면 Chart.js가 자동으로 두 줄로 줄바꿈 처리해 줍니다!
+                    labels.push([baseLabel, `[${d.holidayName}]`]) 
+                } else {
+                    labels.push(baseLabel) // 단순 일요일일 경우
+                }
+            } 
+            // 2. 토요일 (파란색)
+            else if (day === 6) {
+                labelColors.push('#60a5fa') // 다크모드용 밝은 파랑
+                labels.push(baseLabel)
+            } 
+            // 3. 평일 (회색/흰색 - 다크모드 기준)
+            else {
+                labelColors.push('#d4d4d8') // 다크모드 기본 글씨색
+                labels.push(baseLabel)
+            }
+        })
 
         if (midChartInstance) midChartInstance.destroy()
         midChartInstance = new Chart(midChartRef.value, {
             type: 'bar',
             data: {
-                labels,
+                labels: labels, // 가공된 라벨 배열 투입
                 datasets: [{
                     label: '예측 주차대수',
                     data: predList,
-                    backgroundColor: '#fbb900',
+                    backgroundColor: '#fbb900', // 시안 반영 옐로우
                     borderRadius: 4,
                     barPercentage: 0.5,
                 }],
@@ -485,8 +476,21 @@ const fetchMidData = async () => {
                     }
                 },
                 scales: {
-                    y: { beginAtZero: true, title: { display: true, text: '주차 대수 (대)', color: '#f5f5f5a9' }, ticks: { stepSize: 5, color: '#f5f5f5a9' } },
-                    x: { title: { display: true, text: '예측 날짜', color: '#f5f5f5a9' }, ticks: { maxTicksLimit: 12, color: '#f5f5f5a9' } },
+                    y: { 
+                        beginAtZero: true, 
+                        title: { display: true, text: '주차 대수 (대)', color: '#f5f5f5a9' }, 
+                        ticks: { stepSize: 5, color: '#f5f5f5a9' } 
+                    },
+                    x: { 
+                        title: { display: true, text: '예측 날짜', color: '#f5f5f5a9' }, 
+                        ticks: { 
+                            maxTicksLimit: 12, 
+                            color: labelColors, // ✨ 여기에 지정한 색상 배열을 투입!
+                            font: {
+                                size: 12
+                            }
+                        } 
+                    },
                 },
             },
         })
@@ -784,7 +788,7 @@ watch(activeTab, (newTab) => {
     padding: 20px;
     border: 1px solid #27272a;
     width: 100%;         
-    min-width: 0;         
+    min-width: 0;        
 }
 
 .table-header {

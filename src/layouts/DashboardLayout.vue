@@ -7,7 +7,7 @@
             </div>
 
             <ul class="main-tab-menu">
-                <li class="tab-item">
+                <li class="tab-item" :class="{ active: isActiveMenu('/dashboard/main') }" @click="goToPage('/dashboard/main')">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
                         <path
                             d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z"
@@ -17,7 +17,7 @@
                     </svg>
                     대시보드
                 </li>
-                <li class="tab-item">
+                <li class="tab-item" :class="{ active: isActiveMenu('/dashboard/monitoring') }" @click="goToPage('/dashboard/monitoring')">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
                         <path
                             d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
@@ -29,7 +29,7 @@
                     </svg>
                     주차 모니터링
                 </li>
-                <li class="tab-item active">
+                <li class="tab-item" :class="{ active: isActiveMenu('/dashboard/vehicle-control') }" @click="goToPage('/dashboard/vehicle-control')">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2"
                             stroke-linecap="round" stroke-linejoin="round" />
@@ -40,7 +40,7 @@
                     </svg>
                     출입 차량 관제
                 </li>
-                <li class="tab-item">
+                <li class="tab-item" :class="{ active: isActiveMenu('/dashboard/payment') }" @click="goToPage('/dashboard/payment')">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
                         <rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"
                             stroke-linecap="round" stroke-linejoin="round" />
@@ -49,7 +49,7 @@
                     </svg>
                     요금 정산 관리
                 </li>
-                <li class="tab-item">
+                <li class="tab-item" :class="{ active: isActiveMenu('/dashboard/cctv') }" @click="goToPage('/dashboard/cctv')">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
                         <path d="M23 7L16 12L23 17V7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                             stroke-linejoin="round" />
@@ -58,17 +58,38 @@
                     </svg>
                     영상 보안 관리
                 </li>
-                <li class="tab-item">
+                <li class="tab-item" :class="{ active: isActiveMenu('/dashboard/ev') }" @click="goToPage('/dashboard/ev')">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
                         <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" stroke-width="2"
                             stroke-linecap="round" stroke-linejoin="round" />
                     </svg>
                     EV 인프라 관리
                 </li>
+
+                <li class="tab-item-group" :class="{ 'is-open': isSystemMenuOpen, 'active-group': isActiveMenu('/system') }">
+                    <div class="tab-item parent" @click="toggleSystemMenu">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3" />
+                            <path
+                                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                        </svg>
+                        시스템 설정
+
+                        <svg class="arrow-icon" :class="{ 'rotate': isSystemMenuOpen }" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                    </div>
+
+                    <ul v-show="isSystemMenuOpen" class="sub-menu-list">
+                        <li class="sub-item">• 통합 알림 및 장애 이력</li>
+                        <li class="sub-item">• 관리자 계정 관리</li>
+                        <li class="sub-item">• 환경설정</li>
+                    </ul>
+                </li>
             </ul>
 
             <div class="bottom-widget">
-
                 <div class="weather-card" v-if="weather">
                     <div class="weather-main">
                         <span class="weather-icon-svg">{{ weatherIcon }}</span>
@@ -77,7 +98,6 @@
                             <span class="weather-temp">{{ weather.temp }}°C</span>
                         </div>
                     </div>
-                    <div class="weather-clock-box">{{ currentTime }}</div>
                     <div class="weather-refresh-info">마지막 갱신: {{ lastUpdated }}</div>
 
                     <div class="weather-details">
@@ -97,9 +117,15 @@
                 </div>
                 <div class="weather-card loading" v-else>날씨 정보를 불러오는 중...</div>
 
-                <div class="reservation-btn">
-
-                    금일 예약 건수 건
+                <div class="reservation-box">
+                    <div class="res-header">
+                        <span class="res-title">금일 예약 현황</span>
+                        <div class="live-dot"></div>
+                    </div>
+                    <div class="res-count-area">
+                        <span class="res-count">{{ reservationCount || 0 }}</span>
+                        <span class="res-unit">건</span>
+                    </div>
                 </div>
             </div>
         </aside>
@@ -114,47 +140,64 @@
                 <div class="header-right">
                     <div class="search-bar">
                         <input type="text" placeholder="Search..." />
-                        <svg width="16" height="16" class="search-icon" viewBox="0 0 24 24" fill="none">
-                            <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round" />
-                            <line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round" />
+                        <svg width="18" height="18" class="search-icon" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
                         </svg>
                     </div>
 
-                    <div class="util-icons">
-                        <svg width="20" height="20" class="u-icon" viewBox="0 0 24 24" fill="none">
-                            <path d="M18 8A6 6 0 0 0 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                            <path
-                                d="M13.73 21C13.5542 21.3031 13.3019 21.5547 12.9982 21.7295C12.6946 21.9044 12.3504 21.9965 12 21.9965C11.6496 21.9965 11.3054 21.9044 11.0018 21.7295C10.6982 21.5547 10.4458 21.3031 10.27 21"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-                        <svg width="20" height="20" class="u-icon" viewBox="0 0 24 24" fill="none">
-                            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round" />
-                            <path
-                                d="M19.4 15A1.65 1.65 0 0 0 21 13.35V10.65A1.65 1.65 0 0 0 19.4 9H18.61A6.27 6.27 0 0 0 17.65 6.84L18.21 6.28A1.65 1.65 0 0 0 18.21 3.95L16.32 2.06A1.65 1.65 0 0 0 14.15 2.06L13.59 2.62A6.27 6.27 0 0 0 11.43 2.22V1.43A1.65 1.65 0 0 0 9.78 0H6.91A1.65 1.65 0 0 0 5.26 1.43V2.22A6.27 6.27 0 0 0 3.1 3.18L2.54 2.62A1.65 1.65 0 0 0 0.37 2.62L-1.52 4.51A1.65 1.65 0 0 0 -1.52 6.84L-0.96 7.4A6.27 6.27 0 0 0 -1.36 9.56H-2.15A1.65 1.65 0 0 0 -3.8 11.21V13.89A1.65 1.65 0 0 0 -2.15 15.54H-1.36A6.27 6.27 0 0 0 -0.4 17.7L-0.96 18.26A1.65 1.65 0 0 0 -0.96 20.59L0.93 22.48A1.65 1.65 0 0 0 3.1 22.48L3.66 21.92A6.27 6.27 0 0 0 5.82 22.32V23.11A1.65 1.65 0 0 0 7.47 24.76H10.34A1.65 1.65 0 0 0 11.99 23.11V22.32A6.27 6.27 0 0 0 14.15 21.43L14.71 21.99A1.65 1.65 0 0 0 16.88 21.99L18.77 20.1A1.65 1.65 0 0 0 18.77 17.77L18.21 17.21A6.27 6.27 0 0 0 18.61 15.05H19.4Z"
-                                transform="translate(3 0)" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round" />
-                        </svg>
+                    <div class="util-actions">
+                        <button class="icon-btn" title="새로고침">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path
+                                    d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+                            </svg>
+                        </button>
+
+                        <button class="icon-btn notify-btn" title="알림">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M18 8A6 6 0 0 0 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" />
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                            </svg>
+                            <span class="notification-badge"></span>
+                        </button>
+
+                        <button class="icon-btn" title="즐겨찾기">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polygon
+                                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                            </svg>
+                        </button>
                     </div>
 
                     <div class="user-profile">
                         <div class="avatar-circle">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
                                 <path
-                                    d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21"
-                                    stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                <circle cx="12" cy="7" r="4" stroke="#fff" stroke-width="2" stroke-linecap="round"
-                                    stroke-linejoin="round" />
+                                    d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" />
+                                <circle cx="12" cy="7" r="4" />
                             </svg>
                         </div>
-                        <span>관리자(김원석)</span>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                            <polyline points="6 9 12 15 18 9" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
+                        <span class="user-name">{{ adminName }}({{ adminDept }})</span>
+                    </div>
+
+                    <div class="mode-toggle">
+                        <div class="toggle-track">
+                            <div class="toggle-thumb" :class="{ 'active': isDarkMode }">
+                                <svg v-if="isDarkMode" width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                                </svg>
+                                <svg v-else width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                                    <circle cx="12" cy="12" r="5" />
+                                    <path
+                                        d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+                                </svg>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -164,20 +207,70 @@
             </main>
         </div>
     </div>
-</template>>
+</template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
+import { useRouter, useRoute } from 'vue-router'
 
-// 상태 관리
+
+// ==========================================
+// 1. 상태 관리 변수 모음
+// ==========================================
+// 관리자 정보
+const adminName = ref('주임')
+const adminDept = ref('주차관리팀')
+
+// 날씨 및 시간 정보
 const weather = ref(null)
 const currentTime = ref('')      // 날씨 카드용 (HH:mm:ss)
 const currentFullTime = ref('')  // 헤더용 (YYYY-MM-DD HH:mm:ss)
 const lastUpdated = ref('')
+const reservationCount = ref(0)  // 예약 건수
+
+// 타이머 변수
 let clockTimer = null
 let weatherTimer = null
+let reservationTimer = null
 
+// 시스템 설정 메뉴 개폐 상태
+const isSystemMenuOpen = ref(false)
+
+// 페이지
+const router = useRouter()
+const route = useRoute()
+
+// ==========================================
+// 2. 관리자 정보 및 메뉴 라우팅 로직
+// ==========================================
+// 세션에서 관리자 정보 불러오기
+const loadAdminInfo = () => {
+    const storedName = sessionStorage.getItem('adminName')
+    const storedDept = sessionStorage.getItem('dept')
+    if(storedName) adminName.value = storedName
+    if(storedDept) adminDept.value = storedDept
+}
+
+// 시스템 설정 아코디언 토글
+const toggleSystemMenu = () => {
+    isSystemMenuOpen.value = !isSystemMenuOpen.value
+}
+
+// 페이지 이동 함수 (실제 연동 시 주석 해제!)
+const goToPage = (path) => {
+    router.push(path) 
+    console.log(`${path} (으)로 이동합니다!`)
+}
+
+// 현재 접속 중인 메뉴 확인 (액티브 클래스용)
+const isActiveMenu = (path) => {
+    return route.path.includes(path)
+}
+
+// ==========================================
+// 3. 시간 포맷팅 및 날씨/예약 API 연동
+// ==========================================
 // 시간 포맷팅 (초 단위 포함)
 const formatTime = (d) =>
     `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`
@@ -190,6 +283,31 @@ const formatFullDate = (d) => {
     return `${year}년 ${month}월 ${date}일 (${day}) ${formatTime(d)}`
 }
 
+// 날씨 API 호출
+const fetchWeather = async () => {
+    try {
+        const res = await axios.get('http://localhost:8080/dashBoard/currentWeather')
+        weather.value = res.data
+        lastUpdated.value = formatTime(new Date()).substring(0, 5) // HH:mm 까지만
+    } catch (e) {
+        console.error('[DashBoard] 날씨 로드 실패', e)
+    }
+}
+
+// 예약 건수 API 호출
+const fetchReservationCount = async () => {
+    try {
+        const res = await axios.get('http://localhost:8080/admin/reservation/today-count')
+        reservationCount.value = res.data.count || 0
+    } catch (e) {
+        console.error('[DashBoard] 예약 건수 로드 실패', e)
+        reservationCount.value = 0
+    }
+}
+
+// ==========================================
+// 4. 날씨 데이터 가공 (Computed)
+// ==========================================
 // 날씨 아이콘 매핑 (SVG로 교체 가능)
 const weatherIcon = computed(() => {
     if (!weather.value) return ''
@@ -220,19 +338,19 @@ const pm25Class = computed(() => {
     if (v <= 15) return 'good'; if (v <= 35) return 'normal'; return 'bad'
 })
 
-// 날씨 API 호출
-const fetchWeather = async () => {
-    try {
-        const res = await axios.get('http://localhost:8080/dashBoard/currentWeather')
-        weather.value = res.data
-        lastUpdated.value = formatTime(new Date()).substring(0, 5) // HH:mm 까지만
-    } catch (e) {
-        console.error('[DashBoard] 날씨 로드 실패', e)
-    }
-}
-
+// ==========================================
+// 5. 라이프사이클 (Mount / Unmount)
+// ==========================================
 onMounted(() => {
-    // 시계 시작
+    // 1. 관리자 정보 로드
+    loadAdminInfo()
+
+    // 2. 현재 주소가 시스템 설정 하위면 메뉴 열어두기
+    if (route.path.includes('/system')) {
+        isSystemMenuOpen.value = true
+    }
+
+    // 3. 실시간 시계 시작
     const tick = () => {
         const now = new Date()
         currentTime.value = formatTime(now)
@@ -241,80 +359,97 @@ onMounted(() => {
     tick()
     clockTimer = setInterval(tick, 1000)
 
-    // 날씨 호출 (10분 간격)
+    // 4. API 초기 호출 및 주기적 갱신 (10분 간격)
     fetchWeather()
+    fetchReservationCount()
     weatherTimer = setInterval(fetchWeather, 10 * 60 * 1000)
+    reservationTimer = setInterval(fetchReservationCount, 10 * 60 * 1000)
 })
 
 onUnmounted(() => {
+    // 컴포넌트 종료 시 타이머 청소
     clearInterval(clockTimer)
     clearInterval(weatherTimer)
+    clearInterval(reservationTimer)
 })
 </script>
 
 <style scoped>
+/* ── [1] 전체 레이아웃 (Base) ── */
 .dashboard-wrapper {
     display: flex;
     height: 100vh;
     background: #09090b;
     color: #fff;
+    font-family: 'Pretendard', sans-serif;
     overflow: hidden;
 }
 
-/* 사이드바 */
-.side-main-tab-area {
-    width: 280px;
-    min-width: 280px; /* 고정 */
-    background: #111114;
-    border-right: 1px solid #27272a;
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-}
-
-/* ── 메인 영역 설정 ── */
 .main-area {
-    flex: 1; /* 남는 너비 다 가져가기 */
-    min-width: 0;
+    flex: 1;
     display: flex;
     flex-direction: column;
-    height: 100vh;
-}
-
-/* 메인 메뉴 (로고와 날씨 사이 공간을 다 먹어치움) */
-.main-tab-menu {
-    flex: 1;                
-    padding: 20px 0;
-    list-style: none;
-    overflow-y: auto; 
-}
-
-.main-header {
-    width: 100%;
-    height: 70px;
+    overflow: hidden;
 }
 
 .content-container {
     flex: 1;
-    width: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    position: relative;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
 }
 
+/* 스크롤바 전체 너비 */
+.content-container::-webkit-scrollbar {
+    width: 10px;
+}
+
+/* 스크롤바 배경 */
+.content-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* 스크롤바 막대기 */
+.content-container::-webkit-scrollbar-thumb {
+    background: #444D56;
+    border-radius: 4px;
+}
+
+/* 마우스 올렸을 때 살짝 밝아지는 디테일 추가 */
+.content-container::-webkit-scrollbar-thumb:hover {
+    background: #5a6570;
+}
+
+/* ── [2] 사이드바 영역 (Sidebar) ── */
+.side-main-tab-area {
+    width: 230px;
+    background: #000;
+    border-right: 1px solid #27272a;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 사이드바 로고 영역 */
 .logo-area {
-    padding: 22px;
-    border-bottom: 1px solid #27272a;
-    text-align: center;
+    height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    ;
+    box-sizing: border-box;
 }
 
 .main-logo {
-    max-width: 190px;
+    max-height: 54px;
+    width: auto;
 }
 
-/* PNG 로고 백색 반전 필요시 */
-
-.nav-menu {
+.main-tab-menu {
     flex: 1;
-    padding: 20px 0;
-    list-style: none;
+    padding: 10px 0;
 }
 
 .tab-item {
@@ -322,45 +457,113 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     gap: 12px;
-    color: #a1a1aa;
+    color: #f5f5f5a7;
     cursor: pointer;
-    transition: 0.3s;
+    transition: 0.2s;
+    letter-spacing: 0.5px;
+    font-size: 18px;
 }
 
 .tab-item.active {
-    color: #3b82f6;
-    background: rgba(59, 130, 246, 0.1);
-    border-left: 4px solid #3b82f6;
+    color: #82c2e3;
+    margin: 2px 10px;
+    border-radius: 12px;
+    font-size: 19px;
+    font-weight: bold;
+    background: rgba(130, 195, 227, 0.249);
+    /* border-left: 3px solid #82c2e3; */
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 20px #f5f5f58c;
 }
 
 .nav-icon {
-    width: 20px;
+    width: 25px;
     height: 20px;
 }
 
-/* 날씨 카드 (시안 기반 백색 다이어트) */
-.bottom-widget {
-    padding: 20px;
-    border-top: 1px solid #27272a;
+/* ── [System Menu] 아코디언 스타일 ── */
+.tab-item-group {
+    transition: all 0.3s ease;
+    margin: 2px 10px;
+    border-radius: 12px;
 }
 
+.tab-item.parent {
+    padding: 12px 15px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/*  메뉴가 열렸을 때 배경색 변화 */
+.tab-item-group.is-open {
+    background: rgba(130, 195, 227, 0.249);
+}
+
+.tab-item-group.is-open .tab-item.parent {
+    color: #82c2e3;
+    font-weight: bold;
+    text-shadow: 0 0 15px rgba(130, 195, 227, 0.4);
+}
+
+/* 화살표 아이콘 위치 및 회전 */
+.arrow-icon {
+    width: 14px;
+    height: 14px;
+    margin-left: auto;
+    transition: transform 0.3s ease;
+}
+
+.arrow-icon.rotate {
+    transform: rotate(180deg);
+    /* 열리면 위로 향하게 */
+}
+
+/* 하위 메뉴 리스트 정렬 */
+.sub-menu-list {
+    list-style: none;
+    padding: 0 0 10px 20px;
+    /* 아이콘 위치 맞춰 들여쓰기 */
+}
+
+.sub-item {
+    font-size: 14px;
+    color: #a1a1aa;
+    padding: 8px 0;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+/* 하위 메뉴 텍스트 호버 시 가이드 블루 컬러 강조 */
+.sub-item:hover {
+    color: #82c2e3;
+    text-decoration: underline;
+}
+
+/* ── [3] 사이드바 하단 위젯 (Weather) ── */
+.bottom-widget {
+    padding: 10px 15px;
+    margin-top: auto;
+}
+
+/* 날씨 카드 고도화 */
 .weather-card {
-    background: #fff;
-    color: #18181b;
+    background: rgba(255, 255, 255, 0.129);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
-    padding: 15px;
-    margin-bottom: 22px;
+    padding: 20px;
+    margin-bottom: 15px;
 }
 
 .weather-main {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 5px;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
 }
 
 .weather-icon-svg {
-    font-size: 28px;
+    font-size: 34px;
 }
 
 .weather-info {
@@ -369,156 +572,287 @@ onUnmounted(() => {
 }
 
 .weather-condition {
-    font-weight: 700;
+    font-weight: regular;
     font-size: 14px;
+    text-align: right;
+    margin-bottom: 4px;
 }
 
 .weather-temp {
-    font-size: 22px;
-    font-weight: 800;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1;
 }
 
-.weather-clock-box {
-    font-size: 12px;
-    color: #71717a;
-    margin-bottom: 8px;
+/* 마지막 갱신 정보 */
+.weather-refresh-info {
+    font-size: 14px;
+    color: #f5f5f5c3;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    /* 구분선 더 연하게 */
 }
 
 .weather-details {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 5px;
-    font-size: 11px;
-    border-top: 1px solid #f4f4f5;
-    padding-top: 8px;
+    gap: 5px 10px;
+    font-size: 14px;
+}
+
+.weather-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    font-size: 13px;
 }
 
 .weather-item.wide {
     grid-column: span 2;
-    display: flex;
-    justify-content: space-between;
 }
 
 .label {
-    color: #71717a;
+    color: #f5f5f5a6;
+}
+
+.value {
+    margin-left: 10px;
 }
 
 .value.good {
-    color: #16a34a;
-    font-weight: 600;
+    color: #00ff5e;
+    font-weight: regular;
 }
 
 .value.normal {
-    color: #ca8a04;
-    font-weight: 600;
+    color: #fbb900;
+    font-weight: regular;
 }
 
 .value.bad {
-    color: #dc2626;
-    font-weight: 600;
+    color: #ff0000;
+    font-weight: regular;
 }
 
-.booking-box {
-    background: #fff;
-    color: #18181b;
-    padding: 12px;
-    border-radius: 8px;
-    text-align: center;
-    font-weight: 700;
-    font-size: 14px;
+/* 예약 현황 박스 */
+.reservation-box {
+    background: rgba(255, 255, 255, 0.129);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: 0.3s;
 }
 
-.booking-box .count {
-    color: #3b82f6;
+.reservation-box:hover {
+    background: rgba(130, 194, 227, 0.2);
+    transform: translateY(-2px);
 }
 
-.main-header {
-    height: 70px;
-    padding: 0 30px;
+.res-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #141526; /* 시안 헤더 배경색 */
-    border-bottom: 1px solid #27272a;
+    margin-bottom: 8px;
 }
 
-.header-left {
+.res-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.res-count-area {
     display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.res-count {
+    font-size: 28px;
+    font-weight: 800;
+    color: #82c2e3;
+}
+
+.res-unit {
+    font-size: 13px;
+    color: #f5f5f5d7;
+}
+
+/* 실시간 라이브 점 애니메이션 */
+.live-dot {
+    width: 6px;
+    height: 6px;
+    background: #00ff5e;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #00ff5e;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(0.95);
+        opacity: 0.7;
+    }
+
+    50% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(0.95);
+        opacity: 0.7;
+    }
+}
+
+/* ── [4] 상단 헤더 영역 (Header) ── */
+.main-header {
+    height: 70px;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
     align-items: center;
+    background: #000;
+    border-bottom: 1px solid #27272a;
+    box-sizing: border-box;
 }
 
 .header-time {
-    font-size: 20px;
-    font-weight: 700;
-    color: #fff;
+    font-size: 18px;
+    font-weight: 500;
+    color: #f5f5f5d7;
     letter-spacing: 0.5px;
 }
 
 .header-right {
     display: flex;
     align-items: center;
-    gap: 20px; /* 검색창, 아이콘, 프로필 사이 간격 */
+    gap: 15px;
 }
 
-/* 검색창 디자인 */
+
+/* ── [5] 헤더 내 기능 (Search, Icon, Profile) ── */
 .search-bar {
     display: flex;
-    background: #24253a;
+    background: #444d568d;
     padding: 8px 15px;
     border-radius: 20px;
     align-items: center;
-    border: 1px solid #3a3b4d;
+    border: 1px solid #f5f5f53e;
     width: 220px;
 }
 
 .search-bar input {
     background: none;
     border: none;
-    color: #fff;
     outline: none;
-    flex: 1;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .search-bar input::placeholder {
-    color: #6a6b7d;
+    color: #f5f5f5d7;
 }
 
 .search-icon {
-    color: #a1a1aa;
+    color: #f5f5f5d7;
     cursor: pointer;
 }
 
-/* 우측 유틸 아이콘 */
-.util-icons {
+.util-actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+}
+
+.icon-btn {
+    background: none;
+    border: none;
+    color: #f5f5f5d7;
+    cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 15px;
-    color: #a1a1aa;
-    cursor: pointer;
+    justify-content: center;
+    padding: 4px;
+    transition: 0.2s;
 }
 
-/* 유저 프로필 칩 */
+.icon-btn:hover {
+    color: #fff;
+}
+
 .user-profile {
     display: flex;
     align-items: center;
     gap: 10px;
-    background: #333;
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 13px;
-    color: #fff;
-    cursor: pointer;
-    border: 1px solid #444;
+    background: #444d568d;
+    padding: 6px 14px;
+    border-radius: 30px;
+    border: 1px solid #f5f5f53e;
 }
 
 .avatar-circle {
-    width: 26px;
-    height: 26px;
-    background-color: #555;
+    width: 24px;
+    height: 24px;
+    background: #444d56;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.user-name {
+    color: #f5f5f5d7;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+
+/* ── [6] 다크모드 스위치 (Toggle) ── */
+.mode-toggle {
+    display: flex;
+    align-items: center;
+}
+
+.toggle-track {
+    width: 48px;
+    height: 24px;
+    background: #444d568d;
+    border-radius: 20px;
+    border: 1px solid #f5f5f53e;
+    position: relative;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.3s ease-in-out;
+}
+
+/* 아이콘 색상 강제 지정 (흰 배경엔 검은 아이콘) */
+.toggle-thumb svg {
+    color: #82c2e3;
+    width: 12px;
+    height: 12px;
+}
+
+/* 활성화 시 이동 로직 (스크립트 연결 전용 클래스) */
+.toggle-thumb.active {
+    transform: translateX(24px);
+    background: #82c2e3;
+    /* 다크모드 시 파란색 포인트 */
 }
 </style>
