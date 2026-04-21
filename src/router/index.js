@@ -44,6 +44,9 @@ import MainView from '@/views/dashboard/MainView.vue'
 // 2. 출입 차량 관제 불러오기
 import VehicleControl from '@/views/dashboard/VehicleControl.vue'
 
+// 전기차 충전기 불러오기
+import EvInfraManage from '../views/dashboard/EvInfraManage.vue'
+
 // 라우터 설정 시작
 const router = createRouter({
     history: createWebHistory(),
@@ -159,6 +162,11 @@ const router = createRouter({
                     name: 'vehicle-control',
                     component: VehicleControl,
                     //meta: { requiresAuth: true, role: 'ADMIN' }
+                },
+                {
+                    path: 'ev-infra',
+                    name: 'ev-infra',
+                    component: EvInfraManage,
                 }
             ]
         },
