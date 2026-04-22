@@ -1,41 +1,29 @@
 <template>
   <div class="charger-operation-summary">
     <div class="header-row">
-      <h3 class="card-title">EV 인프라 가동률 및 요약</h3>
+      <h3 class="card-title">EV 인프라 가동률</h3>
     </div>
 
     <div class="summary-row">
       <div class="summary-box">
         <div class="summary-top">
           <div class="summary-label">
-            <span class="summary-icon line"></span>
+            <span class="summary-icon-week bar"></span>
             <span>최근 7일 평균 사용량</span>
           </div>
-
-          <svg class="mini-line-chart" viewBox="0 0 44 24" preserveAspectRatio="none">
-            <polyline
-              fill="none"
-              stroke="#fbb900"
-              stroke-width="2"
-              points="2,18 12,13 21,8 30,11 40,4"
-            />
-            <circle cx="2" cy="18" r="2" fill="#fbb900" />
-            <circle cx="12" cy="13" r="2" fill="#fbb900" />
-            <circle cx="21" cy="8" r="2" fill="#fbb900" />
-            <circle cx="30" cy="11" r="2" fill="#fbb900" />
-            <circle cx="40" cy="4" r="2" fill="#fbb900" />
-          </svg>
         </div>
 
         <div class="summary-bottom">
           <div class="summary-value-wrap">
-            <span class="summary-value">18,542</span>
-            <span class="summary-unit">kWh</span>
+            <span class="summary-value-week">{{ Number(avg7DayUsage || 0).toLocaleString(undefined, {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 2
+            }) }}</span>
+            <span class="summary-unit-week">kWh</span>
           </div>
 
           <div class="summary-change-wrap">
-            <span class="summary-change">▲ 5.2%</span>
-            <span class="summary-sub">전주 대비</span>
+            <span class="summary-change" :class="weekChangeClass">{{ weekChangeText }}</span>
           </div>
         </div>
       </div>
@@ -43,27 +31,22 @@
       <div class="summary-box">
         <div class="summary-top">
           <div class="summary-label">
-            <span class="summary-icon bar"></span>
+            <span class="summary-icon-month bar"></span>
             <span>최근 30일 평균 사용량</span>
-          </div>
-
-          <div class="mini-bar-chart">
-            <span class="mini-bar h1"></span>
-            <span class="mini-bar h2"></span>
-            <span class="mini-bar h3"></span>
-            <span class="mini-bar h4"></span>
           </div>
         </div>
 
         <div class="summary-bottom">
           <div class="summary-value-wrap">
-            <span class="summary-value">72,364</span>
-            <span class="summary-unit">kWh</span>
+            <span class="summary-value-month">{{ Number(avg30DayUsage || 0).toLocaleString(undefined, {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 2
+            }) }}</span>
+            <span class="summary-unit-month">kWh</span>
           </div>
 
           <div class="summary-change-wrap">
-            <span class="summary-change">▲ 3.7%</span>
-            <span class="summary-sub">전월 대비</span>
+            <span class="summary-change" :class="monthChangeClass">{{ monthChangeText }}</span>
           </div>
         </div>
       </div>
@@ -72,25 +55,16 @@
     <div class="chart-header">
       <div class="chart-legend">
         <div class="chart-legend-item">
-          <span class="chart-line-sample"></span>
-          <span>가동률(%)</span>
-        </div>
-        <div class="chart-legend-item">
-          <span class="chart-bar-sample"></span>
           <span>충전량(kWh)</span>
         </div>
       </div>
-
-      <div class="chart-right-label">충전량(kWh)</div>
     </div>
 
     <div class="chart-wrap">
       <div class="y-axis">
-        <span>100%</span>
-        <span>75%</span>
-        <span>50%</span>
-        <span>25%</span>
-        <span>0</span>
+        <span v-for="tick in leftAxisTicks" :key="tick">
+          {{ Number(tick).toLocaleString() }}
+        </span>
       </div>
 
       <div class="chart-main">
@@ -104,7 +78,13 @@
 
         <div class="bar-series">
           <div v-for="(value, index) in bars" :key="index" class="bar-col">
-            <div class="bar" :style="{ height: `${(value / 25000) * 100}%` }"></div>
+            <div
+              class="bar"
+              :style="{ height: `${(value / maxBarAxisValue) * 100}%` }"
+              @mouseenter="showTooltip($event, labels[index], value)"
+              @mousemove="moveTooltip($event)"
+              @mouseleave="hideTooltip"
+            ></div>
           </div>
         </div>
 
@@ -115,75 +95,278 @@
               <stop offset="100%" stop-color="#2f7df6" stop-opacity="0" />
             </linearGradient>
           </defs>
-        
+
           <polygon
             :points="`${linePoints} 100,100 0,100`"
             fill="url(#lineAreaGradient)"
           />
-        
+
           <polyline
             fill="none"
             stroke="#fbb900"
             stroke-width="0.2"
             :points="linePoints"
           />
+        </svg>
         
-          <circle
+        <div class="line-point-layer">
+          <div
             v-for="(value, index) in line"
             :key="`point-${index}`"
-            :cx="(index / (line.length - 1)) * 100"
-            :cy="100 - value"
-            r="0.4"
-            fill="#fbb900"
-          />
-        </svg>
+            class="line-point"
+            :style="{
+              left: `${((index + 0.5) / line.length) * 100}%`,
+              top: `${100 - (Number(value || 0) / maxBarAxisValue) * 100}%`
+            }"
+          ></div>
+        </div>
 
         <div class="x-axis">
           <span v-for="label in labels" :key="label">{{ label }}</span>
         </div>
-      </div>
 
-      <div class="right-axis">
-        <span>25,000</span>
-        <span>20,000</span>
-        <span>15,000</span>
-        <span>10,000</span>
-        <span>5,000</span>
-        <span>0</span>
+        <div
+          v-if="tooltip.show"
+          class="chart-tooltip"
+          :style="{
+            left: `${tooltip.x}px`,
+            top: `${tooltip.y}px`
+          }"
+        >
+          {{ tooltip.label }}:00시 : <br> <p class="kwh-font">{{ Number(tooltip.value || 0).toLocaleString() }} kWh</p>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-const labels = [
-  '1','2','3','4','5','6',
-  '7','8','9','10','11','12',
-  '13','14','15','16','17','18',
-  '19','20','21','22','23','24'
-]
+import { computed, onMounted, ref, watch } from 'vue'
+import { getChargingSummary, getChargingLogs } from '@/api/evPredictive'
 
-const bars = [
-  3200, 1800, 1200, 4100, 2600, 3400,
-  5200, 6100, 9800, 8700, 4900, 11200,
-  14220, 13100, 11800, 6100, 8200, 7300,
-  9700, 12800, 8600, 11400, 5200, 2100
-]
+const props = defineProps({
+  startDate: {
+    type: String,
+    required: true
+  },
+  endDate: {
+    type: String,
+    required: true
+  }
+})
 
-const line = [
-  22, 14, 9, 28, 18, 24,
-  33, 38, 57, 49, 31, 66,
-  82, 74, 61, 36, 45, 41,
-  56, 71, 49, 63, 29, 12
-]
+const labels = ref([])
+const bars = ref([])
+const line = ref([])
 
-const linePoints = line
-  .map((value, index) => {
-    const x = (index / (line.length - 1)) * 100
-    const y = 100 - value
-    return `${x},${y}`
+const avg7DayUsage = ref(0)
+const avg30DayUsage = ref(0)
+const weekChange = ref(0)
+const monthChange = ref(0)
+
+const formatDate = (date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const addDays = (date, days) => {
+  const copy = new Date(date)
+  copy.setDate(copy.getDate() + days)
+  return copy
+}
+
+const calculateAverageKwh = (rows, days) => {
+  const dailyMap = new Map()
+
+  rows.forEach((row) => {
+    const dayKey = String(row.time || '').slice(0, 10)
+    const kwh = Number(row.totalChargeKwh ?? row.currentChargeKwh ?? 0)
+
+    if (!dayKey) return
+
+    dailyMap.set(dayKey, (dailyMap.get(dayKey) || 0) + kwh)
   })
-  .join(' ')
+
+  const total = Array.from(dailyMap.values()).reduce((sum, value) => sum + value, 0)
+  return total / days
+}
+
+const calculateChangeRate = (currentAvg, previousAvg) => {
+  const current = Number(currentAvg || 0)
+  const previous = Number(previousAvg || 0)
+
+  if (previous === 0) {
+    if (current > 0) return 'NEW'
+    return 0
+  }
+
+  return ((current - previous) / previous) * 100
+}
+
+const formatChangeText = (value) => {
+  if (value === 'NEW') return '신규'
+
+  const num = Number(value || 0)
+
+  if (num > 0) return `▲ ${num.toFixed(1)}%`
+  if (num < 0) return `▼ ${Math.abs(num).toFixed(1)}%`
+  return '0.0%'
+}
+
+const weekChangeText = computed(() => formatChangeText(weekChange.value))
+const monthChangeText = computed(() => formatChangeText(monthChange.value))
+
+const weekChangeClass = computed(() => {
+  if (weekChange.value === 'NEW') return 'up'
+  if (weekChange.value > 0) return 'up'
+  if (weekChange.value < 0) return 'down'
+  return 'same'
+})
+
+const monthChangeClass = computed(() => {
+  if (monthChange.value === 'NEW') return 'up'
+  if (monthChange.value > 0) return 'up'
+  if (monthChange.value < 0) return 'down'
+  return 'same'
+})
+
+const fetchAverageUsage = async () => {
+  try {
+    const today = new Date()
+
+    const current7Start = formatDate(addDays(today, -6))
+    const current7End = formatDate(today)
+    const previous7Start = formatDate(addDays(today, -13))
+    const previous7End = formatDate(addDays(today, -7))
+
+    const current30Start = formatDate(addDays(today, -29))
+    const current30End = formatDate(today)
+    const previous30Start = formatDate(addDays(today, -59))
+    const previous30End = formatDate(addDays(today, -30))
+
+    const [current7Rows, previous7Rows, current30Rows, previous30Rows] = await Promise.all([
+      getChargingLogs(current7Start, current7End, 'ALL'),
+      getChargingLogs(previous7Start, previous7End, 'ALL'),
+      getChargingLogs(current30Start, current30End, 'ALL'),
+      getChargingLogs(previous30Start, previous30End, 'ALL')
+    ])
+
+    const current7Avg = calculateAverageKwh(current7Rows, 7)
+    const previous7Avg = calculateAverageKwh(previous7Rows, 7)
+    const current30Avg = calculateAverageKwh(current30Rows, 30)
+    const previous30Avg = calculateAverageKwh(previous30Rows, 30)
+
+    avg7DayUsage.value = current7Avg
+    avg30DayUsage.value = current30Avg
+    weekChange.value = calculateChangeRate(current7Avg, previous7Avg)
+    monthChange.value = calculateChangeRate(current30Avg, previous30Avg)
+  } catch (error) {
+    console.error('fetchAverageUsage error:', error)
+    avg7DayUsage.value = 0
+    avg30DayUsage.value = 0
+    weekChange.value = 0
+    monthChange.value = 0
+  }
+}
+
+const tooltip = ref({
+  show: false,
+  x: 0,
+  y: 0,
+  label: '',
+  value: 0
+})
+
+const showTooltip = (event, label, value) => {
+  tooltip.value = {
+    show: true,
+    x: event.clientX + 12,
+    y: event.clientY - 12,
+    label,
+    value
+  }
+}
+
+const moveTooltip = (event) => {
+  tooltip.value = {
+    ...tooltip.value,
+    x: event.clientX + 12,
+    y: event.clientY - 12
+  }
+}
+
+const hideTooltip = () => {
+  tooltip.value.show = false
+}
+
+const fetchChargingSummary = async () => {
+  try {
+    const data = await getChargingSummary(props.startDate, props.endDate)
+
+    labels.value = data.map((item) => `${item.hourLabel}`)
+    bars.value = data.map((item) => Number(item.hourlyKwh || 0))
+    line.value = data.map((item) => Number(item.hourlyKwh || 0))
+  } catch (error) {
+    console.error('getChargingSummary error:', error)
+    labels.value = []
+    bars.value = []
+    line.value = []
+  }
+}
+
+const linePoints = computed(() => {
+  if (!line.value.length) return ''
+
+  const max = Number(maxBarAxisValue.value || 1)
+  const count = line.value.length
+
+  return line.value
+    .map((value, index) => {
+      const x = ((index + 0.5) / count) * 100
+      const y = 100 - (Number(value || 0) / max) * 100
+      return `${x},${y}`
+    })
+    .join(' ')
+})
+
+const maxBarAxisValue = computed(() => {
+  if (!bars.value.length) return 100
+
+  const max = Math.max(...bars.value, 0)
+
+  if (max <= 10) return 10
+  if (max <= 50) return 50
+  if (max <= 100) return 100
+  if (max <= 200) return 200
+  if (max <= 500) return 500
+
+  return Math.ceil(max / 100) * 100
+})
+
+const leftAxisTicks = computed(() => {
+  const max = maxBarAxisValue.value
+  return [max, max * 0.75, max * 0.5, max * 0.25, 0]
+})
+
+const rightAxisTicks = computed(() => {
+  const max = maxBarAxisValue.value
+  return [max, max * 0.8, max * 0.6, max * 0.4, max * 0.2, 0]
+})
+
+onMounted(() => {
+  fetchChargingSummary()
+  fetchAverageUsage()
+})
+
+watch(
+  () => [props.startDate, props.endDate],
+  () => {
+    fetchChargingSummary()
+    fetchAverageUsage()
+  }
+)
 </script>
 
 <style scoped>
@@ -202,7 +385,7 @@ const linePoints = line
 .card-title {
   margin: 0;
   color: #ffffff;
-  font-size: 18px;
+  font-size: 24px;
   font-weight: 700;
 }
 
@@ -232,7 +415,7 @@ const linePoints = line
   align-items: center;
   gap: 8px;
   color: #ffffff;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -243,11 +426,18 @@ const linePoints = line
   background: #fbb900;
 }
 
-.summary-icon.bar {
+.summary-icon-week.bar {
   width: 12px;
   height: 12px;
   border-radius: 2px;
   background: #82c2e3;
+}
+
+.summary-icon-month.bar {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: #fbb900;
 }
 
 .mini-line-chart {
@@ -290,16 +480,29 @@ const linePoints = line
   gap: 6px;
 }
 
-.summary-value {
-  color: #ffffff;
-  font-size: 19px;
+.summary-value-week {
+  color: #82c2e3;
+  font-size: 25px;
   font-weight: 700;
   line-height: 1.5;
 }
 
-.summary-unit {
-  color: #ffffff;
-  font-size: 13px;
+.summary-value-month {
+  color: #fbb900;
+  font-size: 25px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.summary-unit-week {
+  color: #82c2e3;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.summary-unit-month {
+  color: #fbb900;
+  font-size: 15px;
   font-weight: 600;
 }
 
@@ -308,17 +511,19 @@ const linePoints = line
   flex-direction: column;
   align-items: flex-end;
   gap: 3px;
+  margin-right: -5px;
+  margin-top: 14px;
 }
 
 .summary-change {
   color: #45c15a;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 700;
 }
 
 .summary-sub {
   color: #ffffff;
-  font-size: 11px;
+  font-size: 15px;
   font-weight: 500;
 }
 
@@ -339,7 +544,7 @@ const linePoints = line
   align-items: center;
   gap: 8px;
   color: #ffffff;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
 }
 
@@ -359,7 +564,7 @@ const linePoints = line
 
 .chart-right-label {
   color: #ffffff;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
 }
 
@@ -367,7 +572,7 @@ const linePoints = line
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 46px 1fr 58px;
+  grid-template-columns: 46px 1fr;
   gap: 10px;
   align-items: stretch;
 }
@@ -379,7 +584,7 @@ const linePoints = line
   flex-direction: column;
   justify-content: space-between;
   color: #ffffff;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .chart-main {
@@ -422,6 +627,7 @@ const linePoints = line
   width: 100%;
   max-width: 14px;
   background: linear-gradient(to top, #5ea7cf 0%, #a9ddf4 100%);
+  cursor: pointer;
 }
 
 .line-series {
@@ -441,7 +647,7 @@ const linePoints = line
   grid-template-columns: repeat(24, 1fr);
   text-align: center;
   color: #ffffff;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .right-axis {
@@ -453,5 +659,53 @@ const linePoints = line
   color: #ffffff;
   font-size: 12px;
   text-align: right;
+}
+
+.chart-tooltip {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.95);
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  transform: translate(0, -100%);
+  text-align: center;
+}
+
+.kwh-font{
+  color: #fbb900;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.summary-change.up {
+  color: #45c15a;
+}
+
+.summary-change.down {
+  color: #ff4d4f;
+}
+
+.summary-change.same {
+  color: #ffffff;
+}
+
+.line-point-layer {
+  position: absolute;
+  inset: 8px 0 28px 0;
+  pointer-events: none;
+}
+
+.line-point {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #ffffff;
+  transform: translate(-50%, -50%);
 }
 </style>

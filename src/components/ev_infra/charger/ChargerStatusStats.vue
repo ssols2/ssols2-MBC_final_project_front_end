@@ -1,8 +1,7 @@
 <template>
-  <div class="charger-status-stats">
-    <div class="header-row">
-      <h3 class="card-title">EV 충전 스테이션 공간 관제</h3>
-    </div>
+<div class="charger-status-stats">
+  <div class="header-row">
+    <h3 class="card-title">EV 충전 스테이션 공간 관제</h3>
 
     <div class="floor-tabs">
       <button
@@ -16,6 +15,8 @@
         {{ tab.label }}
       </button>
     </div>
+  </div>
+
 
     <div class="legend-row">
       <div class="legend-item">
@@ -80,11 +81,23 @@
           </div>
         </div>
 
+<div
+  class="charger-status-text"
+  :class="statusClass(getChargerStatus(charger))"
+>
+  {{ statusLabel(getChargerStatus(charger)) }}
+</div>
+
         <div
-          class="charger-status-text"
-          :class="statusClass(getChargerStatus(charger))"
+          v-if="getChargerStatus(charger) === 'CHARGING'"
+          class="charging-info"
         >
-          {{ statusLabel(getChargerStatus(charger)) }}
+          <span class="charging-kwh">
+            {{ formatChargeKwh(getCurrentChargeKwh(charger)) }}
+          </span>
+          <span class="charging-time">
+            {{ formatChargingTime(getChargingMinutes(charger)) }}
+          </span>
         </div>
 
         <div class="charger-meta">
@@ -173,6 +186,35 @@ const statusClass = (status) => {
       return 'standby'
   }
 }
+
+const getCurrentChargeKwh = (item) =>
+  item?.currentChargeKwh ?? item?.current_charge_kwh ?? 0
+
+const getChargingMinutes = (item) =>
+  item?.chargingMinutes ?? item?.charging_minutes ?? 0
+
+const formatChargeKwh = (value) => {
+  const num = Number(value ?? 0)
+  return `${num.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  })}kWh`
+}
+
+const formatChargingTime = (value) => {
+  const minutes = Number(value ?? 0)
+
+  if (!minutes || minutes < 0) return '0분'
+
+  const hours = Math.floor(minutes / 60)
+  const remainMinutes = minutes % 60
+
+  if (hours > 0) {
+    return `${hours}시간 ${remainMinutes}분`
+  }
+
+  return `${remainMinutes}분`
+}
 </script>
 
 <style scoped>
@@ -185,25 +227,31 @@ const statusClass = (status) => {
 }
 
 .header-row {
-  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 .card-title {
   margin: 0;
+  margin-bottom: 20px;
   color: #ffffff;
-  font-size: 18px;
+  font-size: 24px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .floor-tabs {
   display: flex;
+  align-items: center;
   gap: 8px;
   margin-bottom: 18px;
+  flex-wrap: nowrap;
 }
 
 .floor-tab {
   min-width: 62px;
-  height: 34px;
+  height: 30px;
   padding: 0 14px;
   border: 1px solid #2b3553;
   border-radius: 5px;
@@ -446,5 +494,26 @@ const statusClass = (status) => {
   color: #e5e7eb;
   font-size: 15px;
   font-weight: 500;
+}
+
+.charging-info {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e5e7eb;
+}
+
+.charging-kwh {
+  font-size: 20px;
+  color: #fbb900;
+}
+
+.charging-time {
+  font-size: 18px;
+  color: #cbd5e1;
 }
 </style>

@@ -404,7 +404,7 @@ const formatOccurredAt = (value) => {
 
 .history-header h3 {
   margin: 0;
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
   color: #ffffff;
   letter-spacing: -0.2px;
@@ -430,7 +430,7 @@ const formatOccurredAt = (value) => {
   border-radius: 999px;
   background: #313a43;
   color: #d6dde5;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   display: inline-flex;
@@ -498,7 +498,7 @@ const formatOccurredAt = (value) => {
 .history-table thead th {
   background: #2a333c;
   color: #ffffff;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   text-align: center;
   padding: 14px 12px;
@@ -508,7 +508,7 @@ const formatOccurredAt = (value) => {
 .history-table tbody td {
   padding: 14px 12px;
   color: #d9e1ea;
-  font-size: 14px;
+  font-size: 16px;
   text-align: center;
   vertical-align: middle;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -638,7 +638,7 @@ const formatOccurredAt = (value) => {
 }
 
 .page-number {
-  font-size: 17px;
+  font-size: 18px;
 }
 
 .page-number.active {

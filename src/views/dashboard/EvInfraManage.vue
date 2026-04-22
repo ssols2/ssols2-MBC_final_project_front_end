@@ -70,7 +70,8 @@
         <section class="layout-card log-card">
           <ChargerEventLogTable 
             :start-date="filterStartDate"
-            :end-date="filterEndDate" 
+            :end-date="filterEndDate"
+            :charger-list="chargerList"
           />
         </section>
       </div>
@@ -146,7 +147,8 @@ import {
   getChargerDetail,
   getHistoryData,
   getChargerList,
-  getSensorHistory
+  getSensorHistory,
+  getChargingLogs
 } from '../../api/evPredictive'
 
 // 탭 상태
@@ -250,7 +252,35 @@ const fetchHistoryData = async () => {
 
 const fetchChargerList = async () => {
   try {
-    chargerList.value = await getChargerList()
+    const [chargers, chargingLogs] = await Promise.all([
+      getChargerList(),
+      getChargingLogs(filterStartDate.value, filterEndDate.value, 'ALL')
+    ])
+
+    const latestChargingLogMap = new Map()
+
+    chargingLogs.forEach((log) => {
+      if (!log?.chargerId) return
+
+      const current = latestChargingLogMap.get(log.chargerId)
+      const currentTime = current?.time ? new Date(current.time).getTime() : 0
+      const nextTime = log?.time ? new Date(log.time).getTime() : 0
+
+      if (!current || nextTime > currentTime) {
+        latestChargingLogMap.set(log.chargerId, log)
+      }
+    })
+
+    chargerList.value = chargers.map((charger) => {
+      const latestLog = latestChargingLogMap.get(charger.chargerId)
+      const isCharging = charger.chargerStatus === 'CHARGING'
+
+      return {
+        ...charger,
+        currentChargeKwh: isCharging ? latestLog?.currentChargeKwh ?? 0 : 0,
+        chargingMinutes: isCharging ? latestLog?.chargingMinutes ?? 0 : 0
+      }
+    })
   } catch (error) {
     console.error('fetchChargerList error:', error)
     chargerList.value = []
@@ -411,12 +441,15 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+
 .ev-infra-page {
   height: 100vh;
   overflow-y: auto;
   padding: 20px;
   color: #ffffff;
   box-sizing: border-box;
+  font-family: 'Pretendard', sans-serif;
 }
 
 .page-header {
@@ -513,9 +546,7 @@ onBeforeUnmount(() => {
 .layout-card {
   position: relative;
   padding: 18px;
-  border: 1px solid #2b3553;
-  border-radius: 7px;
-  background: #0f172a;
+  
   color: #e5e7eb;
   font-size: 15px;
   display: flex;
@@ -556,8 +587,8 @@ onBeforeUnmount(() => {
 }
 
 .log-card {
-  height: 385px;
-  min-height: 385px;
+  height: 650px;
+  min-height: 650px;
   overflow: hidden;
 }
 

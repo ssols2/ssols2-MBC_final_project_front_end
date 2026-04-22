@@ -7,14 +7,6 @@
         <button
           type="button"
           class="tab-button"
-          :class="{ active: activeTab === 'all' }"
-          @click="activeTab = 'all'"
-        >
-          전체
-        </button>
-        <button
-          type="button"
-          class="tab-button"
           :class="{ active: activeTab === 'temperature' }"
           @click="activeTab = 'temperature'"
         >
@@ -43,15 +35,26 @@
       <div class="metric-unit">{{ currentUnitLabel }}</div>
 
       <div class="legend-row">
-        <span class="legend-item temperature">
+        <span
+          v-if="activeTab === 'temperature'"
+          class="legend-item temperature"
+        >
           <span class="legend-line temperature"></span>
           온도
         </span>
-        <span class="legend-item current">
+
+        <span
+          v-if="activeTab === 'current'"
+          class="legend-item current"
+        >
           <span class="legend-line current"></span>
           전류
         </span>
-        <span class="legend-item voltage">
+
+        <span
+          v-if="activeTab === 'voltage'"
+          class="legend-item voltage"
+        >
           <span class="legend-line voltage"></span>
           전압
         </span>
@@ -94,10 +97,32 @@
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
       >
+        <defs>
+          <linearGradient id="temperatureAreaGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#ef4444" stop-opacity="0.35" />
+            <stop offset="100%" stop-color="#ef4444" stop-opacity="0" />
+          </linearGradient>
+
+          <linearGradient id="currentAreaGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#facc15" stop-opacity="0.35" />
+            <stop offset="100%" stop-color="#facc15" stop-opacity="0" />
+          </linearGradient>
+
+          <linearGradient id="voltageAreaGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#60a5fa" stop-opacity="0.35" />
+            <stop offset="100%" stop-color="#60a5fa" stop-opacity="0" />
+          </linearGradient>
+        </defs>
+
         <template v-for="series in visibleSeries" :key="series.key">
           <path
+            class="area-path"
+            :class="series.key"
+            :d="series.areaPath"
+          />
+          <path
             class="line-path"
-            :class="[series.key, { dimmed: activeTab !== 'all' && activeTab !== series.key }]"
+            :class="series.key"
             :d="series.linePath"
             fill="none"
             vector-effect="non-scaling-stroke"
@@ -169,14 +194,13 @@ const props = defineProps({
   }
 })
 
-const activeTab = ref('all')
+const activeTab = ref('temperature')
 const hoveredPoint = ref(null)
 
 const currentUnitLabel = computed(() => {
   if (activeTab.value === 'temperature') return '온도 (°C)'
   if (activeTab.value === 'current') return '전류 (A)'
-  if (activeTab.value === 'voltage') return '전압 (V)'
-  return '온도 / 전류 / 전압'
+  return '전압 (V)'
 })
 
 function toDateOnly(value) {
@@ -279,9 +303,9 @@ const currentList = computed(() => filterByDate(props.metricData.current || []))
 const voltageList = computed(() => filterByDate(props.metricData.voltage || []))
 
 const baseMetricList = computed(() => {
-  return temperatureList.value.length
+  return activeTab.value === 'temperature'
     ? temperatureList.value
-    : currentList.value.length
+    : activeTab.value === 'current'
       ? currentList.value
       : voltageList.value
 })
@@ -308,22 +332,36 @@ const seriesStats = computed(() => ({
   voltage: buildSeriesStats(voltageList.value)
 }))
 
-const yTicks = computed(() => {
-  if (activeTab.value === 'all') {
-    return [
-      { value: 0, label: '0%', bottom: 0 },
-      { value: 25, label: '25%', bottom: 25 },
-      { value: 50, label: '50%', bottom: 50 },
-      { value: 75, label: '75%', bottom: 75 },
-      { value: 100, label: '100%', bottom: 100 }
-    ]
+const currentAxisRange = computed(() => {
+  const stats = seriesStats.value[activeTab.value]
+
+  const min = Number(stats.min ?? 0)
+  const max = Number(stats.max ?? 0)
+  const range = Number(stats.range ?? 1)
+
+  const padding = range * 0.4 || 1
+
+  let axisMin = min - padding
+  let axisMax = max + padding
+
+  if (axisMin === axisMax) {
+    axisMin -= 1
+    axisMax += 1
   }
 
-  const stats = seriesStats.value[activeTab.value]
-  const step = stats.range / 4
+  return {
+    min: axisMin,
+    max: axisMax,
+    range: axisMax - axisMin
+  }
+})
+
+const yTicks = computed(() => {
+  const axis = currentAxisRange.value
+  const step = axis.range / 4
 
   return Array.from({ length: 5 }, (_, index) => {
-    const value = stats.min + step * index
+    const value = axis.min + step * index
     return {
       value,
       label: Number(value.toFixed(1)),
@@ -333,13 +371,12 @@ const yTicks = computed(() => {
 })
 
 function normalizeValue(rawValue, key) {
-  if (activeTab.value === 'all') {
-    const stats = seriesStats.value[key]
-    return ((rawValue - stats.min) / stats.range) * 100
-  }
+  const axis =
+    key === activeTab.value 
+      ? currentAxisRange.value
+      : currentAxisRange.value
 
-  const stats = seriesStats.value[key]
-  return ((rawValue - stats.min) / stats.range) * 100
+  return ((rawValue - axis.min) / axis.range) * 100
 }
 
 function buildSmoothPath(points) {
@@ -369,7 +406,8 @@ function buildSeries(list, key, label, suffix) {
       label,
       suffix,
       points: [],
-      linePath: ''
+      linePath: '',
+      areaPath: ''
     }
   }
 
@@ -405,12 +443,16 @@ function buildSeries(list, key, label, suffix) {
     }
   })
 
+  const linePath = buildSmoothPath(points)
+  const areaPath = `${linePath} L ${points[points.length - 1].x} 100 L ${points[0].x} 100 Z`
+
   return {
     key,
     label,
     suffix,
     points,
-    linePath: buildSmoothPath(points)
+    linePath,
+    areaPath
   }
 }
 
@@ -421,11 +463,10 @@ const seriesList = computed(() => [
 ])
 
 const visibleSeries = computed(() => {
-  if (activeTab.value === 'all') return seriesList.value
   return seriesList.value.filter((series) => series.key === activeTab.value)
 })
 
-const hasAnyData = computed(() => seriesList.value.some((series) => series.points.length > 0))
+const hasAnyData = computed(() => visibleSeries.value.some((series) => series.points.length > 0))
 
 function setHoveredPoint(series, point) {
   hoveredPoint.value = {
@@ -492,7 +533,7 @@ const tooltipStyle = computed(() => {
 
 .section-title {
   margin: 0;
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
   color: #ffffff;
   flex-shrink: 0;
@@ -671,6 +712,18 @@ const tooltipStyle = computed(() => {
   overflow: visible;
 }
 
+.area-path.temperature {
+  fill: url(#temperatureAreaGradient);
+}
+
+.area-path.current {
+  fill: url(#currentAreaGradient);
+}
+
+.area-path.voltage {
+  fill: url(#voltageAreaGradient);
+}
+
 .line-path {
   stroke-width: 1.7;
   stroke-linecap: round;
@@ -688,10 +741,6 @@ const tooltipStyle = computed(() => {
 
 .line-path.voltage {
   stroke: #60a5fa;
-}
-
-.line-path.dimmed {
-  opacity: 0.4;
 }
 
 .point-layer {

@@ -122,3 +122,37 @@ export async function getSensorHistory(chargerId, limit = 30) {
     }))
   }
 }
+
+export async function getChargingSummary(startDate, endDate) {
+  const response = await springApi.get('/api/ev/chargers/summary', {
+    params: { startDate, endDate }
+  })
+
+  const rows = Array.isArray(response.data) ? response.data : []
+
+  return rows.map((row) => ({
+    hourLabel: Number(row.hourLabel ?? row.hour_label ?? 0),
+    hourlyKwh: Number(row.hourlyKwh ?? row.hourlykwh ?? row.hourly_kwh ?? 0)
+  }))
+}
+
+export async function getChargingLogs(startDate, endDate, status = 'ALL') {
+  const response = await springApi.get('/api/ev/chargers/logs', {
+    params: { startDate, endDate, status }
+  })
+
+  const rows = Array.isArray(response.data) ? response.data : []
+
+  return rows.map((row) => ({
+    id: row.ev_charging_log_id,
+    time: row.start_time,
+    chargerId: row.ev_charger_id,
+    status: row.charging_status,
+    currentChargeKwh: row.current_charge_kwh,
+    totalChargeKwh: row.total_charge_kwh,
+    vehicleNumber: row.vehicle_number,
+    chargingMinutes: row.chargingminutes ?? null,
+    endTime: row.end_time,
+    endReason: row.end_reason
+  }))
+}

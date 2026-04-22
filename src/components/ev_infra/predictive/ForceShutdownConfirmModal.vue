@@ -65,6 +65,7 @@ const handleConfirm = () => {
 .modal-overlay {
   position: fixed;
   inset: 0;
+  z-index: 9999;
   background-color: rgba(0,0,0,0.65);
   display: flex;
   justify-content: center;
@@ -72,9 +73,11 @@ const handleConfirm = () => {
 }
 
 .modal-box {
+  position: relative;
+  z-index: 10000;
   width: 100%;
-  max-width: 400px;        /* 🔥 가로 줄임 */
-  min-height: 550px;       /* 🔥 세로 늘림 */
+  max-width: 400px;
+  min-height: 550px;
   background: #1f1f1f;
   color: white;
   padding: 36px 28px 28px;

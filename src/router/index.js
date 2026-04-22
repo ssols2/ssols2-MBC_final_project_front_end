@@ -176,13 +176,13 @@ const router = createRouter({
                     component: VehicleControlManage,
                     //meta: { requiresAuth: true, role: 'ADMIN' }
                 },
-<<<<<<< HEAD
+
                 {
                     path: 'ev-infra',
                     name: 'ev-infra',
                     component: EvInfraManage,
-                }
-=======
+                },
+
                 // 요금 정산 관리 화면
                 {
                     path: 'payment', // 주소: /dashboard/payment
@@ -195,7 +195,7 @@ const router = createRouter({
                     name: 'cctv',
                     component: SecurityView,
                 },
->>>>>>> 607d16848c35656443af5dcc813009c40956a6c4
+
             ]
         },
         // 주차장 키오스크 전용 그룹 (KioskLayout 사용)
