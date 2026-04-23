@@ -51,6 +51,9 @@ import PaymentManage from '@/views/dashboard/PaymentManage.vue'
 import SecurityView from '@/views/dashboard/CctvView.vue'
 
 
+// 전기차 충전기 불러오기
+import EvInfraManage from '../views/dashboard/EvInfraManage.vue'
+
 // 라우터 설정 시작
 const router = createRouter({
     history: createWebHistory(),
@@ -173,6 +176,13 @@ const router = createRouter({
                     component: VehicleControlManage,
                     //meta: { requiresAuth: true, role: 'ADMIN' }
                 },
+
+                {
+                    path: 'ev-infra',
+                    name: 'ev-infra',
+                    component: EvInfraManage,
+                },
+
                 // 요금 정산 관리 화면
                 {
                     path: 'payment', // 주소: /dashboard/payment
@@ -185,6 +195,7 @@ const router = createRouter({
                     name: 'cctv',
                     component: SecurityView,
                 },
+
             ]
         },
         // 주차장 키오스크 전용 그룹 (KioskLayout 사용)
