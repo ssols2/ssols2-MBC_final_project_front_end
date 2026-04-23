@@ -55,6 +55,9 @@ import PolicyView from '@/views/dashboard/system/PolicyView.vue'
 import ManagementView from '@/views/dashboard/system/ManagementView.vue'
 
 
+// 전기차 충전기 불러오기
+import EvInfraManage from '../views/dashboard/EvInfraManage.vue'
+
 // 라우터 설정 시작
 const router = createRouter({
     history: createWebHistory(),
@@ -188,6 +191,12 @@ const router = createRouter({
                     path: 'cctv', // 주소: /dashboard/cctv
                     name: 'cctv',
                     component: SecurityView,
+                },
+                // ev 인프라 관리 화면
+                {
+                    path: 'ev-infra',
+                    name: 'ev-infra',
+                    component: EvInfraManage,
                 },
                 // 시스템 설정 - 요금 및 운영 정책 설정
                 {
