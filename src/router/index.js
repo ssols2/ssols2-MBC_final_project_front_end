@@ -49,14 +49,13 @@ import VehicleControlManage from '@/views/dashboard/VehicleControlManage.vue'
 import PaymentManage from '@/views/dashboard/PaymentManage.vue'
 // 5. 영상 보안 관제
 import SecurityView from '@/views/dashboard/CctvView.vue'
+// 6. 전기차 충전기 불러오기
+import EvInfraManage from '../views/dashboard/EvInfraManage.vue'
 // 7. 시스템 설정
 import HistoryView from '@/views/dashboard/system/HistoryView.vue'
 import PolicyView from '@/views/dashboard/system/PolicyView.vue'
 import ManagementView from '@/views/dashboard/system/ManagementView.vue'
 
-
-// 전기차 충전기 불러오기
-import EvInfraManage from '../views/dashboard/EvInfraManage.vue'
 
 // 라우터 설정 시작
 const router = createRouter({
