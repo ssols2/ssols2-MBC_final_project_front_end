@@ -7,7 +7,8 @@
             </div>
 
             <ul class="main-tab-menu">
-                <li class="tab-item" :class="{ active: isActiveMenu('/dashboard/main') }" @click="goToPage('/dashboard/main')">
+                <li class="tab-item" :class="{ active: isActiveMenu('/dashboard/main') }"
+                    @click="goToPage('/dashboard/main')">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
                         <path
                             d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z"
@@ -17,7 +18,8 @@
                     </svg>
                     대시보드
                 </li>
-                <li class="tab-item" :class="{ active: isActiveMenu('/dashboard/monitoring') }" @click="goToPage('/dashboard/monitoring')">
+                <li class="tab-item" :class="{ active: isActiveMenu('/dashboard/monitoring') }"
+                    @click="goToPage('/dashboard/monitoring')">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
                         <path
                             d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
@@ -29,7 +31,8 @@
                     </svg>
                     주차 모니터링
                 </li>
-                <li class="tab-item" :class="{ active: isActiveMenu('/dashboard/vehicle-control') }" @click="goToPage('/dashboard/vehicle-control')">
+                <li class="tab-item" :class="{ active: isActiveMenu('/dashboard/vehicle-control') }"
+                    @click="goToPage('/dashboard/vehicle-control')">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2"
                             stroke-linecap="round" stroke-linejoin="round" />
@@ -40,7 +43,8 @@
                     </svg>
                     출입 차량 관제
                 </li>
-                <li class="tab-item" :class="{ active: isActiveMenu('/dashboard/payment') }" @click="goToPage('/dashboard/payment')">
+                <li class="tab-item" :class="{ active: isActiveMenu('/dashboard/payment') }"
+                    @click="goToPage('/dashboard/payment')">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
                         <rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"
                             stroke-linecap="round" stroke-linejoin="round" />
@@ -49,7 +53,8 @@
                     </svg>
                     요금 정산 관리
                 </li>
-                <li class="tab-item" :class="{ active: isActiveMenu('/dashboard/cctv') }" @click="goToPage('/dashboard/cctv')">
+                <li class="tab-item" :class="{ active: isActiveMenu('/dashboard/cctv') }"
+                    @click="goToPage('/dashboard/cctv')">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
                         <path d="M23 7L16 12L23 17V7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                             stroke-linejoin="round" />
@@ -58,7 +63,8 @@
                     </svg>
                     영상 보안 관리
                 </li>
-                <li class="tab-item" :class="{ active: isActiveMenu('/dashboard/ev') }" @click="goToPage('/dashboard/ev')">
+                <li class="tab-item" :class="{ active: isActiveMenu('/dashboard/ev') }"
+                    @click="goToPage('/dashboard/ev')">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
                         <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" stroke-width="2"
                             stroke-linecap="round" stroke-linejoin="round" />
@@ -66,7 +72,10 @@
                     EV 인프라 관리
                 </li>
 
-                <li class="tab-item-group" :class="{ 'is-open': isSystemMenuOpen, 'active-group': isActiveMenu('/system') }">
+                <li class="tab-item-group" :class="{
+                    'is-open': isSystemMenuOpen,
+                    'active-group': $route.path.includes('/system')
+                }">
                     <div class="tab-item parent" @click="toggleSystemMenu">
                         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="3" />
@@ -82,9 +91,17 @@
                     </div>
 
                     <ul v-show="isSystemMenuOpen" class="sub-menu-list">
-                        <li class="sub-item">• 통합 알림 및 장애 이력</li>
-                        <li class="sub-item">• 관리자 계정 관리</li>
-                        <li class="sub-item">• 환경설정</li>
+                        <li class="sub-item" :class="{ active: isActiveMenu('/dashboard/system/policy') }"
+                            @click="goToPage('/dashboard/system/policy')"> • 요금 및 운영 정책 설정
+                        </li>
+                        <li class="sub-item" :class="{ active: isActiveMenu('/dashboard/system/history') }"
+                            @click="goToPage('/dashboard/system/history')">
+                            • 통합 알림 및 장애 이력
+                        </li>
+                        <li class="sub-item" :class="{ active: isActiveMenu('/dashboard/system/management') }"
+                            @click="goToPage('/dashboard/system/management')">
+                            • 시스템 및 계정 관리
+                        </li>
                     </ul>
                 </li>
             </ul>
@@ -102,9 +119,9 @@
 
                     <div class="weather-details">
                         <div class="weather-item"><span class="label">강수</span><span class="value">{{ weather.rainfallMm
-                                }}mm</span></div>
+                        }}mm</span></div>
                         <div class="weather-item"><span class="label">습도</span><span class="value">{{ weather.humidity
-                                }}%</span></div>
+                        }}%</span></div>
                         <div class="weather-item wide">
                             <span class="label">미세먼지</span>
                             <span class="value" :class="pm10Class">{{ weather.pm10 }}㎍ ({{ pm10Label }})</span>
@@ -130,6 +147,7 @@
             </div>
         </aside>
 
+
         <div class="main-area">
 
             <header class="main-header">
@@ -148,7 +166,7 @@
                     </div>
 
                     <div class="util-actions">
-                        <button class="icon-btn" title="새로고침">
+                        <button class="icon-btn" title="새로고침" @click="handleRefresh">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2">
                                 <path
@@ -156,14 +174,46 @@
                             </svg>
                         </button>
 
-                        <button class="icon-btn notify-btn" title="알림">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path d="M18 8A6 6 0 0 0 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" />
-                                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                            </svg>
-                            <span class="notification-badge"></span>
-                        </button>
+                        <div class="dropdown-wrapper">
+                            <button class="icon-btn notify-btn" :class="{ 'active': isNotifyOpen }" title="알림"
+                                @click="toggleNotify">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M18 8A6 6 0 0 0 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" />
+                                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                                </svg>
+                                <span class="notification-badge" v-if="unreadCount > 0"></span>
+                            </button>
+
+                            <div class="notify-dropdown glass-panel" v-if="isNotifyOpen">
+                                <div class="dropdown-header">알림 (미확인 {{ unreadCount }}건)</div>
+                                <div class="notify-filters">
+                                    <span class="active">전체({{ unreadCount }})</span>
+                                    <span>EV({{ notifyCounts.ev }})</span>
+                                    <span>OCR({{ notifyCounts.ocr }})</span>
+                                </div>
+                                <ul class="notify-list">
+                                    <li v-for="item in notifyList" :key="item.id" class="notify-item"
+                                        :class="item.alertClass">
+                                        <div class="notify-icon">{{ item.icon }}</div>
+                                        <div class="notify-text">
+                                            <strong>{{ item.title }}</strong>
+                                            <span class="time-log" v-if="item.subText">{{ item.subText }}</span>
+                                        </div>
+                                        <button class="action-btn" :class="item.btnClass"
+                                            @click="handleAlertAction(item)">
+                                            {{ item.btnText }}
+                                        </button>
+                                    </li>
+                                    <li v-if="notifyList.length === 0" class="notify-item empty">
+                                        새로운 알림이 없습니다
+                                    </li>
+                                </ul>
+                                <div class="dropdown-footer" @click="goToPage('/dashboard/system/history')">
+                                    알림 모두 보기
+                                </div>
+                            </div>
+                        </div>
 
                         <button class="icon-btn" title="즐겨찾기">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -174,18 +224,48 @@
                         </button>
                     </div>
 
-                    <div class="user-profile">
-                        <div class="avatar-circle">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
-                                <path
-                                    d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" />
-                                <circle cx="12" cy="7" r="4" />
+                    <div class="dropdown-wrapper">
+                        <div class="user-profile" :class="{ 'active': isProfileOpen }" @click="toggleProfile">
+                            <div class="avatar-circle">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff"
+                                    stroke-width="2">
+                                    <path
+                                        d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" />
+                                    <circle cx="12" cy="7" r="4" />
+                                </svg>
+                            </div>
+                            <span class="user-name">{{ adminName }}({{ adminDept }})</span>
+                            <svg class="chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9" />
                             </svg>
                         </div>
-                        <span class="user-name">{{ adminName }}({{ adminDept }})</span>
+
+                        <div class="profile-dropdown glass-panel" v-if="isProfileOpen">
+                            <div class="profile-card">
+                                <div class="profile-avatar-large"></div>
+                                <div class="profile-info-text">
+                                    <span class="p-name">{{ adminName }}(관리자)</span>
+                                    <span class="p-id">사번: {{ adminId }}</span>
+                                    <span class="p-dept">소속: {{ adminDept }}</span>
+                                </div>
+                            </div>
+                            <ul class="profile-menu-list">
+                                <li @click="goToMyPage">마이페이지</li>
+                                <li @click="goToPage('/dashboard/system/management')">환경설정</li>
+                            </ul>
+                            <button class="logout-btn">로그아웃
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                    <polyline points="16 17 21 12 16 7" />
+                                    <line x1="21" y1="12" x2="9" y2="12" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="mode-toggle">
+                    <div class="mode-toggle" @click="toggleTheme">
                         <div class="toggle-track">
                             <div class="toggle-thumb" :class="{ 'active': isDarkMode }">
                                 <svg v-if="isDarkMode" width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
@@ -199,12 +279,14 @@
                             </div>
                         </div>
                     </div>
+
                 </div>
             </header>
 
             <main class="content-container">
                 <router-view />
             </main>
+
         </div>
     </div>
 </template>
@@ -213,7 +295,6 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import { useRouter, useRoute } from 'vue-router'
-
 
 // ==========================================
 // 1. 상태 관리 변수 모음
@@ -228,6 +309,9 @@ const currentTime = ref('')      // 날씨 카드용 (HH:mm:ss)
 const currentFullTime = ref('')  // 헤더용 (YYYY-MM-DD HH:mm:ss)
 const lastUpdated = ref('')
 const reservationCount = ref(0)  // 예약 건수
+
+// 다크모드 
+const isDarkMode = ref(false)
 
 // 타이머 변수
 let clockTimer = null
@@ -248,8 +332,8 @@ const route = useRoute()
 const loadAdminInfo = () => {
     const storedName = sessionStorage.getItem('adminName')
     const storedDept = sessionStorage.getItem('dept')
-    if(storedName) adminName.value = storedName
-    if(storedDept) adminDept.value = storedDept
+    if (storedName) adminName.value = storedName
+    if (storedDept) adminDept.value = storedDept
 }
 
 // 시스템 설정 아코디언 토글
@@ -259,7 +343,11 @@ const toggleSystemMenu = () => {
 
 // 페이지 이동 함수 (실제 연동 시 주석 해제!)
 const goToPage = (path) => {
-    router.push(path) 
+    // 다른 탭 클릭 시 시스템 메뉴를 닫기
+    if (!path.includes('/system')) {
+        isSystemMenuOpen.value = false
+    }
+    router.push(path)
     console.log(`${path} (으)로 이동합니다!`)
 }
 
@@ -374,6 +462,7 @@ onUnmounted(() => {
 })
 </script>
 
+
 <style scoped>
 /* ── [1] 전체 레이아웃 (Base) ── */
 .dashboard-wrapper {
@@ -464,15 +553,15 @@ onUnmounted(() => {
     font-size: 18px;
 }
 
-.tab-item.active {
-    color: #82c2e3;
+/* 활성화(Active)된 메뉴 스타일  */
+.tab-item.active,
+.tab-item-group.active-group .tab-item.parent {
+    color: #82c2e3 !important;
+    background: rgba(130, 195, 227, 0.249) !important;
     margin: 2px 10px;
     border-radius: 12px;
     font-size: 19px;
     font-weight: bold;
-    background: rgba(130, 195, 227, 0.249);
-    /* border-left: 3px solid #82c2e3; */
-    letter-spacing: 0.5px;
     text-shadow: 0 0 20px #f5f5f58c;
 }
 
@@ -495,14 +584,15 @@ onUnmounted(() => {
 }
 
 /*  메뉴가 열렸을 때 배경색 변화 */
-.tab-item-group.is-open {
-    background: rgba(130, 195, 227, 0.249);
+.tab-item-group.is-open:not(.active-group) {
+    background: rgba(255, 255, 255, 0.11);
 }
 
-.tab-item-group.is-open .tab-item.parent {
-    color: #82c2e3;
-    font-weight: bold;
-    text-shadow: 0 0 15px rgba(130, 195, 227, 0.4);
+.tab-item-group.is-open:not(.active-group) .tab-item.parent {
+    color: #f5f5f5a7;
+    /* 기본 회색조 유지 */
+    font-weight: normal;
+    text-shadow: none;
 }
 
 /* 화살표 아이콘 위치 및 회전 */
@@ -531,6 +621,12 @@ onUnmounted(() => {
     padding: 8px 0;
     cursor: pointer;
     transition: 0.2s;
+}
+
+/* 하위 메뉴가 클릭되어 활성화되었을 때의 색상!! */
+.sub-item.active {
+    color: #82c2e3;
+    font-weight: 600;
 }
 
 /* 하위 메뉴 텍스트 호버 시 가이드 블루 컬러 강조 */

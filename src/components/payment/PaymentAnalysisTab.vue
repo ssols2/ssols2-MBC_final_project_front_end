@@ -1,21 +1,5 @@
 <template>
   <div class="payment-analysis-tab">
-    
-    <div class="filter-header">
-      <div class="date-picker-wrapper">
-        <input type="date" v-model="startDate" class="date-input" @change="fetchData" />
-        <span class="date-separator">-</span>
-        <input type="date" v-model="endDate" class="date-input" @change="fetchData" />
-        <button class="calendar-icon-btn">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="16" y1="2" x2="16" y2="6"></line>
-            <line x1="8" y1="2" x2="8" y2="6"></line>
-            <line x1="3" y1="10" x2="21" y2="10"></line>
-          </svg>
-        </button>
-      </div>
-    </div>
 
     <section class="ratio-dashboard">
       <div class="ratio-card">
@@ -48,7 +32,8 @@
           <div class="search-wrapper">
             <input type="text" placeholder="차량번호 검색..." class="search-input" v-model="searchQuery" />
             <span class="search-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="11" cy="11" r="8"></circle>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
               </svg>
@@ -109,9 +94,12 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { paymentApi } from '@/api/payment/stats.js'
 import * as echarts from 'echarts'
 
+// 오늘 날짜를 YYYY-MM-DD 형태로 가져오는 함수
+const getTodayStr = () => new Date().toISOString().split('T')[0]
+
 // 상태 관리
-const startDate = ref('2026-03-01')
-const endDate = ref('2026-04-18')
+const startDate = ref(getTodayStr()) // 접속 시 오늘 날짜로 자동 지정
+const endDate = ref(getTodayStr())   // 접속 시 오늘 날짜로 자동 지정
 const searchQuery = ref('')
 const currentPage = ref(1)
 const itemsPerPage = ref(10)
@@ -134,11 +122,11 @@ const fetchData = async () => {
       paymentApi.getAnalysisRatios(startDate.value, endDate.value),
       paymentApi.getPaymentLogs(startDate.value, endDate.value, (currentPage.value - 1) * itemsPerPage.value, itemsPerPage.value)
     ])
-    
+
     analysisData.value = ratioRes.data
     logItems.value = logRes.data.items
     totalLogCount.value = logRes.data.total_count
-    
+
     await nextTick()
     renderCharts()
   } catch (error) {
@@ -147,18 +135,44 @@ const fetchData = async () => {
 }
 
 // 도넛 차트 공통 옵션 생성기
+// PaymentAnalysisTab.vue 108라인 근처 수정
 const getDoughnutOption = (name, data, colors) => ({
   tooltip: { trigger: 'item' },
-  legend: { bottom: '5%', left: 'center', textStyle: { color: '#a1a1aa' } },
+  legend: { 
+    bottom: '2%', // 레전드 위치 살짝 조정
+    left: 'center', 
+    textStyle: { color: '#a1a1aa', fontSize: 11 },
+    itemWidth: 10,
+    itemHeight: 10
+  },
   series: [{
     name: name,
     type: 'pie',
-    radius: ['40%', '70%'],
-    avoidLabelOverlap: false,
-    itemStyle: { borderRadius: 10, borderColor: '#1e1e2d', borderWidth: 2 },
-    label: { show: false },
-    emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold', color: '#fff' } },
-    data: data.map((item, idx) => ({ ...item, itemStyle: { color: colors[idx] } }))
+    radius: ['35%', '60%'], // 레이블 공간 확보를 위해 반지름 살짝 축소
+    avoidLabelOverlap: true, // 레이블 겹침 방지
+    itemStyle: { borderRadius: 8, borderColor: '#1e1e2d', borderWidth: 2 },
+    
+    // [수정] 레이블 상시 노출 설정
+    label: { 
+      show: true, 
+      position: 'outside', 
+      formatter: '{b}\n({d}%)', // 항목명과 퍼센트 표시
+      color: '#cbd5e1',
+      fontSize: 11
+    },
+    labelLine: { // 레이블 연결선 설정
+      show: true,
+      length: 10,
+      length2: 10,
+      lineStyle: { color: '#3f3f46' }
+    },
+    emphasis: { 
+      label: { show: true, fontSize: 13, fontWeight: 'bold', color: '#fff' } 
+    },
+    data: data.map((item, idx) => ({ 
+      ...item, 
+      itemStyle: { color: colors[idx] } 
+    }))
   }],
   backgroundColor: 'transparent'
 })
@@ -204,31 +218,138 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.payment-analysis-tab { display: flex; flex-direction: column; gap: 24px; padding: 16px; background-color: #12121c; color: #f4f4f5; }
+.payment-analysis-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 16px;
+  background-color: #12121c;
+  color: #f4f4f5;
+}
 
 /* 3단 도넛 그리드 */
-.ratio-dashboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.ratio-card { background: #1e1e2d; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 16px; height: 320px; }
-.card-header { display: flex; justify-content: space-between; align-items: center; }
-.card-title { font-size: 16px; font-weight: 700; margin: 0; }
-.fail-badge { font-size: 12px; color: #ff4d4f; background: rgba(255, 77, 79, 0.1); padding: 4px 8px; border-radius: 4px; }
-.chart-box { flex: 1; width: 100%; }
+.ratio-dashboard {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.ratio-card {
+  background: #1e1e2d;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 320px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.fail-badge {
+  font-size: 12px;
+  color: #ff4d4f;
+  background: rgba(255, 77, 79, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.chart-box {
+  flex: 1;
+  width: 100%;
+}
 
 /* 테이블 스타일 (탭 1 재활용) */
-.table-section { background: #1e1e2d; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th, .data-table td { padding: 14px; border-bottom: 1px solid #3f3f46; text-align: left; font-size: 14px; }
-.data-table th { color: #a1a1aa; background: #2a2a3c; }
+.table-section {
+  background: #1e1e2d;
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  padding: 14px;
+  border-bottom: 1px solid #3f3f46;
+  text-align: left;
+  font-size: 14px;
+}
+
+.data-table th {
+  color: #a1a1aa;
+  background: #2a2a3c;
+}
 
 /* 배지 및 도트 */
-.badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-.bg-blue { background: #003a8c; color: #bae7ff; }
-.bg-gray { background: #262626; color: #8c8c8c; }
-.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
-.dot-green { background: #52c41a; box-shadow: 0 0 8px #52c41a; }
-.dot-red { background: #ff4d4f; }
+.badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
 
-.pagination { display: flex; justify-content: center; align-items: center; gap: 20px; margin-top: 10px; }
-.page-arrow { background: #2a2a3c; border: 1px solid #3f3f46; color: #fff; padding: 4px 12px; border-radius: 4px; cursor: pointer; }
-.page-arrow:disabled { opacity: 0.5; cursor: not-allowed; }
+.bg-blue {
+  background: #003a8c;
+  color: #bae7ff;
+}
+
+.bg-gray {
+  background: #262626;
+  color: #8c8c8c;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.dot-green {
+  background: #52c41a;
+  box-shadow: 0 0 8px #52c41a;
+}
+
+.dot-red {
+  background: #ff4d4f;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin-top: 10px;
+}
+
+.page-arrow {
+  background: #2a2a3c;
+  border: 1px solid #3f3f46;
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.page-arrow:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 </style>

@@ -49,6 +49,10 @@ import VehicleControlManage from '@/views/dashboard/VehicleControlManage.vue'
 import PaymentManage from '@/views/dashboard/PaymentManage.vue'
 // 5. 영상 보안 관제
 import SecurityView from '@/views/dashboard/CctvView.vue'
+// 7. 시스템 설정
+import HistoryView from '@/views/dashboard/system/HistoryView.vue'
+import PolicyView from '@/views/dashboard/system/PolicyView.vue'
+import ManagementView from '@/views/dashboard/system/ManagementView.vue'
 
 
 // 라우터 설정 시작
@@ -184,6 +188,24 @@ const router = createRouter({
                     path: 'cctv', // 주소: /dashboard/cctv
                     name: 'cctv',
                     component: SecurityView,
+                },
+                // 시스템 설정 - 요금 및 운영 정책 설정
+                {
+                path: 'system/policy', // 주소: /dashboard/system/policy
+                name: 'system-policy',
+                component: PolicyView,
+                },
+                // 시스템 설정 - 통합 알림 및 장애 이력
+                {
+                path: 'system/history', // 주소: /dashboard/system/history
+                name: 'system-history',
+                component: HistoryView,
+                },
+                // 시스템 설정 - 시스템 및 계정 관리
+                {
+                path: 'system/management', // 주소: /dashboard/system/management
+                name: 'system-management',
+                component: ManagementView,
                 },
             ]
         },

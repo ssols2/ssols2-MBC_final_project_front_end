@@ -17,7 +17,7 @@
         <h1 class="page-title">주차장 입차 안내</h1>
 
         <div v-if="!isLoading" class="upload-section">
-          <p class="guide-text">인식할 차량의 정면 사진을 선택해 주세요.</p>
+          <p class="guide-text">인식할 차량의 사진을 선택해 주세요</p>
           <label for="fileInput" class="professional-btn">
             <svg viewBox="0 0 24 24" class="svg-icon">
               <path fill="currentColor"
@@ -416,48 +416,102 @@ const translatedSpot = computed(() => {
 </script>
 
 <style scoped>
-/* 기존 스타일은 유지하고, 새로 추가된 이미지 그리드와 뱃지 스타일을 추가합니다. */
+/* ── 1. 전체 래퍼 및 배경 ── */
 .kiosk-main-wrapper {
-  font-family: 'Pretendard', sans-serif;
+  font-family: 'Pretendard', -apple-system, sans-serif;
   display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
+  min-height: 100vh;
+  /* 화면이 작아도 배경이 짤리지 않게 min-height로 변경 */
   background: linear-gradient(135deg, var(--bg-light) 0%, #e0eafc 100%);
-  overflow: hidden;
+  overflow-y: auto;
 }
 
+/* ── 2. 레이아웃 및 컨테이너 ── */
 .screen-container {
   width: 100%;
-  min-height: 90%;
-  flex-direction: column;
+  min-height: 100%;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 40px 60px;
+  padding: 30px 40px;
 }
 
 .center-content {
   width: 100%;
-  max-width: 1400px;
+  max-width: 1200px;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
+/* ── 3. 타이포그래피 ── */
+.page-title,
+.highlight-title {
+  font-size: 52px;
+  font-weight: 800;
+  color: #222;
+  margin-bottom: 20px;
+  margin-top: 10px;
+  letter-spacing: -1.5px;
+}
+
+.guide-text {
+  font-size: 28px;
+  color: #444;
+  margin-bottom: 40px;
+  letter-spacing: -1px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.welcome-msg {
+  font-size: 24px;
+  font-weight: 700;
+  color: #005baa;
+  margin-top: 30px;
+  text-align: center;
+  background: #f2f4f6;
+  padding: 16px;
+  border-radius: 16px;
+}
+
+/* ── 4. 로고 및 터치 애니메이션 ── */
 .logo-box {
   width: 100%;
-  height: 170px;
+  height: 200px;
   display: flex;
   justify-content: center;
-  margin-bottom: 80px;
-  margin-top: 50px;
+  margin-bottom: 40px;
+  margin-top: 20px;
 }
 
 .main-logo-img {
   height: 100%;
   width: auto;
   object-fit: contain;
+}
+
+.touch-guidance {
+  margin-top: 60px;
+  text-align: center;
+}
+
+.touch-main-msg {
+  font-size: 36px;
+  font-weight: 800;
+  color: #333;
+  margin-bottom: 16px;
+  letter-spacing: -1px;
+}
+
+.touch-sub-msg {
+  font-size: 24px;
+  color: #444;
+  font-weight: 500;
 }
 
 .pulse-animation {
@@ -471,7 +525,7 @@ const translatedSpot = computed(() => {
   }
 
   50% {
-    transform: scale(1.05);
+    transform: scale(1.03);
     opacity: 0.8;
   }
 
@@ -481,219 +535,192 @@ const translatedSpot = computed(() => {
   }
 }
 
-.touch-guidance {
-  margin-top: 120px;
-  text-align: center;
-}
-
-.touch-main-msg {
-  font-size: 30px;
-  margin-bottom: 12px;
-}
-
-.touch-sub-msg {
-  font-size: 22px;
-}
-
-.page-title {
-  font-size: 70px;
-  margin-bottom: 20px;
-  margin-top: 30px;
-}
-
-.upload-section {
-  text-align: center;
-}
-
-.guide-text {
-  font-size: 28px;
-  margin-bottom: 80px;
-  letter-spacing: -1.8px;
-  text-align: center;
-}
-
+/* ── 5. 버튼 ── */
 .professional-btn {
   background: #005baa;
   color: #ffffff;
-  padding: 50px 60px;
-  font-size: 30px;
-  font-weight: 600;
-  border-radius: 10px;
+  padding: 24px 40px;
+  font-size: 24px;
+  font-weight: 700;
+  border-radius: 20px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 30px rgba(0, 91, 170, 0.2);
+  box-shadow: 0 12px 24px rgba(49, 130, 246, 0.25);
   border: none;
+  transition: all 0.2s ease;
+}
+
+.professional-btn:active {
+  transform: scale(0.96);
+  box-shadow: 0 6px 12px rgba(49, 130, 246, 0.15);
 }
 
 .svg-icon {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   margin-right: 15px;
 }
 
-/* 입차 결과 (이미지 & 데이터 분할) */
+/* ── 6. 결과 카드 디자인 ── */
 .result-card-container {
   display: flex;
-  gap: 40px;
+  gap: 30px;
   width: 100%;
   margin-bottom: 20px;
 }
 
 .info-card {
   flex: 1;
-  background: #fff;
-  padding: 40px;
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.05);
-  border: 1px solid #eef2f6;
-  border-radius: 15px;
+  background: #ffffff;
+  padding: 30px 40px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
+  border-radius: 28px;
 }
 
-/* 이미지 2개 출력용 그리드 */
+.card-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #222;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #f2f4f6;
+  padding-bottom: 16px;
+}
+
+/* ── 7. 데이터 테이블 ── */
+.res-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.res-table th {
+  text-align: left;
+  font-size: 18px;
+  color: #222;
+  padding: 16px 0;
+  border-bottom: 1px solid #f2f4f6;
+  font-weight: 500;
+  width: 35%;
+}
+
+.res-table td {
+  text-align: right;
+  font-size: 20px;
+  font-weight: 700;
+  color: #333;
+  padding: 16px 0;
+  border-bottom: 1px solid #f2f4f6;
+}
+
+/* ── 8. 강조 태그 및 뱃지 ── */
+.plate-num {
+  font-size: 28px;
+  color: #005baa;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.plate-num.warn {
+  color: #ff0015;
+}
+
+.badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.member-badge {
+  background: #e8f3ff;
+  color: #005baa;
+}
+
+.country-badge {
+  background: #f2f4f6;
+  color: #4e5968;
+}
+
+.normal-badge {
+  background: #f2f4f6;
+  color: #444D56;
+}
+
+/* ── 9. 이미지 그리드 영역 ── */
 .image-grid {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  margin-top: 20px;
-}
-
-.image-box {
-  width: 100%;
+  gap: 16px;
 }
 
 .img-label {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: #555;
+  font-size: 16px;
+  font-weight: 700;
+  color: #444D56;
   margin-bottom: 8px;
 }
 
 .image-wrapper {
   width: 100%;
-  height: 250px;
-  background: #f8f9fa;
-  border-radius: 8px;
+  height: 180px;
+  background: #f9fafb;
+  border-radius: 16px;
   overflow: hidden;
   display: flex;
   justify-content: center;
   align-items: center;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e5e8eb;
 }
 
 .plate-wrapper {
-  height: 120px;
-  /* 번호판은 위아래가 좁으므로 높이를 낮춤 */
+  height: 100px;
+  background: #e8f3ff;
+  border: none;
 }
 
+/* 140 -> 100 */
 .captured-img {
   max-width: 100%;
   max-height: 100%;
-  object-fit: contain;
+  object-fit: cover;
 }
 
 .no-image-placeholder {
-  color: #94a3b8;
-  font-size: 1.2rem;
-}
-
-.res-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-}
-
-.res-table th {
-  text-align: left;
-  font-size: 1.6rem;
-  color: #64748b;
-  padding: 20px 0;
-  border-bottom: 1px solid #f1f5f9;
-  width: 35%;
-}
-
-.res-table td {
-  text-align: left;
-  font-size: 1.8rem;
-  font-weight: 700;
-  padding: 20px 0;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.plate-num {
-  font-size: 4rem;
-  color: #005baa;
-  letter-spacing: 2px;
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.plate-num.warn {
-  color: #fb6900;
-}
-
-.highlight-title {
-  font-size: 70px;
-}
-
-.welcome-msg {
-  font-size: 32px;
-  font-weight: 500;
-  color: #005baa;
-  margin-top: 40px;
-  text-align: center;
-}
-
-/* 뱃지 디자인 (회원, EV, 국가 등) */
-.badge {
-  display: inline-block;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 1.2rem;
+  color: #b0b8c1;
+  font-size: 16px;
   font-weight: 600;
-  margin-right: 10px;
 }
 
-.member-badge {
-  background: #e0f2fe;
-  color: #0369a1;
-  border: 1px solid #bae6fd;
-  font-size: 1.4rem;
-  padding: 8px 15px;
+/* ── 10. 경고 및 에러 UI ── */
+.warning-title {
+  color: #ff0015;
+  border-bottom-color: #fee2e5;
 }
 
-.country-badge {
-  background: #f1f5f9;
-  color: #475569;
-  border: 1px solid #cbd5e1;
+.status-warn {
+  color: #ff0015 !important;
 }
 
-.ev-badge {
-  background: #ecfeff;
-  color: #0891b2;
-  border: 1px solid #a5f3fc;
-}
-
-.normal-badge {
-  background: #f8fafc;
-  color: #94a3b8;
-  border: 1px solid #e2e8f0;
+.status-success {
+  color: #005baa !important;
 }
 
 .warning-guide-box {
-  margin-top: 40px;
-  padding: 30px;
-  background: #fff8e6;
-  border-radius: 12px;
-  border-left: 8px solid #ffc107;
+  margin-top: 20px;
+  padding: 20px;
+  background: #fee2e5;
+  border-radius: 16px;
   text-align: center;
 }
 
 .warning-guide-box p {
-  font-size: 26px;
-  font-weight: 600;
-  color: #856404;
+  font-size: 20px;
+  font-weight: 700;
+  color: #ff0015;
   margin: 0;
 }
 
@@ -702,93 +729,93 @@ const translatedSpot = computed(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex: 1;
-  padding: 20px 0;
+  padding: 40px 0;
 }
 
 .svg-error {
-  width: 100px;
-  height: 100px;
-  color: #e74c3c;
-  margin-bottom: 30px;
+  width: 80px;
+  height: 80px;
+  color: #ff0015;
+  margin-bottom: 20px;
 }
 
 .error-msg {
-  font-size: 38px !important;
-  font-weight: 700;
-  color: #e74c3c;
-  margin: 0 0 15px 0;
+  font-size: 28px;
+  font-weight: 800;
+  color: #333;
+  margin: 0 0 10px 0;
 }
 
 .sub-guide {
-  font-size: 24px !important;
-  color: #64748b;
+  font-size: 20px;
+  color: #444;
   font-weight: 500;
 }
 
+/* ── 11. 하단 타이머 프로그레스 ── */
 .timer-section {
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
+  padding: 10px 0 20px 0;
   margin-top: auto;
-  padding-bottom: 30px;
 }
 
 .timer-bar {
-  width: 100%;
-  height: 14px;
-  background: rgba(0, 91, 170, 0.15);
+  width: 60%;
+  height: 10px;
+  background: #e5e8eb;
   border-radius: 10px;
   overflow: hidden;
-  margin-top: 40px;
+  margin-top: 10px;
 }
 
 .timer-progress {
   height: 100%;
   background: #005baa;
-  animation: timerShrink 5s linear forwards;
-}
-
-@keyframes timerShrink {
-  from {
-    width: 100%;
-  }
-
-  to {
-    width: 0%;
-  }
+  border-radius: 10px;
+  transition: width 1s linear;
 }
 
 .timer-text {
+  font-size: 20px;
+  color: #444D56;
+  margin-top: 12px;
+  font-weight: 600;
+}
+
+.timer-text b {
+  color: #005baa;
   font-size: 24px;
-  color: #333;
-  margin-top: 20px;
-  text-align: center;
+  margin-right: 5px;
 }
 
-.loading-section {
-  margin-top: 80px;
-}
-
+/* ── 12. 로딩 스피너 ── */
 .loading-msg {
   text-align: center;
-  font-size: 30px;
+  font-size: 28px;
+  font-weight: 800;
+  color: #333;
+  margin-top: 20px;
 }
 
 .loading-sub {
   text-align: center;
-  font-size: 24px;
+  font-size: 20px;
+  color: #444;
+  margin-top: 10px;
+  font-weight: 500;
 }
 
 .modern-spinner {
-  width: 80px;
-  height: 80px;
-  border: 8px solid rgba(0, 91, 170, 0.1);
-  border-top: 8px solid #005baa;
+  width: 64px;
+  height: 64px;
+  border: 6px solid #e5e8eb;
+  border-top: 6px solid #005baa;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 30px;
+  animation: spin 1s cubic-bezier(0.6, 0.2, 0.4, 0.8) infinite;
+  margin: 0 auto;
 }
 
 @keyframes spin {

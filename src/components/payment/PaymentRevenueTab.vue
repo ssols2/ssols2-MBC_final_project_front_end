@@ -1,32 +1,20 @@
 <template>
   <div class="payment-revenue-tab">
-    
-    <div class="filter-header">
-      <div class="date-picker-wrapper">
-        <input type="date" v-model="startDate" class="date-input" @change="fetchData" />
-        <span class="date-separator">-</span>
-        <input type="date" v-model="endDate" class="date-input" @change="fetchData" />
-        <button class="calendar-icon-btn">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="16" y1="2" x2="16" y2="6"></line>
-            <line x1="8" y1="2" x2="8" y2="6"></line>
-            <line x1="3" y1="10" x2="21" y2="10"></line>
-          </svg>
-        </button>
-      </div>
-    </div>
 
     <section class="summary-dashboard">
       <div class="summary-card">
         <div class="card-title">총 매출</div>
         <div class="card-value">
           <h2>₩{{ (summaryData?.total_revenue || 0).toLocaleString() }}</h2>
-          <span v-if="summaryData?.trends?.total !== undefined" 
-                :class="['trend', summaryData.trends.total >= 0 ? 'up' : 'down']">
-            {{ summaryData.trends.total > 0 ? '+' : '' }}{{ summaryData.trends.total }}% 
-            <svg v-if="summaryData.trends.total >= 0" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4l8 16H4z"/></svg>
-            <svg v-else width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20L4 4h16z"/></svg>
+          <span v-if="summaryData?.trends?.total !== undefined"
+            :class="['trend', summaryData.trends.total >= 0 ? 'up' : 'down']">
+            {{ summaryData.trends.total > 0 ? '+' : '' }}{{ summaryData.trends.total }}%
+            <svg v-if="summaryData.trends.total >= 0" width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 4l8 16H4z" />
+            </svg>
+            <svg v-else width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 20L4 4h16z" />
+            </svg>
           </span>
         </div>
       </div>
@@ -35,15 +23,20 @@
         <div class="card-title">주차 수익</div>
         <div class="card-value">
           <h2>₩{{ (summaryData?.parking_revenue || 0).toLocaleString() }}</h2>
-          <span v-if="summaryData?.trends?.parking !== undefined" 
-                :class="['trend', summaryData.trends.parking >= 0 ? 'up' : 'down']">
-            {{ summaryData.trends.parking > 0 ? '+' : '' }}{{ summaryData.trends.parking }}% 
-            <svg v-if="summaryData.trends.parking >= 0" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4l8 16H4z"/></svg>
-            <svg v-else width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20L4 4h16z"/></svg>
+          <span v-if="summaryData?.trends?.parking !== undefined"
+            :class="['trend', summaryData.trends.parking >= 0 ? 'up' : 'down']">
+            {{ summaryData.trends.parking > 0 ? '+' : '' }}{{ summaryData.trends.parking }}%
+            <svg v-if="summaryData.trends.parking >= 0" width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 4l8 16H4z" />
+            </svg>
+            <svg v-else width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 20L4 4h16z" />
+            </svg>
           </span>
         </div>
         <div class="progress-bar">
-          <div class="fill" :style="{ width: getRatio(summaryData?.parking_revenue, summaryData?.total_revenue) + '%' }"></div>
+          <div class="fill"
+            :style="{ width: getRatio(summaryData?.parking_revenue, summaryData?.total_revenue) + '%' }"></div>
         </div>
       </div>
 
@@ -51,20 +44,25 @@
         <div class="card-title">충전 수익</div>
         <div class="card-value">
           <h2>₩{{ (summaryData?.ev_charging_revenue || 0).toLocaleString() }}</h2>
-          <span v-if="summaryData?.trends?.ev !== undefined" 
-                :class="['trend', summaryData.trends.ev >= 0 ? 'up' : 'down']">
-            {{ summaryData.trends.ev > 0 ? '+' : '' }}{{ summaryData.trends.ev }}% 
-            <svg v-if="summaryData.trends.ev >= 0" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4l8 16H4z"/></svg>
-            <svg v-else width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20L4 4h16z"/></svg>
+          <span v-if="summaryData?.trends?.ev !== undefined"
+            :class="['trend', summaryData.trends.ev >= 0 ? 'up' : 'down']">
+            {{ summaryData.trends.ev > 0 ? '+' : '' }}{{ summaryData.trends.ev }}%
+            <svg v-if="summaryData.trends.ev >= 0" width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 4l8 16H4z" />
+            </svg>
+            <svg v-else width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 20L4 4h16z" />
+            </svg>
           </span>
         </div>
         <div class="progress-bar">
-          <div class="fill" :style="{ width: getRatio(summaryData?.ev_charging_revenue, summaryData?.total_revenue) + '%' }"></div>
+          <div class="fill"
+            :style="{ width: getRatio(summaryData?.ev_charging_revenue, summaryData?.total_revenue) + '%' }"></div>
         </div>
       </div>
 
       <div class="summary-card highlight-card">
-        <div class="card-title">할인 적용 건수 및 금액</div>
+        <div class="card-title">진료 연동 할인 건수 및 금액</div>
         <div class="discount-details">
           <div class="detail-row">
             <span class="label text-orange">건수</span>
@@ -79,7 +77,7 @@
     </section>
 
     <section class="chart-section">
-      
+
       <div class="section-header">
         <div class="header-left">
           <h3 class="section-title">매출 추이 그래프</h3>
@@ -90,18 +88,22 @@
           </div>
         </div>
         <div class="header-right total-stats">
-          <span class="stat-label">총 매출액:</span> 
+          <span class="stat-label">총 매출액:</span>
           <strong class="stat-value text-blue">₩{{ (chartSummary?.total_revenue || 0).toLocaleString() }}</strong>
           <span class="divider">|</span>
-          <span class="stat-label">총 거래건수:</span> 
+          <span class="stat-label">총 거래건수:</span>
           <strong class="stat-value">{{ (chartSummary?.total_count || 0).toLocaleString() }}건</strong>
         </div>
       </div>
 
       <div class="chart-body-wrapper">
-        
-        <div class="chart-canvas-area" ref="revenueChartRef">
-          <div v-if="!chartData || chartData.length === 0" class="empty-message">데이터를 불러오는 중입니다</div>
+
+        <div class="chart-canvas-area">
+          <div v-if="!chartData || chartData.length === 0" class="empty-message">
+            데이터를 불러오는 중입니다
+          </div>
+
+          <div v-else ref="revenueChartRef" style="width: 100%; height: 100%;"></div>
         </div>
 
         <div class="chart-side-panel">
@@ -137,7 +139,8 @@
           <div class="search-wrapper">
             <input type="text" placeholder="Search..." class="search-input" v-model="searchQuery" />
             <span class="search-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="11" cy="11" r="8"></circle>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
               </svg>
@@ -145,12 +148,13 @@
           </div>
           <button class="excel-btn" @click="downloadExcel">
             <span class="icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                 <polyline points="7 10 12 15 17 10"></polyline>
                 <line x1="12" y1="15" x2="12" y2="3"></line>
               </svg>
-            </span> 
+            </span>
             엑셀 다운로드
           </button>
         </div>
@@ -163,7 +167,7 @@
               <th>정산 일자</th>
               <th>결제 건수</th>
               <th>총 발생 금액(주차+충전)</th>
-              <th>할인 감면액</th>
+              <th>할인 감면액(진료 연동)</th>
               <th>최종 금액 (₩)</th>
             </tr>
           </thead>
@@ -184,12 +188,8 @@
 
       <div class="pagination">
         <button class="page-arrow" @click="prevPage" :disabled="currentPage === 1">&lt;</button>
-        <button 
-          v-for="page in totalPages" 
-          :key="page" 
-          :class="['page-num', { active: currentPage === page }]"
-          @click="goToPage(page)"
-        >
+        <button v-for="page in totalPages" :key="page" :class="['page-num', { active: currentPage === page }]"
+          @click="goToPage(page)">
           {{ page }}
         </button>
         <button class="page-arrow" @click="nextPage" :disabled="currentPage === totalPages">&gt;</button>
@@ -200,14 +200,28 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+// nextTick: 뷰(Vue)가 화면(HTML)을 다 그릴 때까지 기다리는 타이머 -> DOM 업데이트가 끝날 때까지 기다린 후 차트 등을 렌더링
+// defineProps: 부모 컴포넌트가 던져주는 데이터를 받기 위해 열어둔 입
+import { ref, computed, onMounted, nextTick, defineProps, watch } from 'vue'
 import { paymentApi } from '@/api/payment/stats.js'
-import * as echarts from 'echarts'
+import * as echarts from 'echarts' // echarts: 데이터를 예쁜 그래프로 그려주는 차트 라이브러리
 
-// ── [1] 상태 관리 (State) ──
-// 검색 필터 및 뷰 타입
-const startDate = ref('2026-03-01')
-const endDate = ref('2026-04-18')
+// ── [1] 부모 데이터 수신 및 감지 (Props & Watch) ──
+
+const props = defineProps({
+  startDate: String,
+  endDate: String
+})
+
+// 부모가 주는 날짜가 바뀌면 즉시 감지해서 화면 데이터를 다시 불러옴
+watch(() => [props.startDate, props.endDate], () => {
+  fetchData()
+})
+
+
+// ── [2] 상태 관리 (State) ──
+// (주의: 기존에 있던 startDate, endDate ref는 부모한테서 받으므로 삭제함)
+
 const viewType = ref('day') // day, week, month
 
 // 테이블 정렬 및 페이징
@@ -238,7 +252,7 @@ const revenueChartRef = ref(null)
 let chartInstance = null
 
 
-// ── [2] 핵심 계산 로직 (Utils) ──
+// ── [3] 핵심 계산 로직 (Utils) ──
 // 프로그레스 바를 위한 실제 비율 계산 함수 (0 ~ 100%)
 const getRatio = (target, total) => {
   if (!total || total === 0) return 0
@@ -247,16 +261,15 @@ const getRatio = (target, total) => {
 }
 
 
-// ── [3] API 데이터 패칭 (Fetch) ──
+// ── [4] API 데이터 패칭 (Fetch) ──
 // 상단 요약 카드 데이터 가져오기
 const fetchSummary = async () => {
   try {
-    const res = await paymentApi.getRevenueSummary(startDate.value, endDate.value)
+    const res = await paymentApi.getRevenueSummary(props.startDate, props.endDate)
     summaryData.value = res.data
-    
-    // 백엔드에서 trends(증감률) 데이터가 안 올 경우를 대비한 안전 장치
+
     if (!summaryData.value.trends) {
-      summaryData.value.trends = { total: 0, parking: 0, ev: 0 } 
+      summaryData.value.trends = { total: 0, parking: 0, ev: 0 }
     }
   } catch (error) {
     console.error("요약 데이터를 불러오는데 실패했습니다", error)
@@ -264,12 +277,17 @@ const fetchSummary = async () => {
 }
 
 // 중앙 그래프 데이터 가져오기 및 렌더링
+// 중앙 그래프 데이터 가져오기 및 렌더링
 const fetchChart = async () => {
   try {
-    // 백엔드에서 통합 DTO 받아옴
-    const res = await paymentApi.getRevenueChart(viewType.value, startDate.value, endDate.value)
-    
-    // 보따리 내용물을 프론트엔드 그릇에 알맞게 분배
+    // 시작일과 종료일이 같은 '하루 조회' 상태라면 viewType을 hour로 전환
+    let requestViewType = viewType.value
+    if (props.startDate === props.endDate && viewType.value === 'day') {
+      requestViewType = 'hour'
+    }
+
+    const res = await paymentApi.getRevenueChart(requestViewType, props.startDate, props.endDate)
+
     chartData.value = res.data.graph_data
     chartSummary.value = {
       total_revenue: res.data.total_revenue,
@@ -277,8 +295,7 @@ const fetchChart = async () => {
       avg_revenue: res.data.avg_revenue,
       revenue_per_car: res.data.revenue_per_car
     }
-    
-    // 데이터 갱신 후 DOM이 준비되면 차트 그리기
+
     await nextTick()
     renderChart()
   } catch (error) {
@@ -290,7 +307,7 @@ const fetchChart = async () => {
 const fetchTable = async () => {
   try {
     const skip = (currentPage.value - 1) * itemsPerPage.value
-    const res = await paymentApi.getRevenueTable(startDate.value, endDate.value, skip, itemsPerPage.value)
+    const res = await paymentApi.getRevenueTable(props.startDate, props.endDate, skip, itemsPerPage.value)
     tableItems.value = res.data.items
     totalTableCount.value = res.data.total_count
   } catch (error) {
@@ -299,66 +316,76 @@ const fetchTable = async () => {
 }
 
 
-// ── [4] ECharts 렌더링 함수 ──
+// ── [5] ECharts 렌더링 함수 ──
 const renderChart = () => {
   if (!revenueChartRef.value) return
-  
-  // 이미 그려진 차트가 없다면 초기화
+
   if (!chartInstance) {
     chartInstance = echarts.init(revenueChartRef.value)
   }
 
-  // 백엔드에서 받은 chartData를 ECharts 규격으로 분리
   const labels = chartData.value.map(item => item.label)
   const parkingValues = chartData.value.map(item => item.parking_amount)
   const evValues = chartData.value.map(item => item.ev_amount)
 
-  // viewType에 따라 차트 종류(line/bar) 동적 결정
   const seriesType = viewType.value === 'day' ? 'line' : 'bar'
 
-  // 이미지 설계서와 똑같은 파란색/노란색 그래프 옵션
   const option = {
     tooltip: { trigger: 'axis' },
-    legend: { 
+    legend: {
       data: ['주차비 매출', '충전비 매출'],
       textStyle: { color: '#a1a1aa' }
     },
-    xAxis: { 
-      type: 'category', 
+    xAxis: {
+      type: 'category',
       data: labels,
       axisLabel: { color: '#a1a1aa' }
     },
-    yAxis: { 
+    yAxis: {
       type: 'value',
-      axisLabel: { color: '#a1a1aa' },
-      splitLine: { lineStyle: { color: '#3f3f46' } }
+      // 0부터 시작해서 데이터 최댓값보다 살짝 높게 자동으로 잡음
+      min: 0,
+      // 데이터가 아예 없을 때를 대비해 기본 스케일을 100만 원으로 설정 (선택사항)
+      minInterval: 100000,
+
+      axisLabel: {
+        color: '#a1a1aa',
+        // 숫자가 커지면 읽기 편하게 1,000단위 쉼
+        formatter: (value) => {
+          if (value >= 10000) {
+            return (value / 10000).toLocaleString() + '만'; // 1000000 -> 100만
+          }
+          return value.toLocaleString();
+        }
+      },
+      splitLine: {
+        lineStyle: { color: '#3f3f46' }
+      }
     },
     series: [
-      { 
-        name: '주차비 매출', 
-        type: seriesType, 
-        data: parkingValues, 
-        itemStyle: { color: '#82c2e3' }, // 설계서의 파란색
-        smooth: true // 꺾은선일 경우 부드러운 곡선 처리
+      {
+        name: '주차비 매출',
+        type: seriesType,
+        data: parkingValues,
+        itemStyle: { color: '#82c2e3' },
+        smooth: true
       },
-      { 
-        name: '충전비 매출', 
-        type: seriesType, 
-        data: evValues, 
-        itemStyle: { color: '#fadb14' }, // 설계서의 노란색
+      {
+        name: '충전비 매출',
+        type: seriesType,
+        data: evValues,
+        itemStyle: { color: '#fadb14' },
         smooth: true
       }
     ],
     backgroundColor: 'transparent'
   }
 
-  // strue 옵션을 주어 이전 차트의 잔상을 완벽히 지우고 새로 그림
   chartInstance.setOption(option, true)
 }
 
 
-// ── [5] 사용자 인터랙션 핸들러 ──
-// 날짜가 바뀌었을 때 전체 리로드
+// ── [6] 사용자 인터랙션 핸들러 ──
 const fetchData = () => {
   currentPage.value = 1
   fetchSummary()
@@ -366,13 +393,11 @@ const fetchData = () => {
   fetchTable()
 }
 
-// 뷰 타입(일/주/월)이 바뀌었을 때 그래프만 리로드
 const changeViewType = (type) => {
   viewType.value = type
   fetchChart()
 }
 
-// 페이징 이동
 const goToPage = (page) => {
   currentPage.value = page
   fetchTable()
@@ -390,16 +415,14 @@ const nextPage = () => {
   }
 }
 
-// 엑셀 다운로드 (기능 연동용 껍데기)
 const downloadExcel = () => {
   alert("엑셀 다운로드 API를 연결해주세요")
 }
 
-// ── [6] 라이프사이클 ──
+// ── [7] 라이프사이클 ──
 onMounted(() => {
-  fetchData() // 화면이 켜지자마자 데이터 세팅 시작
-  
-  // 브라우저 크기가 바뀔 때 차트도 같이 반응형으로 줄어들게 만듦
+  fetchData()
+
   window.addEventListener('resize', () => {
     if (chartInstance) chartInstance.resize()
   })
@@ -412,41 +435,14 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  height: 100%; /* 부모의 main 영역 높이를 100% 채움 */
-  overflow-y: auto; /* 내용이 길어져도 내부에서만 스크롤 됨 */
+  height: 100%;
+  /* 부모의 main 영역 높이를 100% 채움 */
+  overflow-y: auto;
+  /* 내용이 길어져도 내부에서만 스크롤 됨 */
   padding: 16px;
   color: #f4f4f5;
-  background-color: #12121c; /* 세련된 다크 배경 */
-}
-
-/* ── 2. 최상단: 날짜 필터 (우측 정렬) ── */
-.filter-header {
-  display: flex;
-  justify-content: flex-end;
-}
-.date-picker-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #1e1e2d;
-  padding: 8px 16px;
-  border-radius: 8px;
-  border: 1px solid #3f3f46;
-}
-.date-input {
-  background: transparent;
-  border: none;
-  color: #fff;
-  outline: none;
-  font-family: inherit;
-}
-.calendar-icon-btn {
-  background: none;
-  border: none;
-  color: #a1a1aa;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
+  background-color: #12121c;
+  /* 세련된 다크 배경 */
 }
 
 /* ── 3. 상단: 요약 카드 4종 (Grid로 1:1:1:1 분할) ── */
@@ -455,6 +451,7 @@ onMounted(() => {
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
 }
+
 .summary-card {
   background: #1e1e2d;
   padding: 24px;
@@ -464,23 +461,32 @@ onMounted(() => {
   gap: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
+
 .card-title {
   font-size: 14px;
   color: #a1a1aa;
   font-weight: 600;
 }
+
 .card-value {
   display: flex;
   align-items: baseline;
   gap: 12px;
 }
+
 .card-value h2 {
   margin: 0;
   font-size: 24px;
   font-weight: 700;
 }
-.trend.up { color: #ff4d4f; }
-.trend.down { color: #3b82f6; }
+
+.trend.up {
+  color: #ff4d4f;
+}
+
+.trend.down {
+  color: #3b82f6;
+}
 
 /* 프로그레스 바 디자인 */
 .progress-bar {
@@ -491,9 +497,11 @@ onMounted(() => {
   overflow: hidden;
   margin-top: auto;
 }
+
 .progress-bar .fill {
   height: 100%;
-  background: #82c2e3; /* 파란색 포인트 */
+  background: #82c2e3;
+  /* 파란색 포인트 */
   border-radius: 3px;
   transition: width 0.5s ease;
 }
@@ -507,16 +515,20 @@ onMounted(() => {
   flex-direction: column;
   gap: 20px;
 }
+
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
-.header-left, .header-right {
+
+.header-left,
+.header-right {
   display: flex;
   align-items: center;
   gap: 16px;
 }
+
 .section-title {
   margin: 0;
   font-size: 18px;
@@ -527,22 +539,26 @@ onMounted(() => {
 .chart-body-wrapper {
   display: flex;
   gap: 24px;
-  height: 350px; /* 그래프 영역 고정 높이 */
+  height: 400px;
+  /* 그래프 영역 고정 높이 */
 }
+
 .chart-canvas-area {
-  flex: 3;
-  background: #2a2a3c; /* 차트 배경을 살짝 다르게 주어 입체감 부여 */
-  border-radius: 12px;
+  flex: 4;
+  background: #2a2a3c;
+  border-radius: 10px;
   display: flex;
   justify-content: center;
   align-items: center;
 }
+
 .chart-side-panel {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
+
 .side-card {
   flex: 1;
   background: #2a2a3c;
@@ -553,9 +569,11 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
 }
+
 .side-card .card-title {
   font-size: 15px;
 }
+
 .side-card .card-value {
   font-size: 22px;
   font-weight: 700;
@@ -570,28 +588,47 @@ onMounted(() => {
   flex-direction: column;
   gap: 16px;
 }
+
 .data-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
 }
-.data-table th, .data-table td {
+
+.data-table th,
+.data-table td {
   padding: 16px;
   border-bottom: 1px solid #3f3f46;
 }
+
 .data-table th {
   color: #a1a1aa;
   font-weight: 600;
   background: #2a2a3c;
 }
+
 .data-table tr:hover {
   background: #2a2a3c;
 }
 
 /* 유틸리티 및 텍스트 컬러 */
-.text-blue { color: #82c2e3; }
-.text-yellow { color: #fadb14; }
-.text-orange { color: #faad14; }
-.text-red { color: #ff4d4f; }
-.text-white { color: #ffffff; }
+.text-blue {
+  color: #82c2e3;
+}
+
+.text-yellow {
+  color: #fadb14;
+}
+
+.text-orange {
+  color: #faad14;
+}
+
+.text-red {
+  color: #ff4d4f;
+}
+
+.text-white {
+  color: #ffffff;
+}
 </style>
