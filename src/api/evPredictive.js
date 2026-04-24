@@ -6,7 +6,7 @@ const springApi = axios.create({
 })
 
 const fastApi = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: 'http://localhost:8003',
   timeout: 5000
 })
 
@@ -49,10 +49,10 @@ export async function getChargerDetail(chargerId) {
   }
 }
 
-export async  function getHistoryData(limit = 10) {
-  const response = await fastApi.get('/issue-log', {
-    params: { limit }
-  })
+export async function getHistoryData(limit = 200, chargerId = null) {
+  const params = { limit }
+  if (chargerId && chargerId !== 'ALL') params.charger_id = chargerId
+  const response = await fastApi.get('/issue-log', { params })
 
   return response.data.map((row) => ({
     id: row.ev_issue_log_id,

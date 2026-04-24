@@ -100,10 +100,13 @@
         <section class="layout-card history-card">
           <FaultHistoryTable
             :history-data="historyData"
+            :charger-list="chargerList"
+            :active-charger-id="historyChargerId"
             :start-date="filterStartDate"
             :end-date="filterEndDate"
             @inspection-request="openInspectionModal"
             @force-shutdown="openForceShutdownModal"
+            @charger-select="handleHistoryChargerSelect"
           />
         </section>
       </div>
@@ -157,7 +160,7 @@ const activeTab = ref('charger')
 // 폴링 주기
 const STATUS_REFRESH_MS = 15000
 const METRIC_REFRESH_MS = 20000
-const HISTORY_REFRESH_MS = 30000
+const HISTORY_REFRESH_MS = STATUS_REFRESH_MS
 
 // 상태 관리 변수
 const inspectionModalVisible = ref(false)
@@ -165,6 +168,7 @@ const forceShutdownModalVisible = ref(false)
 const isDatePopupOpen = ref(false)
 const selectedHistoryItem = ref(null)
 const chargerList = ref([])
+const historyChargerId = ref('ALL')
 const statusIntervalId = ref(null)
 const metricIntervalId = ref(null)
 const historyIntervalId = ref(null)
@@ -219,10 +223,34 @@ const getActiveChargerId = () => {
   return selectedHistoryItem.value?.chargerId || chargerDetail.value?.chargerId || '5F-D-10'
 }
 
-const fetchChargerDetail = async (chargerId = getActiveChargerId()) => {
+// Spring ai_status가 NORMAL을 반환해도 chargerList(FastAPI)의 실시간 상태로 보정
+const reconcileDetail = (detail, listItem) => {
+  if (!detail || !listItem) return detail
+  const merged = { ...detail }
+  const cs = listItem.chargerStatus
+  const las = listItem.aiStatus
+  if ((cs === 'RISK' || las === 'RISK') && merged.aiStatus !== 'RISK') {
+    merged.aiStatus = 'RISK'
+    if (!merged.mainReason) merged.mainReason = listItem.mainReason || '위험 상태 감지'
+  } else if (
+    (cs === 'CHECK' || cs === 'FAULT' || las === 'CHECK') &&
+    merged.aiStatus === 'NORMAL'
+  ) {
+    merged.aiStatus = 'CHECK'
+    if (!merged.mainReason) merged.mainReason = listItem.mainReason || '점검 필요'
+  }
+  if (listItem.powerOffDone && !merged.shutdownDone) merged.shutdownDone = true
+  const lf = Number(listItem.faultProb7d ?? 0)
+  if (lf > Number(merged.faultProb7d ?? 0)) merged.faultProb7d = lf
+  return merged
+}
+
+// knownListItem: 클릭 시점 스냅샷 — in-flight fetchChargerList 응답에 덮어쓰이지 않도록
+const fetchChargerDetail = async (chargerId = getActiveChargerId(), knownListItem = null) => {
   try {
     const data = await getChargerDetail(chargerId)
-    chargerDetail.value = data
+    const listItem = knownListItem ?? chargerList.value.find((c) => c.chargerId === chargerId)
+    chargerDetail.value = reconcileDetail(data, listItem)
   } catch (error) {
     console.error('fetchChargerDetail error:', error)
   }
@@ -241,9 +269,23 @@ const fetchMetricData = async (chargerId = getActiveChargerId()) => {
   }
 }
 
-const fetchHistoryData = async () => {
+const fetchHistoryData = async (chargerId = null) => {
   try {
-    historyData.value = await getHistoryData(10)
+    const rows = await getHistoryData(200, chargerId)
+    if (chargerId && chargerId !== 'ALL') {
+      // 특정 기기 선택 시: 해당 기기 결과 + 기존 다른 기기 기록 병합 (중복 제거)
+      const existingOthers = historyData.value.filter((r) => r.chargerId !== chargerId)
+      const merged = [...rows, ...existingOthers]
+      const seen = new Set()
+      historyData.value = merged.filter((r) => {
+        const key = r.id ?? `${r.chargerId}-${r.occurredAt}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+    } else {
+      historyData.value = rows
+    }
   } catch (error) {
     console.error('fetchHistoryData error:', error)
     historyData.value = []
@@ -332,8 +374,37 @@ const displayDateRange = computed(() => {
 })
 
 const handleChargerDetailView = async (chargerId) => {
-  await handleChargerChange(chargerId)
+  // 클릭 시점 스냅샷 캡처
+  const clicked = chargerList.value.find((c) => c.chargerId === chargerId)
+  // 클릭한 카드의 상태를 즉시 반영 (Spring fetch 완료 전 정상으로 깜빡이는 현상 방지)
+  if (clicked) {
+    const cs = clicked.chargerStatus
+    const las = clicked.aiStatus
+    const aiStatus =
+      cs === 'RISK' || las === 'RISK' ? 'RISK'
+      : cs === 'CHECK' || cs === 'FAULT' || las === 'CHECK' ? 'CHECK'
+      : 'NORMAL'
+    chargerDetail.value = {
+      ...chargerDetail.value,
+      chargerId,
+      aiStatus,
+      mainReason: clicked.mainReason || '',
+      faultProb7d: clicked.faultProb7d ?? 0,
+      inspectionStatus: chargerDetail.value.inspectionStatus || 'NONE',
+      shutdownDone: clicked.powerOffDone ?? false
+    }
+  }
+  // FaultHistoryTable 셀렉트도 클릭한 기기로 맞춤
+  historyChargerId.value = chargerId
+  // 탭 즉시 전환
   activeTab.value = 'predictive'
+  selectedHistoryItem.value = null
+  // 스냅샷 전달로 in-flight polling 응답과의 race 방지
+  await Promise.all([
+    fetchChargerDetail(chargerId, clicked),
+    fetchMetricData(chargerId),
+    fetchHistoryData(chargerId)
+  ])
 }
 
 const openInspectionModal = (item) => {
@@ -399,6 +470,10 @@ const handleChargerChange = async (chargerId) => {
     fetchChargerDetail(chargerId),
     fetchMetricData(chargerId)
   ])
+}
+
+const handleHistoryChargerSelect = async (chargerId) => {
+  await fetchHistoryData(chargerId === 'ALL' ? null : chargerId)
 }
 
 const openSummaryForceShutdownModal = () => {
