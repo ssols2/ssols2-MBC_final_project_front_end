@@ -93,8 +93,12 @@
                   <span class="action-done complete">조치완료</span>
                 </template>
 
-                <template v-else-if="item.inspectionStatus === 'STATUS_UPDATED'">
+                <template v-else-if="item.inspectionStatus === 'STATUS_UPDATED' && hasNewerRecord(item)">
                   <span class="action-done status-updated">상태업데이트</span>
+                  <span
+                    v-if="item.shutdownDone || powerOffChargerIds.has(item.chargerId)"
+                    class="action-done shutdown-done"
+                  >전원꺼짐</span>
                 </template>
 
                 <template v-else>
@@ -115,7 +119,7 @@
                     점검요청
                   </button>
 
-                  <template v-if="item.shutdownDone">
+                  <template v-if="item.shutdownDone || powerOffChargerIds.has(item.chargerId)">
                     <span class="action-done shutdown-done">전원꺼짐</span>
                   </template>
                   <button
@@ -213,6 +217,13 @@ const sortOrderLabel = computed(() => {
   return sortOrder.value === 'desc' ? '최신순' : '오래된순'
 })
 
+// chargerList 기준 powerOffDone 세트 — DB 업데이트 전에도 즉시 반영
+const powerOffChargerIds = computed(() => {
+  const set = new Set()
+  props.chargerList.forEach((c) => { if (c.powerOffDone) set.add(c.chargerId) })
+  return set
+})
+
 // 기기 ID 선택지 — chargerList 전체 기기 기준 (없으면 historyData fallback)
 const chargerIdOptions = computed(() => {
   if (props.chargerList.length > 0) {
@@ -221,16 +232,35 @@ const chargerIdOptions = computed(() => {
   return [...new Set(props.historyData.map((item) => item.chargerId))].filter(Boolean).sort()
 })
 
-// id 기준 중복 제거 — 같은 이슈가 polling 타이밍에 따라 여러 번 들어오는 경우 방어
-// __live__ 합성 행은 historyData에 없으므로 여기서는 처리 불필요
+// inspectionStatus 우선순위: NONE/actionable > REQUESTED > IN_PROGRESS > STATUS_UPDATED > DONE
+function inspectionPriority(status) {
+  switch (status) {
+    case 'NONE': return 5
+    case 'REQUESTED': return 4
+    case 'IN_PROGRESS': return 3
+    case 'STATUS_UPDATED': return 2
+    case 'DONE': return 1
+    default: return 5
+  }
+}
+
+// chargerId+status 기준 중복 제거 — actionable 레코드 우선, 동순위면 최신
 const deduplicatedHistoryData = computed(() => {
-  const seen = new Set()
-  return props.historyData.filter((item) => {
-    const key = String(item.id ?? `${item.chargerId}-${item.occurredAt}`)
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
-  })
+  const bestByKey = new Map()
+  for (const item of props.historyData) {
+    const key = `${item.chargerId}-${item.status}`
+    const existing = bestByKey.get(key)
+    if (!existing) {
+      bestByKey.set(key, item)
+    } else {
+      const ep = inspectionPriority(existing.inspectionStatus)
+      const np = inspectionPriority(item.inspectionStatus)
+      if (np > ep || (np === ep && new Date(item.occurredAt) >= new Date(existing.occurredAt))) {
+        bestByKey.set(key, item)
+      }
+    }
+  }
+  return [...bestByKey.values()]
 })
 
 function toDateOnly(value) {
@@ -289,8 +319,7 @@ const dateFilteredHistoryData = computed(() => {
   return deduplicatedHistoryData.value.filter((item) => {
     const isActiveFault =
       (item.status === 'RISK' || item.status === 'CHECK' || item.status === 'FAULT') &&
-      item.inspectionStatus !== 'DONE' &&
-      !item.shutdownDone
+      item.inspectionStatus !== 'DONE'
     if (isActiveFault) return true
 
     if (!start || !end) return true
@@ -314,7 +343,7 @@ const chargerFilteredData = computed(() => {
 // 이력 기반 CHECK/FAULT/RISK 레코드
 const faultOnlyFromHistory = computed(() =>
   chargerFilteredData.value.filter(
-    (item) => item.status === 'CHECK' || item.status === 'FAULT' || item.status === 'RISK'
+    (item) => item.status === 'CHECK' || item.status === 'FAULT' || item.status === 'RISK' || item.shutdownDone
   )
 )
 
@@ -338,8 +367,7 @@ const syntheticRows = computed(() => {
     const hasActiveLog = faultOnlyFromHistory.value.some(
       (item) =>
         item.chargerId === charger.chargerId &&
-        item.inspectionStatus !== 'DONE' &&
-        !item.shutdownDone
+        item.inspectionStatus !== 'DONE'
     )
     if (hasActiveLog) continue
 
@@ -435,6 +463,17 @@ const toggleSortOrder = () => {
 
 const goPrevPage = () => { if (currentPage.value > 1) currentPage.value -= 1 }
 const goNextPage = () => { if (currentPage.value < totalPages.value) currentPage.value += 1 }
+
+// 더 새로운 레코드가 존재할 때만 STATUS_UPDATED 표시
+const hasNewerRecord = (item) => {
+  if (item.inspectionStatus !== 'STATUS_UPDATED') return false
+  return props.historyData.some(
+    (other) =>
+      other.chargerId === item.chargerId &&
+      String(other.id) !== String(item.id) &&
+      new Date(other.occurredAt) > new Date(item.occurredAt)
+  )
+}
 
 const getStatusLabel = (status) => {
   if (status === 'CHECK' || status === 'FAULT') return '점검'

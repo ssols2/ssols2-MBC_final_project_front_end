@@ -101,28 +101,19 @@ const SERIES_META = {
     label: '온도',
     unit: '°C',
     color: '#ff4d57',
-    glowColor: 'rgba(255, 77, 87, 0.45)',
-    areaStart: 'rgba(255, 77, 87, 0.34)',
-    areaMid: 'rgba(255, 77, 87, 0.14)',
-    areaEnd: 'rgba(255, 77, 87, 0.01)'
+    glowColor: 'rgba(255, 77, 87, 0.45)'
   },
   current: {
     label: '전류',
     unit: 'A',
     color: '#facc15',
-    glowColor: 'rgba(250, 204, 21, 0.42)',
-    areaStart: 'rgba(250, 204, 21, 0.32)',
-    areaMid: 'rgba(250, 204, 21, 0.13)',
-    areaEnd: 'rgba(250, 204, 21, 0.01)'
+    glowColor: 'rgba(250, 204, 21, 0.42)'
   },
   voltage: {
     label: '전압',
     unit: 'V',
     color: '#60a5fa',
-    glowColor: 'rgba(96, 165, 250, 0.44)',
-    areaStart: 'rgba(96, 165, 250, 0.34)',
-    areaMid: 'rgba(96, 165, 250, 0.14)',
-    areaEnd: 'rgba(96, 165, 250, 0.01)'
+    glowColor: 'rgba(96, 165, 250, 0.44)'
   }
 }
 
@@ -263,49 +254,43 @@ const latestPoint = computed(() => {
   return chartSeriesData.value[chartSeriesData.value.length - 1]
 })
 
+function calcAxisRange(dataMin, dataMax) {
+  const STEPS = 4 // 4구간 = 5라벨
+  const range = dataMax - dataMin || 1
+  const rawInterval = range / STEPS
+  const magnitude = Math.pow(10, Math.floor(Math.log10(rawInterval)))
+  const normalized = rawInterval / magnitude
+  const nice = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10
+  const interval = nice * magnitude
+  const niceMin = Math.floor(dataMin / interval) * interval
+  // max = niceMin + 정확히 STEPS개 구간 → 라벨 항상 5개, 균등 간격 보장
+  let niceMax = niceMin + interval * STEPS
+  if (niceMax < dataMax) niceMax = niceMin + interval * (STEPS + 1)
+  return { min: niceMin, max: niceMax, interval }
+}
+
 const currentAxisRange = computed(() => {
   const values = chartSeriesData.value.map((item) => item.value)
-
-  if (!values.length) {
-    return { min: 0, max: 100, interval: null }
-  }
+  if (!values.length) return { min: 0, max: 100, interval: 25 }
 
   const min = Math.min(...values)
   const max = Math.max(...values)
-  const rawRange = max - min
-  const safeRange = rawRange === 0 ? 1 : rawRange
+  const safeRange = max - min || 1
 
-  let axisMin = min
-  let axisMax = max
-  let interval = null
-
+  let dataMin, dataMax
   if (activeTab.value === 'voltage') {
-    interval = 0.5
-
-    const paddedMin = min - Math.max(safeRange * 0.2, 0.2)
-    const paddedMax = max + Math.max(safeRange * 0.2, 0.2)
-
-    axisMin = Math.floor(paddedMin / interval) * interval
-    axisMax = Math.ceil(paddedMax / interval) * interval
+    const pad = Math.max(safeRange * 0.2, 0.2)
+    dataMin = min - pad
+    dataMax = max + pad
   } else if (activeTab.value === 'current') {
-    axisMin = Math.max(0, min - Math.max(safeRange * 0.25, 0.3))
-    axisMax = max + Math.max(safeRange * 0.2, 0.3)
-    interval = null
-  } else if (activeTab.value === 'temperature') {
-    interval = 2
-
-    const paddedMin = Math.max(0, min - Math.max(safeRange * 0.2, 0.8))
-    const paddedMax = max + Math.max(safeRange * 0.15, 0.8)
-
-    axisMin = Math.floor(paddedMin / interval) * interval
-    axisMax = Math.ceil(paddedMax / interval) * interval
+    dataMin = Math.max(0, min - Math.max(safeRange * 0.25, 0.3))
+    dataMax = max + Math.max(safeRange * 0.2, 0.3)
+  } else {
+    dataMin = Math.max(0, min - Math.max(safeRange * 0.2, 0.8))
+    dataMax = max + Math.max(safeRange * 0.15, 0.8)
   }
 
-  return {
-    min: Number(axisMin.toFixed(2)),
-    max: Number(axisMax.toFixed(2)),
-    interval
-  }
+  return calcAxisRange(dataMin, dataMax)
 })
 
 function getMarkPointData() {
@@ -327,15 +312,15 @@ function buildChartOption() {
   return {
     backgroundColor: 'transparent',
     animation: true,
-    animationDuration: 900,
-    animationEasing: 'quarticOut',
-    animationDurationUpdate: 500,
+    animationDuration: 600,
+    animationEasing: 'cubicOut',
+    animationDurationUpdate: 400,
     animationEasingUpdate: 'cubicOut',
     grid: {
-      top: 25,
-      right: 6,
+      top: 20,
+      right: 10,
       bottom: 4,
-      left: 12,
+      left: 8,
       containLabel: true
     },
     tooltip: {
@@ -345,62 +330,33 @@ function buildChartOption() {
       borderColor: meta.glowColor,
       borderWidth: 1,
       padding: [10, 12],
-      textStyle: {
-        color: '#e5e7eb',
-        fontSize: 12
-      },
-      extraCssText:
-        'box-shadow: 0 12px 28px rgba(0,0,0,0.34); border-radius: 10px;',
+      textStyle: { color: '#e5e7eb', fontSize: 12 },
+      extraCssText: 'box-shadow: 0 12px 28px rgba(0,0,0,0.34); border-radius: 10px;',
       axisPointer: {
         type: 'line',
         snap: true,
-        lineStyle: {
-          color: meta.glowColor,
-          width: 1.1
-        }
+        lineStyle: { color: meta.glowColor, width: 1, type: 'dashed' }
       },
       formatter(params) {
         const point = params?.find((item) => item.seriesName === meta.label) || params?.[0]
         if (!point || !point.data) return ''
-
         const rawTime = point.data[2]
         const value = Number(point.data[1] ?? 0)
-
         return `
-          <div style="font-size:10px;color:#94a3b8;margin-bottom:6px;line-height:1.2;">
-            ${formatTooltipTime(rawTime)}
-          </div>
+          <div style="font-size:10px;color:#94a3b8;margin-bottom:6px;">${formatTooltipTime(rawTime)}</div>
           <div style="display:flex;align-items:center;gap:6px;">
-            <span style="width:9px;height:9px;border-radius:50%;background:${meta.color};box-shadow:0 0 10px ${meta.glowColor};display:inline-block;"></span>
-            <span style="font-size:13px;font-weight:700;line-height:1.2;color:${meta.color};">
-              ${meta.label} ${value.toFixed(1)}${meta.unit}
-            </span>
-          </div>
-        `
+            <span style="width:8px;height:8px;border-radius:50%;background:${meta.color};box-shadow:0 0 8px ${meta.glowColor};display:inline-block;"></span>
+            <span style="font-size:13px;font-weight:700;color:${meta.color};">${meta.label} ${value.toFixed(1)}${meta.unit}</span>
+          </div>`
       }
     },
     xAxis: {
       type: 'time',
-      boundaryGap: ['1.5%', '2.5%'],
-      axisLabel: {
-        show: false
-      },
-      axisTick: {
-        show: true,
-        inside: false,
-        length: 5,
-        lineStyle: {
-          color: 'rgba(120, 136, 163, 0.28)'
-        }
-      },
-      splitLine: {
-        show: false
-      },
-      axisLine: {
-        lineStyle: {
-          color: 'rgba(88, 107, 139, 0.35)'
-        }
-      }
+      boundaryGap: ['1%', '2%'],
+      axisLabel: { show: false },
+      axisTick: { show: false },
+      splitLine: { show: false },
+      axisLine: { lineStyle: { color: 'rgba(88, 107, 139, 0.25)' } }
     },
     yAxis: {
       type: 'value',
@@ -408,53 +364,44 @@ function buildChartOption() {
       max: axisRange.max,
       interval: axisRange.interval,
       axisLabel: {
-        color: '#9fb0cc',
+        color: '#64748b',
         fontSize: 11,
-        margin: 10,
+        margin: 8,
         formatter(value) {
           return Number(value).toFixed(1)
         }
       },
       splitLine: {
         show: true,
-        lineStyle: {
-          color: 'rgba(90, 108, 138, 0.18)',
-          width: 1
-        }
+        lineStyle: { color: 'rgba(255,255,255,0.05)', width: 1 }
       },
-      axisTick: {
-        show: false
-      },
-      axisLine: {
-        show: false
-      }
+      axisTick: { show: false },
+      axisLine: { show: false }
     },
     series: [
       {
         name: `${meta.label}-glow`,
         type: 'line',
         data,
-        smooth: 0.34,
+        smooth: 0.3,
         showSymbol: false,
         silent: true,
         z: 1,
         clip: true,
         lineStyle: {
-          width: 8,
+          width: 6,
           color: meta.glowColor,
-          opacity: 0.18,
-          shadowBlur: 10,
+          opacity: 0.15,
+          shadowBlur: 8,
           shadowColor: meta.glowColor
         },
-        areaStyle: {
-          color: 'transparent'
-        }
+        areaStyle: { color: 'transparent' }
       },
       {
         name: meta.label,
         type: 'line',
         data,
-        smooth: 0.34,
+        smooth: 0.3,
         showSymbol: true,
         symbol: 'circle',
         symbolSize: 4,
@@ -462,21 +409,34 @@ function buildChartOption() {
         clip: true,
         sampling: 'lttb',
         lineStyle: {
-          width: 2.4,
+          width: 2,
           color: meta.color,
-          shadowBlur: 10,
+          shadowBlur: 8,
           shadowColor: meta.glowColor
         },
         itemStyle: {
           color: meta.color,
-          borderColor: '#ffffff',
-          borderWidth: 0.8,
-          shadowBlur: 6,
+          borderColor: meta.color,
+          borderWidth: 1,
+          shadowBlur: 4,
           shadowColor: meta.glowColor
         },
         emphasis: {
           focus: 'series',
-          scale: 1.4,
+          scale: 1.5,
+          itemStyle: {
+            color: '#ffffff',
+            borderColor: meta.color,
+            borderWidth: 2,
+            shadowBlur: 10,
+            shadowColor: meta.glowColor
+          },
+          lineStyle: { width: 2.5 }
+        },
+        markPoint: {
+          symbol: 'circle',
+          symbolSize: 9,
+          animation: false,
           itemStyle: {
             color: '#ffffff',
             borderColor: meta.color,
@@ -484,31 +444,7 @@ function buildChartOption() {
             shadowBlur: 12,
             shadowColor: meta.glowColor
           },
-          lineStyle: {
-            width: 2.8
-          }
-        },
-        areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: meta.areaStart },
-            { offset: 0.58, color: meta.areaMid },
-            { offset: 1, color: meta.areaEnd }
-          ])
-        },
-        markPoint: {
-          symbol: 'circle',
-          symbolSize: 10,
-          animation: true,
-          itemStyle: {
-            color: '#ffffff',
-            borderColor: meta.color,
-            borderWidth: 2.5,
-            shadowBlur: 14,
-            shadowColor: meta.glowColor
-          },
-          label: {
-            show: false
-          },
+          label: { show: false },
           data: getMarkPointData()
         }
       }
@@ -637,15 +573,15 @@ onBeforeUnmount(() => {
 
 .tab-button {
   min-width: 52px;
-  height: 30px;
+  height: 28px;
   padding: 0 14px;
-  border: 1px solid #35508a;
-  background: #444d56;
-  color: #cbd5e1;
+  border: 1px solid #2a3a4e;
+  background: #1a2535;
+  color: #7a8fa6;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
   border-radius: 0;
 }
 
@@ -664,12 +600,12 @@ onBeforeUnmount(() => {
 }
 
 .tab-button.active {
-  background: #2f80ed;
-  border-color: #2f80ed;
+  background: #1d4ed8;
+  border-color: #3b82f6;
   color: #ffffff;
   position: relative;
   z-index: 1;
-  box-shadow: 0 0 12px rgba(47, 128, 237, 0.28);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
 }
 
 .metric-title-row {
@@ -682,7 +618,8 @@ onBeforeUnmount(() => {
 
 .metric-unit {
   font-size: 11px;
-  color: #cbd5e1;
+  color: #64748b;
+  letter-spacing: 0.3px;
 }
 
 .legend-row {
@@ -740,10 +677,7 @@ onBeforeUnmount(() => {
   min-width: 0;
   min-height: 280px;
   overflow: hidden;
-  background:
-    radial-gradient(circle at top, rgba(24, 48, 92, 0.18), transparent 42%),
-    linear-gradient(to bottom, rgba(13, 25, 51, 0.94), rgba(8, 15, 28, 1)),
-    #0a1220;
+  background: transparent;
 }
 
 .echart-box {

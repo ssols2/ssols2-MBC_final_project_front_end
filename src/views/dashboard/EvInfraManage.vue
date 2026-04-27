@@ -224,9 +224,29 @@ const getActiveChargerId = () => {
 }
 
 // Spring ai_status가 NORMAL을 반환해도 chargerList(FastAPI)의 실시간 상태로 보정
-const reconcileDetail = (detail, listItem) => {
+const reconcileDetail = (detail, listItem, prevDetail = null) => {
   if (!detail || !listItem) return detail
   const merged = { ...detail }
+
+  // shutdownDone이면 강제종료 시점의 fault 상태(aiStatus/mainReason) 보존
+  // merged.shutdownDone이 아직 false여도 listItem.powerOffDone 또는 prevDetail.shutdownDone으로 판단
+  const isShutdown = merged.shutdownDone || listItem?.powerOffDone || prevDetail?.shutdownDone
+  if (isShutdown) {
+    merged.shutdownDone = true
+    // frozenAiStatus는 사용자가 강제종료 클릭 시에만 명시적으로 설정됨 — prevDetail.aiStatus fallback 없음
+    const lockedStatus = prevDetail?.frozenAiStatus
+    if (lockedStatus === 'RISK' || lockedStatus === 'CHECK') {
+      merged.aiStatus        = lockedStatus
+      merged.mainReason      = prevDetail.frozenMainReason || merged.mainReason
+      merged.faultProb7d     = prevDetail.frozenFaultProb7d ?? merged.faultProb7d
+      merged.frozenAiStatus  = lockedStatus
+      merged.frozenMainReason  = prevDetail.frozenMainReason
+      merged.frozenFaultProb7d = prevDetail.frozenFaultProb7d
+      return merged
+    }
+    // frozenAiStatus 없으면 shutdownDone만 true로 두고 일반 로직 진행
+  }
+
   const cs = listItem.chargerStatus
   const las = listItem.aiStatus
   if ((cs === 'RISK' || las === 'RISK') && merged.aiStatus !== 'RISK') {
@@ -250,7 +270,7 @@ const fetchChargerDetail = async (chargerId = getActiveChargerId(), knownListIte
   try {
     const data = await getChargerDetail(chargerId)
     const listItem = knownListItem ?? chargerList.value.find((c) => c.chargerId === chargerId)
-    chargerDetail.value = reconcileDetail(data, listItem)
+    chargerDetail.value = reconcileDetail(data, listItem, chargerDetail.value)
   } catch (error) {
     console.error('fetchChargerDetail error:', error)
   }
@@ -431,31 +451,49 @@ const handleInspectionSubmit = async (payload) => {
   try {
     const targetChargerId = getActiveChargerId()
     await requestInspection({ ...payload, chargerId: targetChargerId })
-    await Promise.all([
-      fetchChargerDetail(targetChargerId),
-      fetchMetricData(targetChargerId),
-      fetchHistoryData()
-    ])
     inspectionModalVisible.value = false
     selectedHistoryItem.value = null
+    fetchChargerDetail(targetChargerId)
+    fetchMetricData(targetChargerId)
+    fetchHistoryData()
   } catch (error) {
     console.error('handleInspectionSubmit error:', error)
+    alert('점검 요청 전송에 실패했습니다. 서버 연결을 확인해주세요.')
   }
 }
 
 const handleForceShutdownConfirm = async (payload) => {
   try {
     const targetChargerId = getActiveChargerId()
+    // DB fault 레코드의 status를 기준으로 고정 (실시간 센서값 아님)
+    const faultRecord = historyData.value.find(
+      (r) => r.chargerId === targetChargerId &&
+             r.inspectionStatus !== 'DONE' &&
+             (r.status === 'CHECK' || r.status === 'RISK' || r.status === 'FAULT')
+    )
+    const frozenAiStatus = faultRecord?.status || chargerDetail.value.aiStatus
+    const frozenMainReason = faultRecord?.detail || chargerDetail.value.mainReason
+    const frozenFaultProb7d = chargerDetail.value.faultProb7d
     await requestForceShutdown({ ...payload, chargerId: targetChargerId })
-    await Promise.all([
-      fetchChargerDetail(targetChargerId),
-      fetchMetricData(targetChargerId),
-      fetchHistoryData()
-    ])
+    chargerDetail.value = {
+      ...chargerDetail.value,
+      shutdownDone: true,
+      frozenAiStatus,
+      frozenMainReason,
+      frozenFaultProb7d
+    }
+    // chargerList도 즉시 반영 → FaultHistoryTable syntheticRow가 전원꺼짐 표시
+    chargerList.value = chargerList.value.map((c) =>
+      c.chargerId === targetChargerId ? { ...c, powerOffDone: true } : c
+    )
     forceShutdownModalVisible.value = false
     selectedHistoryItem.value = null
+    fetchChargerDetail(targetChargerId)
+    fetchMetricData(targetChargerId)
+    fetchHistoryData()
   } catch (error) {
     console.error('handleForceShutdownConfirm error:', error)
+    alert('강제 종료 요청에 실패했습니다. 서버 연결을 확인해주세요.')
   }
 }
 
