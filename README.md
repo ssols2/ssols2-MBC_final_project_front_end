@@ -2,3 +2,6 @@
 
 ## *KDT 선도기업형 훈련과정*
 ## *[에스트래픽] 스마트 모빌리티 DX Academy*
+
+[프론트엔드 환경 세팅 가이드]
+npm install chart.js echarts axios
