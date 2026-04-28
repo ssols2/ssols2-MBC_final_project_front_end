@@ -818,6 +818,46 @@ const connectWebSocket = () => {
   }
 }
 
+// ================================================ ACR122U 연결 확인용 ================================================
+// 마지막으로 읽은 카드 UID를 저장할 변수
+const lastUid = ref('')
+
+const startNfcContinuousScanner = async () => {
+    console.log('로컬 에이전트(ACR122U) 웹소켓 연결 성공')
+    while (true) {
+        try {
+            // 자바 서버에 카드 읽기 요청 (카드가 대져 있을 때까지 기다림)
+            const nfcRes = await readNfcCardReq()
+            
+            if (nfcRes.data.is_success) {
+                const uid = nfcRes.data.card_uid
+                
+                // 이전에 읽은 카드와 다를 때만 로그를 딱 한 번 찍음
+                if (uid !== lastUid.value) {
+                    lastUid.value = uid // 현재 카드 번호를 기억함
+                    console.log(`%c[ACR122U] NFC 카드 태그 감지! UID: ${uid}`, "color: #005baa; font-weight: bold; font-size: 14px;")
+                    
+                    // 결제 대기 상태일 때만 결제 프로세스 진행
+                    const isWaitingPayment = viewMode.value === 'manual-pay' || viewMode.value === 'payment-fail'
+                    if (isWaitingPayment && !isProcessing.value) {
+                        paymentMethodType.value = 'MANUAL'
+                        await processPayment(uid, true)
+                    }
+                }
+                
+                // 성공 시에도 너무 빨리 돌지 않게 0.5초 정도 쉬어줌
+                await new Promise(r => setTimeout(r, 500))
+            }
+        } catch (error) {
+            // 카드를 떼면 500 에러가 나면서 이쪽으로 들어옴
+            lastUid.value = '' 
+
+            // 1초 대기 후 다시 시도
+            await new Promise(r => setTimeout(r, 1000))
+        }
+    }
+}
+
 // ================================================ 결제 승인 로직 ================================================
 // 매개변수로 atr 또는 uid 값을 범용적으로 받아 처리
 const processPayment = async (cardIdentifier = '', isNfc = false) => {
@@ -1019,6 +1059,7 @@ const handleCardInput = (event) => {
 onMounted(() => {
   window.addEventListener('keydown', handleCardInput)
   connectWebSocket() // 컴포넌트 마운트 시 ACR39U 웹소켓 연결
+  startNfcContinuousScanner() // ACR122U 연결
   console.log('S-HOSPITAL Kiosk System Online')
 })
 

@@ -17,12 +17,27 @@
           <span class="nav-item" @mouseenter="openMegamenu('service')">고객서비스</span>
         </nav>
 
+        <!-- <div class="combined-util">
+          <template v-if="!isLogin">
+            <span class="util-item" @click="router.push('/login')">로그인</span>
+            <span class="util-item" @click="router.push('/regi')">회원가입</span>
+          </template>
+          <template v-else>
+            <span class="user-info"><b>{{ loginName }}</b>님</span>
+            <span @click="handleLogout" class="util-item logout-txt">로그아웃</span>
+          </template>
+          <span class="util-item" @click="goPage('/mypage')">마이페이지</span>
+        </div> -->
+
         <div class="combined-util">
           <template v-if="!isLogin">
             <span class="util-item" @click="router.push('/login')">로그인</span>
             <span class="util-item" @click="router.push('/regi')">회원가입</span>
           </template>
           <template v-else>
+            <span v-if="isDashboardAdmin" class="util-item admin-btn" @click="router.push('/dashboard')">
+              관리자 대시보드
+            </span>
             <span class="user-info"><b>{{ loginName }}</b>님</span>
             <span @click="handleLogout" class="util-item logout-txt">로그아웃</span>
           </template>
@@ -301,6 +316,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import axios from 'axios'
 
 import logoDark from '@/assets/txtlogo2.png'  // 어두운 로고 (txtlogo2)
 import logoLight from '@/assets/txtlogo3.png' // 밝은색 로고 (txtlogo3)
@@ -324,6 +340,13 @@ const openDepth2 = ref(false);
 
 // [추가] 검색어 상태 관리
 const searchKeyword = ref('');
+
+// [최종프로젝트] 관리자 대시보드 접근 권한 판별 (주차, 시설, 보안팀)
+const isDashboardAdmin = computed(() => {
+  const dept = loginInfo.value?.deptName || '';
+  
+  return dept.includes('주차') || dept.includes('시설') || dept.includes('보안');
+});
 
 // [추가] 메가메뉴 전용 검색 함수
 const onMenuSearch = () => {
@@ -499,20 +522,41 @@ const currentMenuName = computed(() => {
   return menuMap[key]?.current || '페이지';
 });
 
-const checkLogin = () => {
+const checkLogin = async () => {
   const loginData = sessionStorage.getItem('loginId')
+  
   if (loginData) {
+    // [1] 기본 로그인 정보 세팅
+    let currentUserId = '';
     try {
       const user = JSON.parse(loginData);
       isLogin.value = true;
       loginName.value = user.name || user.id;
       loginInfo.value = user;
-    }
-    catch (e) {
+      currentUserId = user.id;
+    } catch (e) {
       isLogin.value = true;
       loginName.value = loginData;
+      currentUserId = loginData;
+      loginInfo.value = { id: loginData }; // 최소한 객체 형태로 만듦
     }
+
+    // [2] 백엔드에 대시보드 권한 물어보고 Mypage.vue처럼 병합하기
+    try {
+      // 혹시 모를 세션 유실 방지를 위해 내 아이디 직접 전달
+      const res = await axios.get(`http://localhost:8080/admin/my-info?userId=${currentUserId}`, {
+        withCredentials: true
+      });
+      
+      if (res.data) {
+        loginInfo.value = { ...loginInfo.value, ...res.data };
+      }
+    } catch (error) {
+      console.error('관리자 권한 확인 실패', error);
+    }
+
   } else {
+    // 비로그인 상태일 때 초기화
     isLogin.value = false;
     loginInfo.value = null;
   }
@@ -556,638 +600,6 @@ watch(() => route.path, () => { checkLogin(); isMegamenuOpen.value = false; isSc
 onMounted(() => { checkLogin(); window.addEventListener('scroll', handleScroll); })
 onUnmounted(() => { window.removeEventListener('scroll', handleScroll); })
 </script>
-
-<!-- <style scoped>
-
-/* =====================================================================
-   [1] 공통 및 레이아웃 (Layout & Global)
-   ===================================================================== */
-#home-layout {
-  width: 100%;
-  font-family: 'pretendard', sans-serif !important;
-}
-.content-body {
-  min-height: 100vh;
-}
-.content-body.is-main-view {
-  padding-top: 0;
-}
-
-/* =====================================================================
-   [2] 메인 헤더 (Main Header)
-   ===================================================================== */
-.main-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100px;
-  z-index: 5000;
-  background: #fff;
-  border-bottom: 1px solid #e5e5e5;
-  transition: background 0.3s, border 0.3s;
-}
-
-/* 메인 페이지 투명 헤더 상태 */
-.main-header.is-main:not(.is-scrolled) {
-  background: transparent;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-/* 스크롤 시 또는 메뉴 오픈 시 흰색 배경 고정 */
-.main-header:has(.megamenu-panel.active),
-.main-header.is-scrolled {
-  background-color: #ffffff;
-  border-bottom: 1px solid #e5e5e5;
-}
-
-/* 투명 헤더일 때 글자색 하얗게 */
-.main-header.is-main:not(.is-scrolled):not(:has(.megamenu-panel.active)) .nav-item,
-.main-header.is-main:not(.is-scrolled):not(:has(.megamenu-panel.active)) .util-item {
-  color: #fff;
-}
-
-/* 헤더 내부 정렬 */
-.header-inner {
-  max-width: 1800px;
-  margin: 0 auto;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-}
-
-/* =====================================================================
-   [3] 헤더 구성 요소 (Logo, Nav, Util)
-   ===================================================================== */
-/* 로고 */
-.logo-box {
-  flex: 0 0 240px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-}
-
-.main-logo-img {
-  height: 60px;
-  width: auto;
-  padding-left: 30px;
-  object-fit: contain;
-}
-
-/* 메인 메뉴 */
-.nav-menu {
-  display: flex;
-  gap: 50px;
-  justify-content: left;
-  padding-left: 40px;
-  flex: 1;
-}
-
-.nav-item {
-  font-size: 19px;
-  font-weight: 500;
-  color: #333;
-  cursor: pointer;
-  line-height: 100px;
-  transition: 0.2s;
-  white-space: nowrap;
-}
-
-.nav-item:hover {
-  color: #005baa;
-}
-
-/* 우측 유틸리티 (로그인/마이페이지) */
-.combined-util {
-  flex: 0 0 350px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 30px;
-  padding-right: 30px;
-}
-
-.util-item {
-  font-size: 16px;
-  font-weight: 400;
-  color: #666;
-  cursor: pointer;
-}
-
-.logout-txt {
-  color: #888;
-}
-
-.user-info {
-  color: #fbb900;
-}
-
-/* =====================================================================
-   [4] 메가메뉴 패널 (Megamenu Panel)
-   ===================================================================== */
-.megamenu-panel {
-  position: absolute;
-  top: 100px;
-  left: 0;
-  width: 100%;
-  background-color: #ffffff;
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
-  z-index: 4900;
-}
-
-.megamenu-panel.active {
-  max-height: 350px;
-  visibility: visible;
-}
-
-.megamenu-inner {
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 0;
-  background: #fff;
-}
-
-/* 메뉴 박스 공통 구조 */
-.special-menu-box,
-.full-menu-grid {
-  display: flex;
-  align-items: stretch;
-  min-height: 350px;
-}
-
-/* =====================================================================
-   [5] 메가메뉴 - 왼쪽 프로모션 구역
-   ===================================================================== */
-.promo-small-box,
-.left-search-zone,
-.left-info-zone {
-  flex: 0 0 350px;
-  background-color: #f8f9fb;
-  padding: 0 55px;
-  border-right: 1px solid #e5e5e5;
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 2px;
-}
-
-/* 아이콘 원형 배경 */
-.promo-icon-circle {
-  width: 64px;
-  height: 64px;
-  background: #fff;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 6px 15px rgba(0, 91, 170, 0.08);
-  margin-bottom: 5px;
-}
-
-/* 텍스트 타이틀 */
-.st-title {
-  font-size: 26px;
-  font-weight: 700;
-  color: #005baa;
-  margin-bottom: 0;
-}
-
-.promo-small-box p b {
-  font-size: 22px;
-  color: #333;
-  display: block;
-  margin-bottom: 8px;
-}
-
-.st-desc,
-.promo-small-box p {
-  font-size: 14px;
-  color: #666;
-  line-height: 1.6;
-  margin-bottom: 0;
-}
-
-/* 바로가기 버튼 (하단 여백 채우기용) */
-.promo-go-btn {
-  margin-top: 10px;
-  padding: 10px 22px;
-  background: transparent;
-  border: 1px solid #005baa;
-  color: #005baa;
-  font-size: 14px;
-  font-weight: 700;
-  border-radius: 30px;
-  cursor: pointer;
-  transition: all 0.3s;
-  white-space: nowrap;
-}
-
-.promo-go-btn:hover {
-  background: #005baa;
-  color: #fff;
-  transform: translateX(5px);
-}
-
-/* 테마별 배경색 */
-.promo-small-box.sky {
-  background-color: #f0f7ff;
-}
-
-.promo-small-box.point {
-  background-color: #fbb8001b;
-}
-
-/* =====================================================================
-   [6] 메가메뉴 - 오른쪽 상세 리스트 및 아이콘 구역
-   ===================================================================== */
-/* 아이콘 구역 (의료진/진료과) */
-.right-icon-zone {
-  flex: 1;
-  padding: 50px 60px;
-  display: flex;
-  gap: 80px;
-  align-items: flex-start;
-}
-
-.st-icon-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-  cursor: pointer;
-  transition: 0.3s;
-}
-
-.circle-icon {
-  width: 120px;
-  height: 120px;
-  background-color: #f2f2f2;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #333;
-  transition: 0.3s;
-}
-
-.st-icon-item:hover .circle-icon {
-  border-color: #005baa;
-  background-color: #fff;
-  box-shadow: 0 10px 20px rgba(0, 91, 170, 0.1);
-}
-
-.icon-txt .main-t {
-  font-size: 20px;
-  font-weight: 700;
-  color: #333;
-}
-
-.st-icon-item:hover .main-t {
-  color: #005baa;
-}
-
-/* 리스트 구역 (예약/안내 등) */
-.right-list-zone {
-  display: flex;
-  align-items: flex-start;
-}
-
-.menu-box-item {
-  flex: 0 0 300px;
-  display: flex;
-  flex-direction: column;
-  padding: 50px 40px;
-}
-
-.box-head {
-  font-size: 18px;
-  font-weight: 800;
-  color: #333;
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #333;
-  text-align: left;
-}
-
-.menu-box-item li {
-  font-size: 16px;
-  color: #555;
-  margin-bottom: 14px;
-  cursor: pointer;
-  list-style: none;
-  text-align: left;
-  transition: 0.2s;
-}
-
-.menu-box-item li:hover {
-  color: #005baa;
-  text-decoration: underline;
-  font-weight: 600;
-}
-
-/* 검색바 및 예약 카드 */
-.st-search-bar {
-  display: flex;
-  height: 50px;
-  border: 1px solid #005baa;
-  overflow: hidden;
-  width: 100%;
-  margin-top: 15px;
-}
-
-.st-search-bar input {
-  flex: 1;
-  border: none;
-  padding: 0 15px;
-  outline: none;
-  font-size: 16px;
-}
-
-.st-search-bar button {
-  background: #005baa;
-  color: #fff;
-  border: none;
-  padding: 0 25px;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.reserve-guide-card {
-  background: #fff;
-  border: 1px solid #e5e5e5;
-  padding: 35px 30px;
-  margin-top: 20px;
-}
-
-.guide-tag {
-  font-size: 14px;
-  font-weight: 700;
-  color: #005baa;
-  letter-spacing: 1px;
-  margin-bottom: 20px;
-}
-
-.call-center-box .number {
-  font-size: 30px;
-  font-weight: 800;
-  color: #333;
-  line-height: 1;
-}
-
-.primary-rect-btn {
-  width: 100%;
-  height: 55px;
-  background: #005baa;
-  color: #fff;
-  border: none;
-  font-size: 18px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: 0.3s;
-  margin-top: 15px;
-}
-
-.primary-rect-btn:hover {
-  background-color: #004a8a;
-  box-shadow: 0 5px 15px rgba(0, 91, 170, 0.2);
-}
-
-/* =====================================================================
-   [7] 브레드크럼 (Breadcrumb Bar)
-   ===================================================================== */
-.breadcrumb-bar {
-  width: 100%;
-  background-color: #f9f9f9;
-  border-bottom: 1px solid #eee;
-  padding: 20px 35px;
-  margin-top: 100px;
-  padding-left: 78px;
-}
-
-.breadcrumb-inner {
-  max-width: 1880px;
-  margin: 0 auto;
-  padding: 0 20px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 18px;
-  color: #666;
-}
-
-.home-icon,
-.divider {
-  color: #999;
-  cursor: pointer;
-}
-
-.crumb-dropdown {
-  position: relative;
-  cursor: pointer;
-}
-
-.current-select {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: #444;
-}
-
-.current-select.active {
-  font-weight: 700;
-  color: #005baa;
-}
-
-.dropdown-list {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  background: #fff;
-  border: 1px solid #ddd;
-  min-width: 150px;
-  z-index: 6000;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-
-/* =====================================================================
-   [8] 푸터 
-   ===================================================================== */
-.main-footer {
-  width: 100%;
-  background-color: #f8f8f8;
-  padding: 40px 0; /* 2번 파일 규격 */
-  border-top: 1px solid #eee;
-  font-family: 'pretendard', sans-serif;
-}
-
-.footer-inner {
-  max-width: 1500px; /* 2번 파일의 wide-footer 가로폭 */
-  margin: 0 auto;
-  padding: 0 40px;   /* 미세 패딩 동기화 */
-  text-align: left;
-}
-
-.f-row {
-  display: flex;
-  justify-content: space-between; /* 양 끝 정렬로 우측 요소 위치 고정 */
-  align-items: center;
-  margin-bottom: 9px;
-}
-
-.f-logo-img {
-  filter: grayscale(1);
-  height: 50px;
-  width: auto;
-  object-fit: contain;
-  opacity: 0.5;
-  transition: 0.3s;
-}
-
-.f-logo-img:hover {
-  filter: grayscale(0);
-  opacity: 1;
-}
-
-/* 우측 링크 구역 */
-.f-links {
-  font-size: 17px;
-  color: #666;
-  display: flex;
-  gap: 15px;
-}
-
-.f-links .bold {
-  font-weight: 700;
-  color: #005baa;
-}
-
-/* 중간 정보 텍스트 구역 */
-.f-info-text {
-  font-size: 15px;
-  margin-bottom: -10px; /* 2번 파일 특유의 쫀쫀한 간격 */
-  color: #888;
-  line-height: 1.2;
-}
-
-/* 우측 SNS 아이콘 구역 */
-.f-sns-side {
-  display: flex;
-  gap: 10px;
-}
-
-.sns-link {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #fff;
-  border: 1px solid #eee;
-  border-radius: 50%;
-  color: #777;
-  transition: 0.3s;
-}
-
-.sns-link:hover {
-  background-color: #005baa;
-  color: #fff;
-  border-color: #005baa;
-  transform: translateY(-3px); /* 2번 파일의 호버 액션 이식 */
-}
-
-/* 하단 연락처 구역 */
-.f-bottom-info {
-  display: flex;
-  justify-content: flex-start;
-  font-size: 15px;
-  color: #888;
-  line-height: 1.2;
-  margin-bottom: 30px; /* 하단 여백 확보 */
-}
-
-.blue-txt {
-  color: #005baa;
-  font-weight: 800;
-}
-
-/* 카피라이트 구역 */
-.footer-copyright {
-  font-size: 13px;
-  color: #bbb;
-  border-top: 1px solid #f2f2f2;
-  padding-top: 20px; /* 패딩 동기화 */
-}
-
-.bar {
-  margin: 0 5px;
-  color: #ddd;
-}
-
-/* 플로팅 버튼 */
-/* 플로팅 컨테이너 */
-.floating-aside {
-  position: fixed;
-  right: 40px;
-  bottom: 50px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  z-index: 99999;
-  pointer-events: auto; /* 마우스 이벤트를 확실히 받도록 설정 */
-}
-
-/* 플로팅 버튼 공통 스타일 */
-.float-btn {
-  width: 68px;
-  height: 68px;
-  border-radius: 50%;
-  border: none;
-  background: #fff;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  color: #555;
-}
-
-.float-btn:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-}
-
-/* 차량 등록 버튼 특화 */
-.car-regi {
-  background: #005baa;
-  color: #fff;
-}
-
-.btn-label {
-  font-size: 13px;
-  font-weight: 600;
-  margin-top: 2px;
-}
-
-/* TOP 버튼 특화 */
-.top-move {
-  background: #333;
-  color: #fff;
-}
-
-.floating-aside {
-  transition: opacity 0.3s;
-}
-</style> -->
 
 <style scoped>
 /* =====================================================================
@@ -1293,7 +705,7 @@ onUnmounted(() => { window.removeEventListener('scroll', handleScroll); })
 
 /* 우측 유틸리티 영역 */
 .combined-util {
-  flex: 0 0 350px;
+  flex: 0 0 500px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -1820,7 +1232,7 @@ onUnmounted(() => { window.removeEventListener('scroll', handleScroll); })
 
 .btn-label {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   margin-top: 2px;
 }
 
@@ -1829,6 +1241,19 @@ onUnmounted(() => { window.removeEventListener('scroll', handleScroll); })
   color: #fff;
 }
 
-/* 중복 선언 주석 처리 */
-/* .floating-aside { transition: opacity 0.3s; } */
+/* 관리자 대시보드 이동 버튼 */
+.admin-btn {
+  color: #fff !important;
+  background: #444d5683;
+  font-weight: 500 !important;
+  padding: 6px 14px;
+  border-radius: 20px;
+  transition: all 0.2s;
+}
+
+.admin-btn:hover {
+  background: #fbb900;
+  color: #fff !important;
+  transform: translateY(-2px);
+}
 </style>

@@ -6,7 +6,7 @@ const springApi = axios.create({
 })
 
 const fastApi = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: 'http://localhost:8003',
   timeout: 5000
 })
 
