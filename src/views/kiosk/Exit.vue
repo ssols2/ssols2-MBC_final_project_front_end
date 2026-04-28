@@ -113,10 +113,10 @@
                   <th>{{ t.entryTime }}</th>
                   <td>{{ formatDateTime(vehicleInfo.entry_time) }}</td>
                 </tr>
-                <tr>
+                <!-- <tr>
                   <th>{{ t.parkingSpot }}</th>
                   <td style="color: #1976d2; font-weight: bold;">{{ translatedSpot }}</td>
-                </tr>
+                </tr> -->
                 <tr>
                   <th>{{ t.stayTime }}</th>
                   <td>{{ vehicleInfo.total_stay_minutes || 0 }}{{ t.minute }}</td>
@@ -207,10 +207,10 @@
                   <th>{{ t.entryTime }}</th>
                   <td>{{ formatDateTime(vehicleInfo.entry_time) }}</td>
                 </tr>
-                <tr>
+                <!-- <tr>
                   <th>{{ t.parkingSpot }}</th>
                   <td class="bold-val">{{ translatedSpot }}</td>
-                </tr>
+                </tr> -->
                 <tr>
                   <th>{{ t.totalStay }}</th>
                   <td>{{ vehicleInfo.total_stay_minutes }}{{ t.minute }}</td>
@@ -658,8 +658,6 @@ let removalReminderTimer = null // 팝업 지연용 타이머 변수
 // 입력 및 정보 변수
 const errorMessage = ref('')              // 결제/조회 에러 메시지
 const paymentMethodType = ref('MANUAL')   // AUTO 또는 MANUAL
-
-const currentLang = ref('KR')
 const isProcessing = ref(false)           // 결제 중복 방지 플래그
 
 const isCardInserted = ref(false)         // 물리적 카드 삽입 여부 상태 변수
@@ -708,13 +706,13 @@ const formatDateTime = (dateStr) => {
   })
 }
 
-// QR 코드에 담을 영수증 URL (computed로 동적 생성)
-const receiptUrl = computed(() => {
-  // 시연 시 폰에서 스캔할 수 있도록 localhost 대신 현재 접속 호스트(IP)를 사용
-  const host = "192.168.137.178"
-  const port = window.location.port
-  return `http://${host}:${port}/receipt/${vehicleInfo.value.receipt_id}`
-})
+// // QR 코드에 담을 영수증 URL (computed로 동적 생성)
+// const receiptUrl = computed(() => {
+//   // 시연 시 폰에서 스캔할 수 있도록 localhost 대신 현재 접속 호스트(IP)를 사용
+//   const host = "192.168.137.178"
+//   const port = window.location.port
+//   return `http://${host}:${port}/receipt/${vehicleInfo.value.receipt_id}`
+// })
 
 // ================================================ 초기화 타이머 로직 ================================================
 // 타이머 변수
@@ -844,15 +842,14 @@ const startNfcContinuousScanner = async () => {
                         await processPayment(uid, true)
                     }
                 }
-                
-                // 성공 시에도 너무 빨리 돌지 않게 0.5초 정도 쉬어줌
-                await new Promise(r => setTimeout(r, 500))
+                else {
+                lastUid.value = '' // UID를 초기화하여 재태그가 가능하게 만듦
+            }
+            
+            await new Promise(r => setTimeout(r, 1000))
             }
         } catch (error) {
-            // 카드를 떼면 500 에러가 나면서 이쪽으로 들어옴
             lastUid.value = '' 
-
-            // 1초 대기 후 다시 시도
             await new Promise(r => setTimeout(r, 1000))
         }
     }
@@ -997,7 +994,7 @@ const handleFileUpload = async (event) => {
     }
 
     viewMode.value = 'result-fail'
-    startTimer(5, 'idle')
+    //startTimer(5, 'idle')
   } finally {
     event.target.value = ''
   }
@@ -1143,6 +1140,10 @@ onUnmounted(() => {
   justify-content: center;
   align-items: center;
   padding: 20px 40px;
+}
+
+.screen-container screen-result {
+  
 }
 
 .center-content {
@@ -1339,7 +1340,7 @@ onUnmounted(() => {
   min-width: 0;
   /* 우측 카드 찌그러짐 방지 핵심 */
   background: #ffffff;
-  padding: 30px 40px;
+  padding: 20px 30px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
   border-radius: 28px;
   display: flex;
@@ -1475,11 +1476,12 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 20px;
   margin-bottom: 40px;
+  margin-top: 10px;
 }
 
 .image-wrapper {
   width: 100%;
-  height: 180px;
+  height: 210px;
   background: #f9fafb;
   border-radius: 16px;
   overflow: hidden;
@@ -1490,7 +1492,7 @@ onUnmounted(() => {
 }
 
 .plate-wrapper {
-  height: 180px;
+  height: 200px;
   background: #e8f3ff;
   border: none;
 }
@@ -1823,5 +1825,52 @@ onUnmounted(() => {
 
 .divider {
   margin: 28px 0;
+}
+
+/* ==========================================
+   [결과 화면 전용] 위아래 잘림 방지 CSS
+   ========================================== */
+
+/* 1. 맨 위 타이틀 여백 축소 */
+.screen-result .page-title.highlight-title {
+  margin-top: 10px !important;
+  margin-bottom: 25px !important;
+  font-size: 52px !important; 
+}
+
+/* 2. 하얀색 카드 자체의 상하 여백 축소 */
+.screen-result .info-card {
+  padding: 15px 30px !important; 
+}
+
+/* 3. 자리를 제일 많이 차지하는 사진 박스 크기 강제 축소 */
+.screen-result .image-wrapper {
+  height: 200px !important; 
+}
+.screen-result .plate-wrapper {
+  height: 200px !important;
+}
+
+/* 4. 사진들 사이 간격 축소 */
+.screen-result .image-grid {
+  gap: 10px !important; 
+  margin-bottom: 15px !important;
+  margin-top: 5px !important;
+}
+
+/* 5. 결제 상세 내역(테이블) 줄 간격 대폭 축소 */
+.screen-result .res-table th,
+.screen-result .res-table td {
+  padding: 16px 0 !important;
+  font-size: 17px !important; 
+}
+
+/* 6. 맨 밑에 '최종 결제 금액' 박스 크기 축소 */
+.screen-result .total-fee-box {
+  padding: 12px !important;
+  margin-top: 5px !important;
+}
+.screen-result .fee-amount {
+  font-size: 34px !important;
 }
 </style>

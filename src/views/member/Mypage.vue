@@ -598,10 +598,10 @@
               </div>
             </div>
 
-            <div class="receipt-footer">
+            <!-- <div class="receipt-footer">
               <qrcode-vue :value="generateReceiptLink(selectedReceipt.approval_number)" :size="80" level="M" />
               <p>QR을 스캔하여 모바일에서 확인하세요</p>
-            </div>
+            </div> -->
           </div>
           <div class="modal-btns mt-20">
             <button @click="showReceiptModal = false" class="btn-modal-cancel" style="width: 100%;">닫기</button>
@@ -650,7 +650,7 @@
 
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import QrcodeVue from 'qrcode.vue'
+// import QrcodeVue from 'qrcode.vue'
 import { updateInfoReq, withdrawReq, getMyInfoReq } from '@/api/member'
 import { getVehiReq, delVehiReq, editVehiReq } from '@/api/vehicle'
 import { getAdminInfoReq } from '@/api/customer.js';
@@ -1080,11 +1080,11 @@ const openReceiptDetail = async (receipt) => {
   }
 }
 
-const generateReceiptLink = (id) => {
-  const host = "192.168.137.178"
-  const port = window.location.port || "5173"
-  return `http://${host}:${port}/receipt/${id}`
-}
+// const generateReceiptLink = (id) => {
+//   const host = "192.168.137.178"
+//   const port = window.location.port || "5173"
+//   return `http://${host}:${port}/receipt/${id}`
+// }
 
 const formatDateTime = (dateStr) => {
   if (!dateStr) return '-'

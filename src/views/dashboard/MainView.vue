@@ -322,29 +322,77 @@ const fetchLogs = async () => {
     })
     const dowAvg = dowTotals.map((t, i) => dowCounts[i] > 0 ? Math.round(t / dowCounts[i]) : 0)
 
-    new Chart(stayTimeChartRef.value, {
-      type: 'bar',
-      data: {
-        labels: ['월', '화', '수', '목', '금', '토', '일'],
-        datasets: [{
-          data: dowAvg,
-          backgroundColor: [
-            '#82c2e3', '#5aa8d9', '#3282c8', '#005baa',
-            '#004182', '#ffd54f', '#fbb900'
-          ],
-          borderRadius: 6 // 세로 막대니까 위쪽을 둥글게!
-        }]
+    // [기존 코드에서 차트 생성 부분 교체]
+new Chart(stayTimeChartRef.value, {
+  type: 'bar',
+  data: {
+    labels: ['월', '화', '수', '목', '금', '토', '일'],
+    datasets: [{
+      label: '평균 체류시간(분)',
+      data: dowAvg,
+      // 그라데이션 효과를 위한 배경색 설정 (옵션)
+      backgroundColor: (context) => {
+        const chart = context.chart
+        const { ctx, chartArea } = chart
+        if (!chartArea) return '#82c2e3'
+        const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom)
+        gradient.addColorStop(0, 'rgba(130, 194, 227, 0.9)')
+        gradient.addColorStop(1, 'rgba(130, 194, 227, 0.3)')
+        return gradient
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          y: { display: false },
-          x: { grid: { display: false }, ticks: { color: '#a1a1aa' } }
+      borderColor: '#82c2e3',
+      borderWidth: 1,
+      borderRadius: 6, // 막대 상단 둥글게
+      barThickness: 24 // 막대 두께 조정으로 꽉 찬 느낌 부여
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: {
+      padding: { top: 20, right: 10, bottom: 0, left: 0 } // 상단 여백 추가
+    },
+    plugins: {
+      legend: { display: false },
+      // 툴팁 디자인 고도화
+      tooltip: {
+        backgroundColor: 'rgba(26, 29, 33, 0.95)',
+        titleColor: '#ffffff',
+        bodyColor: '#82c2e3',
+        bodyFont: { size: 14, family: 'Pretendard', weight: 'bold' },
+        padding: 12,
+        cornerRadius: 8,
+        displayColors: false,
+        callbacks: {
+          label: function (context) { return `${context.parsed.y} 분` }
         }
       }
-    })
+    },
+    scales: {
+      y: {
+        display: true, // Y축 활성화
+        beginAtZero: true,
+        // Y축 그리드 라인 스타일링
+        grid: {
+          display: true,
+          color: 'rgba(255, 255, 255, 0.05)',
+          drawBorder: false,
+        },
+        // Y축 텍스트 스타일링
+        ticks: {
+          color: '#a1a1aa',
+          font: { family: 'Pretendard', size: 11 },
+          padding: 10,
+          callback: function(value) { return value + '분' } // 단위 추가
+        }
+      },
+      x: {
+        grid: { display: false },
+        ticks: { color: '#a1a1aa', font: { family: 'Pretendard', size: 12 } }
+      }
+    }
+  }
+})
   } catch (e) { console.error('로그 로드 실패', e) }
 }
 
