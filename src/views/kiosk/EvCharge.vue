@@ -13,13 +13,6 @@
         </div>
 
         <!-- 대기화면 -->
-        <div class="lang-selector" v-if="viewMode === 'idle'">
-            <button v-for="(langData, code) in TRANSLATIONS" :key="code"
-                :class="['lang-btn', { active: currentLang === code }]" @click="currentLang = code">
-                {{ langData.langName }}
-            </button>
-        </div>
-
         <div class="ev-type-tabs" v-if="viewMode === 'idle'">
             <button :class="['type-btn', { active: chargerType === 'FAST' }]" @click="chargerType = 'FAST'">
                 <svg class="icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -38,6 +31,18 @@
             </button>
         </div>
 
+        <div class="demo-controller" v-if="viewMode === 'idle' || viewMode === 'error'">
+            <span class="demo-label">현재 시연 기기:</span>
+            <select v-model="selectedChargerId" class="demo-select" @change="checkChargerStatus">
+                <optgroup v-for="floor in 5" :key="'group-' + floor" :label="`${floor}F`">
+                    <option v-for="spot in 3" :key="`spot-${floor}-${spot}`"
+                        :value="`${floor}F-D-${(spot + 7).toString().padStart(2, '0')}`">
+                        {{ floor }}F-D-{{ (spot + 7).toString().padStart(2, '0') }}
+                    </option>
+                </optgroup>
+            </select>
+        </div>
+
         <div v-if="viewMode === 'idle'" class="screen-container screen-idle" @click="viewMode = 'scan'">
             <div class="center-content">
                 <div class="logo-box">
@@ -49,6 +54,27 @@
                         {{ t.touchSubMsg1 }} <span class="blue-txt">{{ chargerType === 'FAST' ? t.fast : t.slow
                         }}</span>{{ t.touchSubMsg2 }}
                     </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 고장 화면 -->
+        <div v-else-if="viewMode === 'error'" class="screen-container screen-error fade-in">
+            <div class="center-content">
+                <div class="error-visual-box bounce-animation mb-20">
+                    <svg viewBox="0 0 24 24" style="width: 100px; height: 100px; color: #ff0015;">
+                        <path fill="currentColor" d="M13 14H11V9H13M13 18H11V16H13M1 21H23L12 2L1 21Z" />
+                    </svg>
+                </div>
+                <h2 class="step-title error-title">시스템 점검 중</h2>
+                <p class="step-desc mt-20">해당 충전기는 현재 안전 점검이 진행 중입니다<br>불편을 드려 죄송합니다 다른 기기를 이용해 주세요</p>
+                <div class="bottom-btn-area mt-40">
+                    <button class="btn-home-link" @click="viewMode = 'idle'">
+                        <svg viewBox="0 0 24 24" width="24" height="24" style="margin-right: 8px;">
+                            <path fill="currentColor" d="M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z" />
+                        </svg>
+                        처음으로 돌아가기
+                    </button>
                 </div>
             </div>
         </div>
@@ -246,9 +272,18 @@
             </div>
 
             <div class="spot-grid mt-20 mb-30">
-                <button v-for="spot in 3" :key="spot" @click="selectedChargerId = `B${selectedFloor}F-0${spot}`"
-                    :class="['spot-btn', { active: selectedChargerId === `B${selectedFloor}F-0${spot}` }]">
-                    B{{ selectedFloor }}F-0{{ spot }}
+                <button v-for="spotNum in availableSpots" :key="spotNum"
+                    @click="selectedChargerId = `${selectedFloor}F-D-${spotNum.toString().padStart(2, '0')}`"
+                    :disabled="isChargerBroken(`${selectedFloor}F-D-${spotNum.toString().padStart(2, '0')}`)" :class="['spot-btn', {
+                        active: selectedChargerId === `${selectedFloor}F-D-${spotNum.toString().padStart(2, '0')}`,
+                        'broken-disabled': isChargerBroken(`${selectedFloor}F-D-${spotNum.toString().padStart(2, '0')}`)
+                    }]">
+                    {{ selectedFloor }}F-D-{{ spotNum.toString().padStart(2, '0') }}
+
+                    <div v-if="isChargerBroken(`${selectedFloor}F-D-${spotNum.toString().padStart(2, '0')}`)"
+                        style="font-size: 12px; margin-top: 4px; color: #ff3b3b;">
+                        (점검 중)
+                    </div>
                 </button>
             </div>
 
@@ -259,8 +294,9 @@
 
             <div class="bottom-btn-area mt-40">
                 <button class="btn-cancel" @click="viewMode = 'status'">{{ t.btnPrev }}</button>
-                <button class="btn-confirm btn-large" :disabled="!selectedChargerId"
-                    @click="viewMode = 'input_amount'">{{ t.btnSetAmount }}</button>
+                <button class="btn-confirm btn-large" :disabled="!selectedChargerId" @click="viewMode = 'input_amount'">
+                    {{ t.btnSetAmount }}
+                </button>
             </div>
         </div>
 
@@ -279,7 +315,7 @@
                         <div class="calc-row"><span>{{ t.expectedCharge }}</span><strong>{{ expectedKwh.toFixed(2) }}
                                 kWh</strong></div>
                         <div class="calc-row highlight-row"><span>{{ t.expectedTime }}</span><strong>{{
-                            expectedTotalMinutes }} {{ t.minute }}</strong></div>
+                                expectedTotalMinutes }} {{ t.minute }}</strong></div>
                     </div>
                 </div>
                 <div class="right-numpad-section">
@@ -385,11 +421,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import axios from 'axios'
 import { scanEvPlateReq, startEvChargeReq, stopEvChargeReq, searchManualPlateReq } from '@/api/ev/charge.js'
 
 // ==========================================
-// 0. 국가별 다국어 번역 데이터 (초기화면 텍스트 포함)
+// 0. 국가별 다국어 번역 데이터
 // ==========================================
 const TRANSLATIONS = {
     KOR: {
@@ -548,7 +585,6 @@ const TRANSLATIONS = {
 // 1. 상태 및 기본 데이터
 // ==========================================
 const viewMode = ref('idle')
-const chargerType = ref('FAST') // 템플릿과 맞춤 (RAPID=FAST, SLOW=SLOW)
 const vehicleNum = ref('')
 const currentBattery = ref(0)
 const currentLang = ref('KOR') // 현재 선택된 언어 상태값 (기본 한국어)
@@ -558,9 +594,70 @@ const countdown = ref(10)
 const totalCountdown = ref(10)
 let returnTimer = null
 
+// 기기 선택
 const selectedFloor = ref(1)
-const selectedChargerId = ref('')
+const selectedChargerId = ref('1F-D-08')
+const chargerType = ref('SLOW') // 8번은 SLOW이므로 기본값 SLOW
 
+// 서버에서 받아올 기기 목록 배열
+const chargers = ref([])
+
+// 고장/점검/위험 상태 판별기
+const isChargerBroken = (id) => {
+    const target = chargers.value.find(c => c.evChargerId === id);
+    if (!target) return false;
+    return target.chargerStatus === 'POWER_OFF' || target.aiStatus === 'RISK' || target.aiStatus === 'CHECK';
+}
+
+// 대기화면 <select>에서 기기 변경 시 실행되는 함수
+const checkChargerStatus = () => {
+    if (isChargerBroken(selectedChargerId.value)) {
+        viewMode.value = 'error'; // 고장이면 에러 화면으로 이동
+    } 
+}
+
+// 실시간 동기화를 위한 타이머 변수
+let syncInterval = null
+// 3초마다 DB 상태 가져오는 실시간 폴링 함수
+const startRealTimeSync = () => {
+    syncInterval = setInterval(async () => {
+        try {
+            const res = await axios.get('http://localhost:8080/api/ev/chargers')
+            chargers.value = res.data.map(c => ({
+                id: c.evChargerId,
+                status: c.chargerStatus,
+                aiStatus: c.aiStatus
+            }))
+
+            if (viewMode.value === 'idle' && isChargerBroken(selectedChargerId.value)) {
+                viewMode.value = 'error'
+            }
+        } catch (e) {
+            console.error('실시간 동기화 에러:', e)
+        }
+    }, 3000)
+}
+
+// 선택한 타입(FAST/SLOW)에 따라 보여줄 충전기 번호 세팅
+const availableSpots = computed(() => {
+    return chargerType.value === 'FAST' ? [10] : [8, 9]
+})
+
+// [추가] 선택된 기기 번호에 따라 타입을 자동으로 바꿔주는 로직
+watch(selectedChargerId, (newId) => {
+    if (newId) checkChargerStatus()
+})
+
+// 층이 바뀔 때 자동 할당 로직
+watch(selectedFloor, (newFloor) => {
+    if (chargerType.value === 'FAST') {
+        selectedChargerId.value = `${newFloor}F-D-10`
+    } else {
+        selectedChargerId.value = ''
+    }
+})
+
+// 단가
 const EV_PRICE_SLOW = 180
 const EV_PRICE_FAST = 324
 const CHARGER_OUTPUT = { SLOW: 7, FAST: 50 }
@@ -583,7 +680,7 @@ const closeAlert = () => {
     if (alertCallback.value) alertCallback.value()
 }
 
-// 유저가 선택한 언어를 즉시 추적하는 다국어 Computed
+// 다국어
 const t = computed(() => TRANSLATIONS[currentLang.value] || TRANSLATIONS['KOR'])
 
 // 자동 타이머 로직
@@ -804,40 +901,37 @@ const startCharging = async () => {
         // [파이썬 로직] 충전 중 실시간 전력량: (사용한 분 / 60) * 기기 출력량
         currentChargedKwh.value = (elapsedMinutes.value / 60) * outputKw.value
 
-        if (chargingProgress.value >= 100) stopCharging()
+        if (chargingProgress.value >= 100) {
+            stopCharging('COMPLETED') 
+        }
     }, 100)
 }
 
 // ==========================================
 // 7. 충전 중지 및 API 연동 (파이썬 /stop 호출)
 // ==========================================
-const stopCharging = async () => {
+const stopCharging = async (status = 'FORCE_STOPPED') => {
     if (chargingTimer) clearInterval(chargingTimer)
 
-    // [파이썬 로직] 강제 중지 시, 진행된 분(minutes)을 기준으로 최종 데이터 역산
-    const ratio = chargingProgress.value / 100
-
+    const ratio = status === 'COMPLETED' ? 1 : chargingProgress.value / 100
     finalChargedKwh.value = expectedKwh.value * ratio
-    finalAmount.value = Math.floor(inputAmount.value * ratio) // 100% 진행 시 무조건 inputAmount와 동일
+    finalAmount.value = Math.floor(inputAmount.value * ratio)
 
-    // 파이썬 서버에 [충전 종료] 요청 쏘기
     try {
         const stopRequestData = {
             ev_log_id: currentEvLogId.value,
             actual_kwh: parseFloat(finalChargedKwh.value.toFixed(2)),
-            final_fee: finalAmount.value
+            final_fee: finalAmount.value,
+            charging_status: status
         }
 
         await stopEvChargeReq(stopRequestData)
-        console.log("충전 종료 처리 및 요금 정산 완료!")
-
+        console.log(`충전 종료 처리 완료! 상태: ${status}`)
     } catch (error) {
         console.error("충전 종료 API 에러:", error)
-        alert("충전 종료 처리 중 문제가 발생했습니다. 관리자에게 문의하세요.")
     }
 
     viewMode.value = 'complete'
-    // 영수증 화면에서 10초 뒤에 ㅂㅂ 화면으로 넘어감
     startTimer(10, 'goodbye')
 }
 
@@ -845,19 +939,32 @@ const stopCharging = async () => {
 watch(viewMode, (newMode) => {
     if (newMode === 'idle') {
         currentLang.value = 'KOR'
-        inputAmount.value = 0 // 홈으로 오면 금액 초기화
+        inputAmount.value = 0
         searchQuery.value = ''
         if (returnTimer) clearInterval(returnTimer)
     }
-    // 작별 인사 화면에 오면 5초 뒤에 초기 화면으로 강제 이동
+
     if (newMode === 'goodbye') {
         startTimer(5, 'idle')
     }
+    if (newMode === 'select_charger') {
+        selectedFloor.value = 1
+        if (chargerType.value === 'FAST') {
+            selectedChargerId.value = '1F-D-10' 
+        } else {
+            selectedChargerId.value = ''
+        }
+    }
+})
+
+onMounted(() => {
+    startRealTimeSync() // 화면이 켜지면 감시 시작
 })
 
 onUnmounted(() => {
     if (chargingTimer) clearInterval(chargingTimer)
     if (returnTimer) clearInterval(returnTimer)
+    if (syncInterval) clearInterval(syncInterval)
 })
 </script>
 
@@ -1096,36 +1203,7 @@ onUnmounted(() => {
     margin-right: 15px;
 }
 
-/* ── 7. EV 전용: 다국어 및 상단 탭 ── */
-.lang-selector {
-    position: absolute;
-    top: 80px;
-    right: 50px;
-    display: flex;
-    gap: 12px;
-    z-index: 50;
-}
-
-.lang-btn {
-    background: rgba(255, 255, 255, 0.6);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    color: #444;
-    padding: 10px 20px;
-    border-radius: 30px;
-    cursor: pointer;
-    font-size: 18px;
-    font-weight: 700;
-    transition: all 0.2s;
-    font-family: 'pretendard';
-}
-
-.lang-btn.active {
-    background: #fff;
-    color: #005baa;
-    border: 2px solid #005baa;
-    box-shadow: 0 4px 12px rgba(0, 91, 170, 0.15);
-}
-
+/* ── 7. EV 전용: 상단 탭 (데모용 기기 선택 포함) ── */
 .ev-type-tabs {
     position: absolute;
     top: 80px;
@@ -1154,6 +1232,50 @@ onUnmounted(() => {
     color: #005baa;
     border-color: #005baa;
     box-shadow: 0 8px 16px rgba(0, 91, 170, 0.15);
+}
+
+/* 데모용 */
+.demo-controller {
+    position: absolute;
+    top: 80px;
+    right: 50px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 12px 24px;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.048);
+    z-index: 100;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    backdrop-filter: blur(8px);
+}
+
+.demo-label {
+    font-weight: 800;
+    color: #005baa47;
+    font-size: 18px;
+    letter-spacing: -0.5px;
+}
+
+.demo-select {
+    padding: 10px 16px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #33333320;
+    border: 2px solid #e5e8eb;
+    border-radius: 10px;
+    outline: none;
+    cursor: pointer;
+    background: #fff;
+    transition: all 0.2s ease;
+    font-family: 'Pretendard', sans-serif;
+}
+
+.demo-select:focus,
+.demo-select:hover {
+    border-color: #005baa;
+    box-shadow: 0 4px 12px rgba(0, 91, 170, 0.1);
 }
 
 /* ── 8. EV 전용: 수동 검색 및 목록 ── */
@@ -1247,16 +1369,17 @@ onUnmounted(() => {
 }
 
 .spot-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    /* 버튼 사이 간격 */
     max-width: 700px;
     width: 100%;
     margin: 0 auto;
 }
 
 .spot-btn {
-    padding: 24px;
+    padding: 24px 40px;
     border-radius: 20px;
     font-size: 28px;
     font-weight: bold;
@@ -1265,6 +1388,8 @@ onUnmounted(() => {
     color: #333;
     cursor: pointer;
     transition: all 0.2s;
+    min-width: 220px;
+    /* 버튼이 너무 작아지지 않게 최소 크기 지정 */
 }
 
 .spot-btn.active {
@@ -1899,26 +2024,41 @@ onUnmounted(() => {
 
 /* ── [추가] 수동 검색 화면만 전용으로 공간 확보 (전체 공통은 유지) ── */
 .screen-search {
-  justify-content: flex-start !important; /* 상단부터 차곡차곡 쌓아서 잘림 방지 */
-  padding-top: 120px !important;            /* 상단 제목 머리 공간 확보 */
-  padding-bottom: 60px !important;         /* 하단 버튼 바닥 공간 확보 */
-  overflow-y: auto !important;             /* 내용 길어지면 스크롤 생기게 함 */
+    justify-content: flex-start !important;
+    /* 상단부터 쌓아서 잘림 방지 */
+    padding-top: 120px !important;
+    /* 상단 제목 머리 공간 확보 */
+    padding-bottom: 60px !important;
+    /* 하단 버튼 바닥 공간 확보 */
+    overflow-y: auto !important;
+    /* 내용 길어지면 스크롤 생기게 함 */
 }
 
 /* 수동 검색 화면 내부의 요소 간격 타이트하게 조절 */
 .screen-search .step-title {
-  margin-top: 0 !important;
-  margin-bottom: 10px !important;
+    margin-top: 0 !important;
+    margin-bottom: 10px !important;
 }
 
 .screen-search .step-desc {
-  margin-bottom: 10px !important;
+    margin-bottom: 10px !important;
 }
 
-/* 키패드가 너무 크면 8% 정도 줄여서 한 화면에 쏙 넣음 */
+/* 키패드가 너무 크면 8% 정도 줄여서 한 화면에 넣음 */
 .custom-keypad-section {
-  transform: scale(0.92);
-  transform-origin: top center;
-  margin-top: -10px !important;
+    transform: scale(0.92);
+    transform-origin: top center;
+    margin-top: -10px !important;
+}
+
+/* 고객용 충전기 선택 버튼 고장 시 디자인 */
+.spot-btn:disabled {
+    opacity: 0.5;
+    background: #e2e8f0 !important;
+    border: 1px solid #cbd5e1 !important;
+    cursor: not-allowed !important;
+    color: #94a3b8 !important;
+    box-shadow: none !important;
+    transform: none !important;
 }
 </style>

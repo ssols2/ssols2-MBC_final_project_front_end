@@ -11,3 +11,40 @@ body {
   margin: 0;
   padding: 0;
 }
+
+/* ==========================================
+   전역 다크/라이트 모드 테마 변수
+   ========================================== */
+:root {
+    --bg-main: #09090b;
+    --bg-sidebar: #000000;
+    --bg-header: #000000;
+    --bg-card: #18181b;
+    
+    --text-primary: #ffffff;
+    --text-secondary: #a1a1aa;
+    --border-color: #27272a;
+    
+    --glass-bg: rgba(30, 30, 45, 0.95);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    
+    --accent-blue: #82c2e3;
+    --hover-bg: rgba(130, 194, 227, 0.2);
+}
+
+[data-theme="light"] {
+    --bg-main: #f4f4f5;
+    --bg-sidebar: #ffffff;
+    --bg-header: #ffffff;
+    --bg-card: #ffffff;
+    
+    --text-primary: #18181b;
+    --text-secondary: #52525b;
+    --border-color: #e4e4e7;
+    
+    --glass-bg: rgba(255, 255, 255, 0.95);
+    --glass-border: rgba(0, 0, 0, 0.1);
+    
+    --accent-blue: #0284c7;
+    --hover-bg: rgba(2, 132, 199, 0.1);
+}
