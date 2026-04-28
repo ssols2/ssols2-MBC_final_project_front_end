@@ -15,15 +15,19 @@
 
         <div class="summary-bottom">
           <div class="summary-value-wrap">
-            <span class="summary-value-week">{{ Number(avg7DayUsage || 0).toLocaleString(undefined, {
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 2
-            }) }}</span>
+            <span class="summary-value-week">
+              {{ Number(displayAvg7DayUsage || 0).toLocaleString(undefined, {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2
+              }) }}
+            </span>
             <span class="summary-unit-week">kWh</span>
           </div>
 
           <div class="summary-change-wrap">
-            <span class="summary-change" :class="weekChangeClass">{{ weekChangeText }}</span>
+            <span class="summary-change" :class="weekChangeClass">
+              {{ weekChangeDisplayText }}
+            </span>
           </div>
         </div>
       </div>
@@ -38,15 +42,19 @@
 
         <div class="summary-bottom">
           <div class="summary-value-wrap">
-            <span class="summary-value-month">{{ Number(avg30DayUsage || 0).toLocaleString(undefined, {
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 2
-            }) }}</span>
+            <span class="summary-value-month">
+              {{ Number(displayAvg30DayUsage || 0).toLocaleString(undefined, {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2
+              }) }}
+            </span>
             <span class="summary-unit-month">kWh</span>
           </div>
 
           <div class="summary-change-wrap">
-            <span class="summary-change" :class="monthChangeClass">{{ monthChangeText }}</span>
+            <span class="summary-change" :class="monthChangeClass">
+              {{ monthChangeDisplayText }}
+            </span>
           </div>
         </div>
       </div>
@@ -77,11 +85,14 @@
         </div>
 
         <div class="bar-series">
-          <div v-for="(value, index) in bars" :key="index" class="bar-col">
+          <div v-for="(value, index) in animatedBars" :key="index" class="bar-col">
             <div
               class="bar"
-              :style="{ height: `${(value / maxBarAxisValue) * 100}%` }"
-              @mouseenter="showTooltip($event, labels[index], value)"
+              :style="{
+                height: `${(value / maxBarAxisValue) * 100}%`,
+                transitionDelay: `${index * 35}ms`
+              }"
+              @mouseenter="showTooltip($event, labels[index], bars[index])"
               @mousemove="moveTooltip($event)"
               @mouseleave="hideTooltip"
             ></div>
@@ -97,26 +108,31 @@
           </defs>
 
           <polygon
-            :points="`${linePoints} 100,100 0,100`"
+            v-if="lineVisible"
+            :points="`${animatedLinePoints} 100,100 0,100`"
             fill="url(#lineAreaGradient)"
           />
 
           <polyline
+            v-if="lineVisible"
+            ref="linePolylineRef"
+            class="animated-line"
             fill="none"
             stroke="#fbb900"
             stroke-width="0.2"
-            :points="linePoints"
+            :points="animatedLinePoints"
           />
         </svg>
         
-        <div class="line-point-layer">
+        <div v-if="lineVisible" class="line-point-layer">
           <div
-            v-for="(value, index) in line"
+            v-for="(value, index) in animatedLine"
             :key="`point-${index}`"
             class="line-point"
             :style="{
-              left: `${((index + 0.5) / line.length) * 100}%`,
-              top: `${100 - (Number(value || 0) / maxBarAxisValue) * 100}%`
+              left: `${((index + 0.5) / animatedLine.length) * 100}%`,
+              top: `${100 - (Number(value || 0) / maxBarAxisValue) * 100}%`,
+              transitionDelay: `${index * 35}ms`
             }"
           ></div>
         </div>
@@ -141,7 +157,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { getChargingSummary, getChargingLogs } from '@/api/evPredictive'
 
 const props = defineProps({
@@ -158,11 +174,22 @@ const props = defineProps({
 const labels = ref([])
 const bars = ref([])
 const line = ref([])
+const lineVisible = ref(false)
+
+const animatedBars = ref([])
+const animatedLine = ref([])
 
 const avg7DayUsage = ref(0)
 const avg30DayUsage = ref(0)
 const weekChange = ref(0)
 const monthChange = ref(0)
+
+const displayAvg7DayUsage = ref(0)
+const displayAvg30DayUsage = ref(0)
+const displayWeekChange = ref(0)
+const displayMonthChange = ref(0)
+
+const linePolylineRef = ref(null)
 
 const formatDate = (date) => {
   const year = date.getFullYear()
@@ -218,6 +245,16 @@ const formatChangeText = (value) => {
 const weekChangeText = computed(() => formatChangeText(weekChange.value))
 const monthChangeText = computed(() => formatChangeText(monthChange.value))
 
+const weekChangeDisplayText = computed(() => {
+  if (weekChange.value === 'NEW') return '신규'
+  return formatChangeText(displayWeekChange.value)
+})
+
+const monthChangeDisplayText = computed(() => {
+  if (monthChange.value === 'NEW') return '신규'
+  return formatChangeText(displayMonthChange.value)
+})
+
 const weekChangeClass = computed(() => {
   if (weekChange.value === 'NEW') return 'up'
   if (weekChange.value > 0) return 'up'
@@ -231,6 +268,228 @@ const monthChangeClass = computed(() => {
   if (monthChange.value < 0) return 'down'
   return 'same'
 })
+
+const tooltip = ref({
+  show: false,
+  x: 0,
+  y: 0,
+  label: '',
+  value: 0
+})
+
+const showTooltip = (event, label, value) => {
+  tooltip.value = {
+    show: true,
+    x: event.clientX + 12,
+    y: event.clientY - 12,
+    label,
+    value
+  }
+}
+
+const moveTooltip = (event) => {
+  tooltip.value = {
+    ...tooltip.value,
+    x: event.clientX + 12,
+    y: event.clientY - 12
+  }
+}
+
+const hideTooltip = () => {
+  tooltip.value.show = false
+}
+
+const maxBarAxisValue = computed(() => {
+  if (!bars.value.length) return 100
+
+  const max = Math.max(...bars.value, 0)
+
+  if (max <= 10) return 10
+  if (max <= 50) return 50
+  if (max <= 100) return 100
+  if (max <= 200) return 200
+  if (max <= 500) return 500
+
+  return Math.ceil(max / 100) * 100
+})
+
+const leftAxisTicks = computed(() => {
+  const max = maxBarAxisValue.value
+  return [max, max * 0.75, max * 0.5, max * 0.25, 0]
+})
+
+const rightAxisTicks = computed(() => {
+  const max = maxBarAxisValue.value
+  return [max, max * 0.8, max * 0.6, max * 0.4, max * 0.2, 0]
+})
+
+const linePoints = computed(() => {
+  if (!line.value.length) return ''
+
+  const max = Number(maxBarAxisValue.value || 1)
+  const count = line.value.length
+
+  return line.value
+    .map((value, index) => {
+      const x = ((index + 0.5) / count) * 100
+      const y = 100 - (Number(value || 0) / max) * 100
+      return `${x},${y}`
+    })
+    .join(' ')
+})
+
+const animatedLinePoints = computed(() => {
+  if (!animatedLine.value.length) return ''
+
+  const max = Number(maxBarAxisValue.value || 1)
+  const count = animatedLine.value.length
+
+  return animatedLine.value
+    .map((value, index) => {
+      const x = ((index + 0.5) / count) * 100
+      const y = 100 - (Number(value || 0) / max) * 100
+      return `${x},${y}`
+    })
+    .join(' ')
+})
+
+function animateValue({ from = 0, to = 0, duration = 900, onUpdate, onComplete }) {
+  const start = performance.now()
+  const startValue = Number(from || 0)
+  const endValue = Number(to || 0)
+
+  const step = (now) => {
+    const progress = Math.min((now - start) / duration, 1)
+    const eased = 1 - Math.pow(1 - progress, 3)
+    const current = startValue + (endValue - startValue) * eased
+
+    onUpdate(current)
+
+    if (progress < 1) {
+      requestAnimationFrame(step)
+    } else if (onComplete) {
+      onComplete()
+    }
+  }
+
+  requestAnimationFrame(step)
+}
+
+function animateBarsAndLine() {
+  const targetBars = [...bars.value]
+  const targetLine = [...line.value]
+
+  animatedBars.value = targetBars.map(() => 0)
+  animatedLine.value = [...targetLine]
+
+  const barAnimationDuration = 380
+  const barStaggerDelay = 16
+
+  return new Promise((resolve) => {
+    if (!targetBars.length) {
+      resolve()
+      return
+    }
+
+    const lastIndex = targetBars.length - 1
+
+    targetBars.forEach((target, index) => {
+      setTimeout(() => {
+        animateValue({
+          from: 0,
+          to: Number(target || 0),
+          duration: barAnimationDuration,
+          onUpdate: (value) => {
+            const next = [...animatedBars.value]
+            next[index] = value
+            animatedBars.value = next
+          },
+          onComplete: () => {
+            if (index === lastIndex) {
+              setTimeout(resolve, 20)
+            }
+          }
+        })
+      }, index * barStaggerDelay)
+    })
+  })
+}
+
+async function animateLineStroke() {
+  await nextTick()
+
+  const polyline = linePolylineRef.value
+  if (!polyline) return
+
+  const length = polyline.getTotalLength()
+
+  polyline.style.transition = 'none'
+  polyline.style.strokeDasharray = `${length}`
+  polyline.style.strokeDashoffset = `${length}`
+  polyline.getBoundingClientRect()
+
+  requestAnimationFrame(() => {
+    polyline.style.transition = 'stroke-dashoffset 0.45s ease'
+    polyline.style.strokeDashoffset = '0'
+  })
+}
+
+function animateSummaryNumbers() {
+  animateValue({
+    from: 0,
+    to: avg7DayUsage.value,
+    duration: 900,
+    onUpdate: (value) => {
+      displayAvg7DayUsage.value = value
+    }
+  })
+
+  animateValue({
+    from: 0,
+    to: avg30DayUsage.value,
+    duration: 1000,
+    onUpdate: (value) => {
+      displayAvg30DayUsage.value = value
+    }
+  })
+
+  if (weekChange.value === 'NEW') {
+    displayWeekChange.value = 0
+  } else {
+    animateValue({
+      from: 0,
+      to: Number(weekChange.value || 0),
+      duration: 850,
+      onUpdate: (value) => {
+        displayWeekChange.value = value
+      }
+    })
+  }
+
+  if (monthChange.value === 'NEW') {
+    displayMonthChange.value = 0
+  } else {
+    animateValue({
+      from: 0,
+      to: Number(monthChange.value || 0),
+      duration: 950,
+      onUpdate: (value) => {
+        displayMonthChange.value = value
+      }
+    })
+  }
+}
+
+async function runAnimations() {
+  lineVisible.value = false
+
+  await animateBarsAndLine()
+  animateSummaryNumbers()
+
+  lineVisible.value = true
+  await nextTick()
+  await animateLineStroke()
+}
 
 const fetchAverageUsage = async () => {
   try {
@@ -271,36 +530,6 @@ const fetchAverageUsage = async () => {
   }
 }
 
-const tooltip = ref({
-  show: false,
-  x: 0,
-  y: 0,
-  label: '',
-  value: 0
-})
-
-const showTooltip = (event, label, value) => {
-  tooltip.value = {
-    show: true,
-    x: event.clientX + 12,
-    y: event.clientY - 12,
-    label,
-    value
-  }
-}
-
-const moveTooltip = (event) => {
-  tooltip.value = {
-    ...tooltip.value,
-    x: event.clientX + 12,
-    y: event.clientY - 12
-  }
-}
-
-const hideTooltip = () => {
-  tooltip.value.show = false
-}
-
 const fetchChargingSummary = async () => {
   try {
     const data = await getChargingSummary(props.startDate, props.endDate)
@@ -316,55 +545,19 @@ const fetchChargingSummary = async () => {
   }
 }
 
-const linePoints = computed(() => {
-  if (!line.value.length) return ''
-
-  const max = Number(maxBarAxisValue.value || 1)
-  const count = line.value.length
-
-  return line.value
-    .map((value, index) => {
-      const x = ((index + 0.5) / count) * 100
-      const y = 100 - (Number(value || 0) / max) * 100
-      return `${x},${y}`
-    })
-    .join(' ')
-})
-
-const maxBarAxisValue = computed(() => {
-  if (!bars.value.length) return 100
-
-  const max = Math.max(...bars.value, 0)
-
-  if (max <= 10) return 10
-  if (max <= 50) return 50
-  if (max <= 100) return 100
-  if (max <= 200) return 200
-  if (max <= 500) return 500
-
-  return Math.ceil(max / 100) * 100
-})
-
-const leftAxisTicks = computed(() => {
-  const max = maxBarAxisValue.value
-  return [max, max * 0.75, max * 0.5, max * 0.25, 0]
-})
-
-const rightAxisTicks = computed(() => {
-  const max = maxBarAxisValue.value
-  return [max, max * 0.8, max * 0.6, max * 0.4, max * 0.2, 0]
-})
+const loadAll = async () => {
+  await Promise.all([fetchChargingSummary(), fetchAverageUsage()])
+  await runAnimations()
+}
 
 onMounted(() => {
-  fetchChargingSummary()
-  fetchAverageUsage()
+  loadAll()
 })
 
 watch(
   () => [props.startDate, props.endDate],
   () => {
-    fetchChargingSummary()
-    fetchAverageUsage()
+    loadAll()
   }
 )
 </script>
@@ -591,6 +784,7 @@ watch(
   position: relative;
   min-height: 290px;
   padding: 8px 0 28px;
+  isolation: isolate;
 }
 
 .grid-lines {
@@ -599,6 +793,7 @@ watch(
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  z-index: 0;
 }
 
 .grid-lines span {
@@ -614,6 +809,7 @@ watch(
   grid-template-columns: repeat(24, 1fr);
   align-items: end;
   gap: 4px;
+  z-index: 1;
 }
 
 .bar-col {
@@ -628,6 +824,14 @@ watch(
   max-width: 14px;
   background: linear-gradient(to top, #5ea7cf 0%, #a9ddf4 100%);
   cursor: pointer;
+  transition:
+    height 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.2s ease;
+  transform-origin: bottom;
+}
+
+.bar:hover {
+  transform: translateY(-2px);
 }
 
 .line-series {
@@ -636,6 +840,12 @@ watch(
   width: 100%;
   height: calc(100% - 36px);
   pointer-events: none;
+  z-index: 3;
+}
+
+.animated-line {
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .x-axis {
@@ -676,7 +886,7 @@ watch(
   text-align: center;
 }
 
-.kwh-font{
+.kwh-font {
   color: #fbb900;
   font-size: 14px;
   font-weight: 600;
@@ -698,6 +908,7 @@ watch(
   position: absolute;
   inset: 8px 0 28px 0;
   pointer-events: none;
+  z-index: 4;
 }
 
 .line-point {
@@ -707,5 +918,8 @@ watch(
   border-radius: 50%;
   background: #ffffff;
   transform: translate(-50%, -50%);
+  transition:
+    top 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.25s ease;
 }
 </style>

@@ -171,6 +171,11 @@ const normalizedInspectionStatus = computed(() => {
 })
 
 const normalizedAiStatus = computed(() => {
+  // shutdownDone이면 frozenAiStatus 우선 — 폴링이 NORMAL로 덮어도 무시
+  if (chargerDetail.value.shutdownDone) {
+    const frozen = chargerDetail.value.frozenAiStatus
+    if (frozen === 'RISK' || frozen === 'CHECK') return frozen
+  }
   return chargerDetail.value.aiStatus || 'NORMAL'
 })
 
@@ -185,7 +190,6 @@ const faultPercent = computed(() => {
 })
 
 const summaryStatusLabel = computed(() => {
-  if (chargerDetail.value.shutdownDone) return '전원 차단됨'
   if (normalizedAiStatus.value === 'RISK') return '긴급 점검 필요'
   if (normalizedAiStatus.value === 'CHECK') return '점검 필요'
   return '정상 운영'
@@ -196,10 +200,6 @@ const reasonText = computed(() => {
 })
 
 const actionGuideText = computed(() => {
-  if (chargerDetail.value.shutdownDone) {
-    return '강제 종료로 전원이 차단된 상태입니다'
-  }
-
   if (normalizedInspectionStatus.value === 'DONE') {
     return '시설팀 조치가 완료되었습니다'
   }

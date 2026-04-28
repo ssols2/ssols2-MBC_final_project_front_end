@@ -61,113 +61,8 @@
       </div>
     </div>
 
-    <div
-      v-if="hasAnyData"
-      class="chart-main"
-      @mouseleave="hoveredPoint = null"
-    >
-      <div class="y-axis-labels">
-        <span
-          v-for="tick in yTicks"
-          :key="`y-${tick.value}`"
-          class="y-label"
-          :style="{ bottom: `${tick.bottom}%` }"
-        >
-          {{ tick.label }}
-        </span>
-      </div>
-
-      <div class="grid-lines">
-        <span
-          v-for="tick in yTicks"
-          :key="`grid-${tick.value}`"
-          class="grid-line"
-          :style="{ bottom: `${tick.bottom}%` }"
-        ></span>
-      </div>
-
-      <div
-        v-if="hoveredPoint"
-        class="hover-guide"
-        :style="{ left: `${hoveredPoint.x}%` }"
-      ></div>
-
-      <svg
-        class="line-chart"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-      >
-        <defs>
-          <linearGradient id="temperatureAreaGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#ef4444" stop-opacity="0.35" />
-            <stop offset="100%" stop-color="#ef4444" stop-opacity="0" />
-          </linearGradient>
-
-          <linearGradient id="currentAreaGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#facc15" stop-opacity="0.35" />
-            <stop offset="100%" stop-color="#facc15" stop-opacity="0" />
-          </linearGradient>
-
-          <linearGradient id="voltageAreaGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#60a5fa" stop-opacity="0.35" />
-            <stop offset="100%" stop-color="#60a5fa" stop-opacity="0" />
-          </linearGradient>
-        </defs>
-
-        <template v-for="series in visibleSeries" :key="series.key">
-          <path
-            class="area-path"
-            :class="series.key"
-            :d="series.areaPath"
-          />
-          <path
-            class="line-path"
-            :class="series.key"
-            :d="series.linePath"
-            fill="none"
-            vector-effect="non-scaling-stroke"
-          />
-        </template>
-      </svg>
-
-      <div class="point-layer">
-        <template v-for="series in visibleSeries" :key="`${series.key}-points`">
-          <button
-            v-for="(point, index) in series.points"
-            :key="`${series.key}-${point.time}-${index}`"
-            type="button"
-            class="point-dot"
-            :class="[series.key, { active: isHovered(series.key, point.time) }]"
-            :style="{
-              left: `${point.x}%`,
-              bottom: `${point.y}%`
-            }"
-            @mouseenter="setHoveredPoint(series, point)"
-          ></button>
-        </template>
-      </div>
-
-      <div
-        v-if="hoveredPoint"
-        class="tooltip-box"
-        :class="tooltipAlignClass"
-        :style="tooltipStyle"
-      >
-        <div class="tooltip-time">{{ hoveredPoint.timeLabel }}</div>
-        <div class="tooltip-value" :class="hoveredPoint.key">
-          {{ hoveredPoint.label }} {{ hoveredPoint.valueLabel }}
-        </div>
-      </div>
-
-      <div class="x-axis-labels">
-        <div
-          v-for="(item, index) in baseMetricList"
-          :key="`${item.time}-${index}-label`"
-          class="x-label"
-        >
-          <span class="x-tick"></span>
-        </div>
-      </div>
+    <div v-if="hasAnyData" class="chart-main">
+      <div ref="chartRef" class="echart-box"></div>
     </div>
 
     <div v-else class="empty-box">
@@ -177,7 +72,8 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import * as echarts from 'echarts'
 
 const props = defineProps({
   metricData: {
@@ -195,7 +91,33 @@ const props = defineProps({
 })
 
 const activeTab = ref('temperature')
-const hoveredPoint = ref(null)
+const chartRef = ref(null)
+
+let chartInstance = null
+let resizeObserver = null
+
+const SERIES_META = {
+  temperature: {
+    label: '온도',
+    unit: '°C',
+    color: '#ff4d57',
+    glowColor: 'rgba(255, 77, 87, 0.45)'
+  },
+  current: {
+    label: '전류',
+    unit: 'A',
+    color: '#facc15',
+    glowColor: 'rgba(250, 204, 21, 0.42)'
+  },
+  voltage: {
+    label: '전압',
+    unit: 'V',
+    color: '#60a5fa',
+    glowColor: 'rgba(96, 165, 250, 0.44)'
+  }
+}
+
+const currentMeta = computed(() => SERIES_META[activeTab.value])
 
 const currentUnitLabel = computed(() => {
   if (activeTab.value === 'temperature') return '온도 (°C)'
@@ -237,6 +159,7 @@ function parseMetricTimeToDate(value) {
   const fullDateTimeMatch = text.match(
     /^(\d{4})-(\d{2})-(\d{2})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/
   )
+
   if (fullDateTimeMatch) {
     const year = Number(fullDateTimeMatch[1])
     const month = Number(fullDateTimeMatch[2]) - 1
@@ -302,209 +225,311 @@ const temperatureList = computed(() => filterByDate(props.metricData.temperature
 const currentList = computed(() => filterByDate(props.metricData.current || []))
 const voltageList = computed(() => filterByDate(props.metricData.voltage || []))
 
-const baseMetricList = computed(() => {
-  return activeTab.value === 'temperature'
-    ? temperatureList.value
-    : activeTab.value === 'current'
-      ? currentList.value
-      : voltageList.value
+const currentListByTab = computed(() => {
+  if (activeTab.value === 'temperature') return temperatureList.value
+  if (activeTab.value === 'current') return currentList.value
+  return voltageList.value
 })
 
-function buildSeriesStats(list) {
-  const values = list.map((item) => extractNumber(item.value))
+const chartSeriesData = computed(() => {
+  return currentListByTab.value
+    .map((item) => {
+      const date = parseMetricTimeToDate(item.time)
+      if (!date) return null
 
-  if (!values.length) {
-    return { min: 0, max: 100, range: 100 }
-  }
+      return {
+        rawTime: item.time,
+        time: date.getTime(),
+        value: extractNumber(item.value)
+      }
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.time - b.time)
+})
+
+const hasAnyData = computed(() => chartSeriesData.value.length > 0)
+
+const latestPoint = computed(() => {
+  if (!chartSeriesData.value.length) return null
+  return chartSeriesData.value[chartSeriesData.value.length - 1]
+})
+
+function calcAxisRange(dataMin, dataMax) {
+  const STEPS = 4 // 4구간 = 5라벨
+  const range = dataMax - dataMin || 1
+  const rawInterval = range / STEPS
+  const magnitude = Math.pow(10, Math.floor(Math.log10(rawInterval)))
+  const normalized = rawInterval / magnitude
+  const nice = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10
+  const interval = nice * magnitude
+  const niceMin = Math.floor(dataMin / interval) * interval
+  // max = niceMin + 정확히 STEPS개 구간 → 라벨 항상 5개, 균등 간격 보장
+  let niceMax = niceMin + interval * STEPS
+  if (niceMax < dataMax) niceMax = niceMin + interval * (STEPS + 1)
+  return { min: niceMin, max: niceMax, interval }
+}
+
+const currentAxisRange = computed(() => {
+  const values = chartSeriesData.value.map((item) => item.value)
+  if (!values.length) return { min: 0, max: 100, interval: 25 }
 
   const min = Math.min(...values)
   const max = Math.max(...values)
-  let range = max - min
+  const safeRange = max - min || 1
 
-  if (range === 0) range = 1
-
-  return { min, max, range }
-}
-
-const seriesStats = computed(() => ({
-  temperature: buildSeriesStats(temperatureList.value),
-  current: buildSeriesStats(currentList.value),
-  voltage: buildSeriesStats(voltageList.value)
-}))
-
-const currentAxisRange = computed(() => {
-  const stats = seriesStats.value[activeTab.value]
-
-  const min = Number(stats.min ?? 0)
-  const max = Number(stats.max ?? 0)
-  const range = Number(stats.range ?? 1)
-
-  const padding = range * 0.4 || 1
-
-  let axisMin = min - padding
-  let axisMax = max + padding
-
-  if (axisMin === axisMax) {
-    axisMin -= 1
-    axisMax += 1
+  let dataMin, dataMax
+  if (activeTab.value === 'voltage') {
+    const pad = Math.max(safeRange * 0.2, 0.2)
+    dataMin = min - pad
+    dataMax = max + pad
+  } else if (activeTab.value === 'current') {
+    dataMin = Math.max(0, min - Math.max(safeRange * 0.25, 0.3))
+    dataMax = max + Math.max(safeRange * 0.2, 0.3)
+  } else {
+    dataMin = Math.max(0, min - Math.max(safeRange * 0.2, 0.8))
+    dataMax = max + Math.max(safeRange * 0.15, 0.8)
   }
 
-  return {
-    min: axisMin,
-    max: axisMax,
-    range: axisMax - axisMin
-  }
+  return calcAxisRange(dataMin, dataMax)
 })
 
-const yTicks = computed(() => {
-  const axis = currentAxisRange.value
-  const step = axis.range / 4
+function getMarkPointData() {
+  if (!latestPoint.value) return []
 
-  return Array.from({ length: 5 }, (_, index) => {
-    const value = axis.min + step * index
-    return {
-      value,
-      label: Number(value.toFixed(1)),
-      bottom: (index / 4) * 100
+  return [
+    {
+      coord: [latestPoint.value.time, latestPoint.value.value],
+      value: latestPoint.value.value
     }
+  ]
+}
+
+function buildChartOption() {
+  const meta = currentMeta.value
+  const axisRange = currentAxisRange.value
+  const data = chartSeriesData.value.map((item) => [item.time, item.value, item.rawTime])
+
+  return {
+    backgroundColor: 'transparent',
+    animation: true,
+    animationDuration: 600,
+    animationEasing: 'cubicOut',
+    animationDurationUpdate: 400,
+    animationEasingUpdate: 'cubicOut',
+    grid: {
+      top: 20,
+      right: 10,
+      bottom: 4,
+      left: 8,
+      containLabel: true
+    },
+    tooltip: {
+      trigger: 'axis',
+      confine: true,
+      backgroundColor: 'rgba(7, 14, 28, 0.96)',
+      borderColor: meta.glowColor,
+      borderWidth: 1,
+      padding: [10, 12],
+      textStyle: { color: '#e5e7eb', fontSize: 12 },
+      extraCssText: 'box-shadow: 0 12px 28px rgba(0,0,0,0.34); border-radius: 10px;',
+      axisPointer: {
+        type: 'line',
+        snap: true,
+        lineStyle: { color: meta.glowColor, width: 1, type: 'dashed' }
+      },
+      formatter(params) {
+        const point = params?.find((item) => item.seriesName === meta.label) || params?.[0]
+        if (!point || !point.data) return ''
+        const rawTime = point.data[2]
+        const value = Number(point.data[1] ?? 0)
+        return `
+          <div style="font-size:10px;color:#94a3b8;margin-bottom:6px;">${formatTooltipTime(rawTime)}</div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="width:8px;height:8px;border-radius:50%;background:${meta.color};box-shadow:0 0 8px ${meta.glowColor};display:inline-block;"></span>
+            <span style="font-size:13px;font-weight:700;color:${meta.color};">${meta.label} ${value.toFixed(1)}${meta.unit}</span>
+          </div>`
+      }
+    },
+    xAxis: {
+      type: 'time',
+      boundaryGap: ['1%', '2%'],
+      axisLabel: { show: false },
+      axisTick: { show: false },
+      splitLine: { show: false },
+      axisLine: { lineStyle: { color: 'rgba(88, 107, 139, 0.25)' } }
+    },
+    yAxis: {
+      type: 'value',
+      min: axisRange.min,
+      max: axisRange.max,
+      interval: axisRange.interval,
+      axisLabel: {
+        color: '#64748b',
+        fontSize: 11,
+        margin: 8,
+        formatter(value) {
+          return Number(value).toFixed(1)
+        }
+      },
+      splitLine: {
+        show: true,
+        lineStyle: { color: 'rgba(255,255,255,0.05)', width: 1 }
+      },
+      axisTick: { show: false },
+      axisLine: { show: false }
+    },
+    series: [
+      {
+        name: `${meta.label}-glow`,
+        type: 'line',
+        data,
+        smooth: 0.3,
+        showSymbol: false,
+        silent: true,
+        z: 1,
+        clip: true,
+        lineStyle: {
+          width: 6,
+          color: meta.glowColor,
+          opacity: 0.15,
+          shadowBlur: 8,
+          shadowColor: meta.glowColor
+        },
+        areaStyle: { color: 'transparent' }
+      },
+      {
+        name: meta.label,
+        type: 'line',
+        data,
+        smooth: 0.3,
+        showSymbol: true,
+        symbol: 'circle',
+        symbolSize: 4,
+        z: 3,
+        clip: true,
+        sampling: 'lttb',
+        lineStyle: {
+          width: 2,
+          color: meta.color,
+          shadowBlur: 8,
+          shadowColor: meta.glowColor
+        },
+        itemStyle: {
+          color: meta.color,
+          borderColor: meta.color,
+          borderWidth: 1,
+          shadowBlur: 4,
+          shadowColor: meta.glowColor
+        },
+        emphasis: {
+          focus: 'series',
+          scale: 1.5,
+          itemStyle: {
+            color: '#ffffff',
+            borderColor: meta.color,
+            borderWidth: 2,
+            shadowBlur: 10,
+            shadowColor: meta.glowColor
+          },
+          lineStyle: { width: 2.5 }
+        },
+        markPoint: {
+          symbol: 'circle',
+          symbolSize: 9,
+          animation: false,
+          itemStyle: {
+            color: '#ffffff',
+            borderColor: meta.color,
+            borderWidth: 2,
+            shadowBlur: 12,
+            shadowColor: meta.glowColor
+          },
+          label: { show: false },
+          data: getMarkPointData()
+        }
+      }
+    ]
+  }
+}
+
+async function initChart() {
+  await nextTick()
+
+  if (!chartRef.value || chartInstance) return
+
+  chartInstance = echarts.init(chartRef.value)
+  chartInstance.setOption(buildChartOption(), true)
+}
+
+function updateChart() {
+  if (!chartInstance) return
+  chartInstance.setOption(buildChartOption(), true)
+  chartInstance.resize()
+}
+
+function handleResize() {
+  if (chartInstance) {
+    chartInstance.resize()
+  }
+}
+
+onMounted(async () => {
+  if (hasAnyData.value) {
+    await initChart()
+  }
+
+  resizeObserver = new ResizeObserver(() => {
+    handleResize()
   })
+
+  if (chartRef.value) {
+    resizeObserver.observe(chartRef.value)
+  }
+
+  window.addEventListener('resize', handleResize)
 })
 
-function normalizeValue(rawValue, key) {
-  const axis =
-    key === activeTab.value 
-      ? currentAxisRange.value
-      : currentAxisRange.value
-
-  return ((rawValue - axis.min) / axis.range) * 100
-}
-
-function buildSmoothPath(points) {
-  if (!points.length) return ''
-  if (points.length === 1) {
-    const p = points[0]
-    return `M ${p.x} ${100 - p.y}`
-  }
-
-  const first = points[0]
-  let d = `M ${first.x} ${100 - first.y}`
-
-  for (let i = 0; i < points.length - 1; i += 1) {
-    const current = points[i]
-    const next = points[i + 1]
-    const controlX = (current.x + next.x) / 2
-    d += ` C ${controlX} ${100 - current.y}, ${controlX} ${100 - next.y}, ${next.x} ${100 - next.y}`
-  }
-
-  return d
-}
-
-function buildSeries(list, key, label, suffix) {
-  if (!list.length) {
-    return {
-      key,
-      label,
-      suffix,
-      points: [],
-      linePath: '',
-      areaPath: ''
+watch(
+  hasAnyData,
+  async (value) => {
+    if (value) {
+      if (!chartInstance) {
+        await initChart()
+      } else {
+        updateChart()
+      }
+    } else if (chartInstance) {
+      chartInstance.clear()
     }
   }
+)
 
-  const parsedTimes = list.map((item) => parseMetricTimeToDate(item.time))
-  const validTimes = parsedTimes
-    .filter((date) => date instanceof Date && !Number.isNaN(date.getTime()))
-    .map((date) => date.getTime())
+watch(
+  [activeTab, chartSeriesData, currentAxisRange],
+  async () => {
+    if (!hasAnyData.value) return
 
-  const minTime = validTimes.length ? Math.min(...validTimes) : 0
-  const maxTime = validTimes.length ? Math.max(...validTimes) : 0
-  const timeRange = maxTime - minTime
-
-  const points = list.map((item, index) => {
-    const rawValue = extractNumber(item.value)
-    const parsedDate = parsedTimes[index]
-    const currentTime =
-      parsedDate instanceof Date && !Number.isNaN(parsedDate.getTime())
-        ? parsedDate.getTime()
-        : minTime
-
-    const x =
-      timeRange === 0
-        ? (list.length === 1 ? 50 : (index / Math.max(list.length - 1, 1)) * 100)
-        : ((currentTime - minTime) / timeRange) * 100
-
-    const y = normalizeValue(rawValue, key)
-
-    return {
-      time: item.time,
-      rawValue,
-      x: Number(x.toFixed(2)),
-      y: Number(y.toFixed(2))
+    if (!chartInstance) {
+      await initChart()
+      return
     }
-  })
 
-  const linePath = buildSmoothPath(points)
-  const areaPath = `${linePath} L ${points[points.length - 1].x} 100 L ${points[0].x} 100 Z`
+    updateChart()
+  },
+  { deep: true }
+)
 
-  return {
-    key,
-    label,
-    suffix,
-    points,
-    linePath,
-    areaPath
+onBeforeUnmount(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+    resizeObserver = null
   }
-}
 
-const seriesList = computed(() => [
-  buildSeries(temperatureList.value, 'temperature', '온도', '°C'),
-  buildSeries(currentList.value, 'current', '전류', 'A'),
-  buildSeries(voltageList.value, 'voltage', '전압', 'V')
-])
+  window.removeEventListener('resize', handleResize)
 
-const visibleSeries = computed(() => {
-  return seriesList.value.filter((series) => series.key === activeTab.value)
-})
-
-const hasAnyData = computed(() => visibleSeries.value.some((series) => series.points.length > 0))
-
-function setHoveredPoint(series, point) {
-  hoveredPoint.value = {
-    key: series.key,
-    label: series.label,
-    suffix: series.suffix,
-    time: point.time,
-    timeLabel: formatTooltipTime(point.time),
-    valueLabel: `${point.rawValue.toFixed(1)}${series.suffix}`,
-    x: point.x,
-    y: point.y
-  }
-}
-
-function isHovered(key, time) {
-  return hoveredPoint.value?.key === key && hoveredPoint.value?.time === time
-}
-
-const tooltipAlignClass = computed(() => {
-  if (!hoveredPoint.value) return 'center'
-  if (hoveredPoint.value.x >= 86) return 'right'
-  if (hoveredPoint.value.x <= 14) return 'left'
-  return 'center'
-})
-
-const tooltipStyle = computed(() => {
-  if (!hoveredPoint.value) return {}
-
-  let left = hoveredPoint.value.x
-  if (left < 4) left = 4
-  if (left > 96) left = 96
-
-  let bottom = hoveredPoint.value.y + 8
-  if (bottom > 92) bottom = 92
-
-  return {
-    left: `${left}%`,
-    bottom: `${bottom}%`
+  if (chartInstance) {
+    chartInstance.dispose()
+    chartInstance = null
   }
 })
 </script>
@@ -548,26 +573,26 @@ const tooltipStyle = computed(() => {
 
 .tab-button {
   min-width: 52px;
-  height: 30px;
+  height: 28px;
   padding: 0 14px;
-  border: 1px solid #35508a;
-  background: #111c3d;
-  color: #cbd5e1;
+  border: 1px solid #2a3a4e;
+  background: #1a2535;
+  color: #7a8fa6;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
   border-radius: 0;
 }
 
 .tab-button:first-child {
-  border-top-left-radius: 8px;
-  border-bottom-left-radius: 8px;
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
 }
 
 .tab-button:last-child {
-  border-top-right-radius: 8px;
-  border-bottom-right-radius: 8px;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
 }
 
 .tab-button + .tab-button {
@@ -575,11 +600,12 @@ const tooltipStyle = computed(() => {
 }
 
 .tab-button.active {
-  background: #2f80ed;
-  border-color: #2f80ed;
+  background: #1d4ed8;
+  border-color: #3b82f6;
   color: #ffffff;
   position: relative;
   z-index: 1;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
 }
 
 .metric-title-row {
@@ -592,7 +618,8 @@ const tooltipStyle = computed(() => {
 
 .metric-unit {
   font-size: 11px;
-  color: #cbd5e1;
+  color: #64748b;
+  letter-spacing: 0.3px;
 }
 
 .legend-row {
@@ -630,232 +657,33 @@ const tooltipStyle = computed(() => {
 }
 
 .legend-line.temperature {
-  background: #ef4444;
+  background: #ff4d57;
+  box-shadow: 0 0 8px rgba(255, 77, 87, 0.45);
 }
 
 .legend-line.current {
   background: #facc15;
+  box-shadow: 0 0 8px rgba(250, 204, 21, 0.42);
 }
 
 .legend-line.voltage {
   background: #60a5fa;
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.44);
 }
 
 .chart-main {
   position: relative;
   flex: 1 1 auto;
   min-width: 0;
-  min-height: 240px;
-  margin-left: 42px;
-  padding-bottom: 24px;
-  border-left: 1px solid rgba(107, 114, 128, 0.4);
-  border-bottom: 1px solid rgba(107, 114, 128, 0.4);
-  background:
-    linear-gradient(to bottom, rgba(15, 23, 42, 0.9), rgba(13, 19, 27, 1)),
-    #0d131b;
-  overflow: visible;
+  min-height: 280px;
+  overflow: hidden;
+  background: transparent;
 }
 
-.y-axis-labels {
-  position: absolute;
-  top: 0;
-  bottom: 24px;
-  left: -42px;
-  width: 42px;
-  z-index: 3;
-}
-
-.y-label {
-  position: absolute;
-  right: 8px;
-  transform: translateY(50%);
-  font-size: 11px;
-  color: #94a3b8;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.grid-lines {
-  position: absolute;
-  inset: 0 0 24px 0;
-  z-index: 0;
-}
-
-.grid-line {
-  position: absolute;
-  left: 0;
-  right: 0;
-  border-top: 1px solid rgba(71, 85, 105, 0.24);
-}
-
-.hover-guide {
-  position: absolute;
-  top: 0;
-  bottom: 24px;
-  width: 1px;
-  background: linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.02),
-    rgba(255, 255, 255, 0.25),
-    rgba(255, 255, 255, 0.02)
-  );
-  z-index: 1;
-  pointer-events: none;
-}
-
-.line-chart {
-  position: absolute;
-  inset: 0 0 24px 0;
+.echart-box {
   width: 100%;
-  height: calc(100% - 24px);
-  z-index: 2;
-  overflow: visible;
-}
-
-.area-path.temperature {
-  fill: url(#temperatureAreaGradient);
-}
-
-.area-path.current {
-  fill: url(#currentAreaGradient);
-}
-
-.area-path.voltage {
-  fill: url(#voltageAreaGradient);
-}
-
-.line-path {
-  stroke-width: 1.7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
-}
-
-.line-path.temperature {
-  stroke: #ef4444;
-}
-
-.line-path.current {
-  stroke: #facc15;
-}
-
-.line-path.voltage {
-  stroke: #60a5fa;
-}
-
-.point-layer {
-  position: absolute;
-  inset: 0 0 24px 0;
-  z-index: 3;
-  pointer-events: none;
-}
-
-.point-dot {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  margin-left: -4px;
-  margin-bottom: -4px;
-  border-radius: 50%;
-  border: 1px solid rgba(15, 23, 42, 0.95);
-  pointer-events: auto;
-  cursor: pointer;
-  padding: 0;
-  outline: none;
-}
-
-.point-dot.temperature {
-  background: #ef4444;
-}
-
-.point-dot.current {
-  background: #facc15;
-}
-
-.point-dot.voltage {
-  background: #60a5fa;
-}
-
-.point-dot.active {
-  width: 10px;
-  height: 10px;
-  margin-left: -5px;
-  margin-bottom: -5px;
-  background: #ffffff;
-}
-
-.tooltip-box {
-  position: absolute;
-  min-width: 108px;
-  max-width: 160px;
-  padding: 8px 10px;
-  border: 1px solid rgba(96, 165, 250, 0.35);
-  border-radius: 8px;
-  background: rgba(10, 18, 35, 0.96);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
-  pointer-events: none;
-  z-index: 6;
-}
-
-.tooltip-box.center {
-  transform: translate(-50%, -8px);
-}
-
-.tooltip-box.left {
-  transform: translate(0, -8px);
-}
-
-.tooltip-box.right {
-  transform: translate(-100%, -8px);
-}
-
-.tooltip-time {
-  font-size: 10px;
-  color: #94a3b8;
-  margin-bottom: 4px;
-  line-height: 1.2;
-}
-
-.tooltip-value {
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.tooltip-value.temperature {
-  color: #fca5a5;
-}
-
-.tooltip-value.current {
-  color: #fde68a;
-}
-
-.tooltip-value.voltage {
-  color: #93c5fd;
-}
-
-.x-axis-labels {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 24px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  pointer-events: none;
-}
-
-.x-label {
-  display: flex;
-  justify-content: flex-end;
-  flex: 1 1 0;
-}
-
-.x-tick {
-  width: 1px;
-  height: 5px;
-  background: rgba(107, 114, 128, 0.5);
+  height: 100%;
+  min-height: 280px;
 }
 
 .empty-box {

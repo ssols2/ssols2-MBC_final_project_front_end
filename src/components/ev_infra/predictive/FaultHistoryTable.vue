@@ -3,41 +3,50 @@
     <div class="history-header">
       <h3>기기별 상세 장애 이력 및 이벤트 관리</h3>
 
-      <div class="status-filters">
-        <button
-          type="button"
-          class="filter-btn all"
-          :class="{ active: selectedFilter === 'ALL' }"
-          @click="selectedFilter = 'ALL'"
-        >
-          전체({{ dateFilteredHistoryData.length }})
-        </button>
+      <div class="header-controls">
+        <!-- 기기 선택 -->
+        <select v-model="selectedChargerId" class="charger-select">
+          <option value="ALL">전체 기기</option>
+          <option v-for="id in chargerIdOptions" :key="id" :value="id">{{ id }}</option>
+        </select>
 
-        <button
-          type="button"
-          class="filter-btn check"
-          :class="{ active: selectedFilter === 'CHECK' }"
-          @click="selectedFilter = 'CHECK'"
-        >
-          <span class="filter-dot check"></span>
-          점검
-        </button>
+        <!-- 상태 필터 -->
+        <div class="status-filters">
+          <button
+            type="button"
+            class="filter-btn all"
+            :class="{ active: selectedFilter === 'ALL' }"
+            @click="selectedFilter = 'ALL'"
+          >
+            전체({{ faultOnlyData.length }})
+          </button>
 
-        <button
-          type="button"
-          class="filter-btn risk"
-          :class="{ active: selectedFilter === 'RISK' }"
-          @click="selectedFilter = 'RISK'"
-        >
-          <span class="filter-dot risk"></span>
-          위험
+          <button
+            type="button"
+            class="filter-btn check"
+            :class="{ active: selectedFilter === 'CHECK' }"
+            @click="selectedFilter = 'CHECK'"
+          >
+            <span class="filter-dot check"></span>
+            점검
+          </button>
+
+          <button
+            type="button"
+            class="filter-btn risk"
+            :class="{ active: selectedFilter === 'RISK' }"
+            @click="selectedFilter = 'RISK'"
+          >
+            <span class="filter-dot risk"></span>
+            위험
+          </button>
+        </div>
+
+        <button class="sort-button" type="button" @click="toggleSortOrder">
+          {{ sortOrderLabel }}
+          <span class="sort-arrows">↕</span>
         </button>
       </div>
-
-      <button class="sort-button" type="button" @click="toggleSortOrder">
-        {{ sortOrderLabel }}
-        <span class="sort-arrows">↕</span>
-      </button>
     </div>
 
     <div class="table-wrap">
@@ -83,11 +92,15 @@
                 <template v-if="item.inspectionStatus === 'DONE'">
                   <span class="action-done complete">조치완료</span>
                 </template>
-              
-                <template v-else-if="item.inspectionStatus === 'STATUS_UPDATED'">
+
+                <template v-else-if="item.inspectionStatus === 'STATUS_UPDATED' && hasNewerRecord(item)">
                   <span class="action-done status-updated">상태업데이트</span>
+                  <span
+                    v-if="item.shutdownDone || powerOffChargerIds.has(item.chargerId)"
+                    class="action-done shutdown-done"
+                  >전원꺼짐</span>
                 </template>
-              
+
                 <template v-else>
                   <template
                     v-if="
@@ -105,8 +118,8 @@
                   >
                     점검요청
                   </button>
-                
-                  <template v-if="item.shutdownDone">
+
+                  <template v-if="item.shutdownDone || powerOffChargerIds.has(item.chargerId)">
                     <span class="action-done shutdown-done">전원꺼짐</span>
                   </template>
                   <button
@@ -141,16 +154,18 @@
         ‹
       </button>
 
-      <button
-        v-for="page in totalPages"
-        :key="page"
-        type="button"
-        class="page-number"
-        :class="{ active: currentPage === page }"
-        @click="currentPage = page"
-      >
-        {{ page }}
-      </button>
+      <template v-for="p in visiblePages" :key="p">
+        <span v-if="p === '...'" class="page-ellipsis">…</span>
+        <button
+          v-else
+          type="button"
+          class="page-number"
+          :class="{ active: currentPage === p }"
+          @click="currentPage = p"
+        >
+          {{ p }}
+        </button>
+      </template>
 
       <button
         class="page-nav"
@@ -172,6 +187,14 @@ const props = defineProps({
     type: Array,
     required: true
   },
+  chargerList: {
+    type: Array,
+    default: () => []
+  },
+  activeChargerId: {
+    type: String,
+    default: 'ALL'
+  },
   startDate: {
     type: [String, Date, null],
     default: null
@@ -182,15 +205,62 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['inspection-request', 'force-shutdown'])
+const emit = defineEmits(['inspection-request', 'force-shutdown', 'charger-select'])
 
 const sortOrder = ref('desc')
 const selectedFilter = ref('ALL')
+const selectedChargerId = ref(props.activeChargerId || 'ALL')
 const currentPage = ref(1)
 const pageSize = 6
 
 const sortOrderLabel = computed(() => {
   return sortOrder.value === 'desc' ? '최신순' : '오래된순'
+})
+
+// chargerList 기준 powerOffDone 세트 — DB 업데이트 전에도 즉시 반영
+const powerOffChargerIds = computed(() => {
+  const set = new Set()
+  props.chargerList.forEach((c) => { if (c.powerOffDone) set.add(c.chargerId) })
+  return set
+})
+
+// 기기 ID 선택지 — chargerList 전체 기기 기준 (없으면 historyData fallback)
+const chargerIdOptions = computed(() => {
+  if (props.chargerList.length > 0) {
+    return props.chargerList.map((c) => c.chargerId).filter(Boolean).sort()
+  }
+  return [...new Set(props.historyData.map((item) => item.chargerId))].filter(Boolean).sort()
+})
+
+// inspectionStatus 우선순위: NONE/actionable > REQUESTED > IN_PROGRESS > STATUS_UPDATED > DONE
+function inspectionPriority(status) {
+  switch (status) {
+    case 'NONE': return 5
+    case 'REQUESTED': return 4
+    case 'IN_PROGRESS': return 3
+    case 'STATUS_UPDATED': return 2
+    case 'DONE': return 1
+    default: return 5
+  }
+}
+
+// chargerId+status 기준 중복 제거 — actionable 레코드 우선, 동순위면 최신
+const deduplicatedHistoryData = computed(() => {
+  const bestByKey = new Map()
+  for (const item of props.historyData) {
+    const key = `${item.chargerId}-${item.status}`
+    const existing = bestByKey.get(key)
+    if (!existing) {
+      bestByKey.set(key, item)
+    } else {
+      const ep = inspectionPriority(existing.inspectionStatus)
+      const np = inspectionPriority(item.inspectionStatus)
+      if (np > ep || (np === ep && new Date(item.occurredAt) >= new Date(existing.occurredAt))) {
+        bestByKey.set(key, item)
+      }
+    }
+  }
+  return [...bestByKey.values()]
 })
 
 function toDateOnly(value) {
@@ -205,10 +275,7 @@ function toDateOnly(value) {
   const fullMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})$/)
 
   if (fullMatch) {
-    const year = Number(fullMatch[1])
-    const month = Number(fullMatch[2]) - 1
-    const day = Number(fullMatch[3])
-    return new Date(year, month, day)
+    return new Date(Number(fullMatch[1]), Number(fullMatch[2]) - 1, Number(fullMatch[3]))
   }
 
   const parsed = new Date(text)
@@ -228,95 +295,165 @@ function parseOccurredAtToDate(value) {
     /^(\d{4})-(\d{2})-(\d{2})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/
   )
   if (fullDateTimeMatch) {
-    const year = Number(fullDateTimeMatch[1])
-    const month = Number(fullDateTimeMatch[2]) - 1
-    const day = Number(fullDateTimeMatch[3])
-    const hour = Number(fullDateTimeMatch[4] || 0)
-    const minute = Number(fullDateTimeMatch[5] || 0)
-    const second = Number(fullDateTimeMatch[6] || 0)
-
-    return new Date(year, month, day, hour, minute, second)
+    return new Date(
+      Number(fullDateTimeMatch[1]),
+      Number(fullDateTimeMatch[2]) - 1,
+      Number(fullDateTimeMatch[3]),
+      Number(fullDateTimeMatch[4] || 0),
+      Number(fullDateTimeMatch[5] || 0),
+      Number(fullDateTimeMatch[6] || 0)
+    )
   }
 
   const parsed = new Date(text)
-  if (!Number.isNaN(parsed.getTime())) {
-    return parsed
-  }
+  if (!Number.isNaN(parsed.getTime())) return parsed
 
   return null
 }
 
+// 미처리 이슈(RISK/CHECK/FAULT이고 완료 안된 것)는 날짜 필터 무시 — 항상 표시
 const dateFilteredHistoryData = computed(() => {
   const start = toDateOnly(props.startDate)
   const end = toDateOnly(props.endDate)
 
-  if (!start || !end) {
-    return props.historyData
-  }
+  return deduplicatedHistoryData.value.filter((item) => {
+    const isActiveFault =
+      (item.status === 'RISK' || item.status === 'CHECK' || item.status === 'FAULT') &&
+      item.inspectionStatus !== 'DONE'
+    if (isActiveFault) return true
 
-  const startTime = start.getTime()
-  const endTime = end.getTime()
+    if (!start || !end) return true
 
-  return props.historyData.filter((item) => {
     const occurredAt = parseOccurredAtToDate(item.occurredAt)
     if (!occurredAt) return false
 
-    const occurredDateOnly = new Date(
-      occurredAt.getFullYear(),
-      occurredAt.getMonth(),
-      occurredAt.getDate()
-    )
-
-    const itemTime = occurredDateOnly.getTime()
-    return itemTime >= startTime && itemTime <= endTime
+    const d = new Date(occurredAt.getFullYear(), occurredAt.getMonth(), occurredAt.getDate())
+    return d.getTime() >= start.getTime() && d.getTime() <= end.getTime()
   })
 })
 
-const filteredHistoryData = computed(() => {
-  const faultOnlyData = dateFilteredHistoryData.value.filter(
-    (item) => item.status === 'CHECK' || item.status === 'RISK'
+// 기기 필터 적용
+const chargerFilteredData = computed(() => {
+  if (selectedChargerId.value === 'ALL') return dateFilteredHistoryData.value
+  return dateFilteredHistoryData.value.filter(
+    (item) => item.chargerId === selectedChargerId.value
   )
+})
 
-  if (selectedFilter.value === 'ALL') {
-    return faultOnlyData
+// 이력 기반 CHECK/FAULT/RISK 레코드
+const faultOnlyFromHistory = computed(() =>
+  chargerFilteredData.value.filter(
+    (item) => item.status === 'CHECK' || item.status === 'FAULT' || item.status === 'RISK' || item.shutdownDone
+  )
+)
+
+// chargerList 기준 현재 RISK/CHECK 상태인데 미처리 이슈 로그가 없는 기기를 합성 행으로 보완
+// → issue_log에 실시간 반영이 늦거나 200건 밖으로 밀렸을 때 현재 상태를 반드시 표시
+const syntheticRows = computed(() => {
+  const targets =
+    selectedChargerId.value === 'ALL'
+      ? props.chargerList
+      : props.chargerList.filter((c) => c.chargerId === selectedChargerId.value)
+
+  const rows = []
+  for (const charger of targets) {
+    const cs = charger.chargerStatus
+    const las = charger.aiStatus
+    const isRisk = cs === 'RISK' || las === 'RISK'
+    const isCheck = cs === 'CHECK' || cs === 'FAULT' || las === 'CHECK'
+    if (!isRisk && !isCheck) continue
+
+    // 해당 기기에 이미 미처리 이슈 로그가 있으면 합성 불필요
+    const hasActiveLog = faultOnlyFromHistory.value.some(
+      (item) =>
+        item.chargerId === charger.chargerId &&
+        item.inspectionStatus !== 'DONE'
+    )
+    if (hasActiveLog) continue
+
+    rows.push({
+      id: `__live__${charger.chargerId}`,
+      occurredAt: new Date().toISOString(),
+      chargerId: charger.chargerId,
+      location: '',
+      status: isRisk ? 'RISK' : 'CHECK',
+      detail: charger.mainReason || (isRisk ? '위험 상태 감지' : '점검 필요'),
+      mainReason: charger.mainReason || '',
+      message: '',
+      faultProb7d: charger.faultProb7d ?? 0,
+      inspectionStatus: 'NONE',
+      shutdownDone: charger.powerOffDone ?? false,
+      completedBy: null
+    })
   }
+  return rows
+})
 
-  return faultOnlyData.filter((item) => item.status === selectedFilter.value)
+// 합성 행(상단) + 이력 행(하단)
+const faultOnlyData = computed(() => [
+  ...syntheticRows.value,
+  ...faultOnlyFromHistory.value
+])
+
+const filteredHistoryData = computed(() => {
+  if (selectedFilter.value === 'ALL') return faultOnlyData.value
+  if (selectedFilter.value === 'CHECK')
+    return faultOnlyData.value.filter(
+      (item) => item.status === 'CHECK' || item.status === 'FAULT'
+    )
+  return faultOnlyData.value.filter((item) => item.status === selectedFilter.value)
 })
 
 const sortedHistoryData = computed(() => {
   return [...filteredHistoryData.value].sort((a, b) => {
-    const timeA = new Date(a.occurredAt).getTime()
-    const timeB = new Date(b.occurredAt).getTime()
-
-    if (sortOrder.value === 'desc') {
-      return timeB - timeA
-    }
-
-    return timeA - timeB
+    const timeA = parseOccurredAtToDate(a.occurredAt)?.getTime() ?? 0
+    const timeB = parseOccurredAtToDate(b.occurredAt)?.getTime() ?? 0
+    return sortOrder.value === 'desc' ? timeB - timeA : timeA - timeB
   })
 })
 
-const totalPages = computed(() => {
-  return Math.max(1, Math.ceil(sortedHistoryData.value.length / pageSize))
-})
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(sortedHistoryData.value.length / pageSize))
+)
 
 const pagedHistoryData = computed(() => {
   const start = (currentPage.value - 1) * pageSize
-  const end = start + pageSize
-  return sortedHistoryData.value.slice(start, end)
+  return sortedHistoryData.value.slice(start, start + pageSize)
 })
 
-watch([selectedFilter, sortOrder, () => props.startDate, () => props.endDate], () => {
-  currentPage.value = 1
+// 윈도우 페이지네이션 — 최대 7개 항목 표시, 초과 시 ... 처리
+const visiblePages = computed(() => {
+  const total = totalPages.value
+  const cur = currentPage.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+
+  if (cur <= 4) return [1, 2, 3, 4, 5, '...', total]
+  if (cur >= total - 3) return [1, '...', total - 4, total - 3, total - 2, total - 1, total]
+  return [1, '...', cur - 1, cur, cur + 1, '...', total]
 })
+
+// 부모(ChargerStatusStats 클릭)에서 기기가 바뀌면 셀렉트도 동기화
+watch(
+  () => props.activeChargerId,
+  (val) => {
+    selectedChargerId.value = val || 'ALL'
+  }
+)
+
+watch(selectedChargerId, (val) => {
+  currentPage.value = 1
+  emit('charger-select', val)
+})
+
+watch(
+  [selectedFilter, sortOrder, () => props.startDate, () => props.endDate],
+  () => { currentPage.value = 1 }
+)
 
 watch(
   () => sortedHistoryData.value.length,
   () => {
-    if (currentPage.value > totalPages.value) {
-      currentPage.value = totalPages.value
-    }
+    if (currentPage.value > totalPages.value) currentPage.value = totalPages.value
   }
 )
 
@@ -324,26 +461,28 @@ const toggleSortOrder = () => {
   sortOrder.value = sortOrder.value === 'desc' ? 'asc' : 'desc'
 }
 
-const goPrevPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value -= 1
-  }
-}
+const goPrevPage = () => { if (currentPage.value > 1) currentPage.value -= 1 }
+const goNextPage = () => { if (currentPage.value < totalPages.value) currentPage.value += 1 }
 
-const goNextPage = () => {
-  if (currentPage.value < totalPages.value) {
-    currentPage.value += 1
-  }
+// 더 새로운 레코드가 존재할 때만 STATUS_UPDATED 표시
+const hasNewerRecord = (item) => {
+  if (item.inspectionStatus !== 'STATUS_UPDATED') return false
+  return props.historyData.some(
+    (other) =>
+      other.chargerId === item.chargerId &&
+      String(other.id) !== String(item.id) &&
+      new Date(other.occurredAt) > new Date(item.occurredAt)
+  )
 }
 
 const getStatusLabel = (status) => {
-  if (status === 'CHECK') return '점검'
+  if (status === 'CHECK' || status === 'FAULT') return '점검'
   if (status === 'RISK') return '위험'
   return status
 }
 
 const getStatusClass = (status) => {
-  if (status === 'CHECK') return 'check'
+  if (status === 'CHECK' || status === 'FAULT') return 'check'
   if (status === 'RISK') return 'risk'
   return ''
 }
@@ -352,38 +491,33 @@ const showStatusDot = (item) => {
   if (item.status === 'NORMAL') return false
   if (item.inspectionStatus === 'DONE') return false
   if (
-    (item.inspectionStatus === 'REQUESTED' ||
-      item.inspectionStatus === 'IN_PROGRESS') &&
+    (item.inspectionStatus === 'REQUESTED' || item.inspectionStatus === 'IN_PROGRESS') &&
     item.shutdownDone
   ) return false
   return true
 }
 
 const rowClass = (item) => {
-  if (item.status === 'RISK' && item.inspectionStatus !== 'DONE') return 'row-risk'
+  if (
+    item.status === 'RISK' &&
+    item.inspectionStatus !== 'DONE' &&
+    item.inspectionStatus !== 'STATUS_UPDATED'
+  ) return 'row-risk'
   return ''
 }
 
-const handleInspection = (item) => {
-  emit('inspection-request', item)
-}
-
-const handleShutdown = (item) => {
-  emit('force-shutdown', item)
-}
+const handleInspection = (item) => emit('inspection-request', item)
+const handleShutdown = (item) => emit('force-shutdown', item)
 
 const formatOccurredAt = (value) => {
   if (!value) return '-'
-
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
-
   const yyyy = date.getFullYear()
   const mm = String(date.getMonth() + 1).padStart(2, '0')
   const dd = String(date.getDate()).padStart(2, '0')
   const hh = String(date.getHours()).padStart(2, '0')
   const mi = String(date.getMinutes()).padStart(2, '0')
-
   return `${yyyy}-${mm}-${dd} ${hh}:${mi}`
 }
 </script>
@@ -397,9 +531,9 @@ const formatOccurredAt = (value) => {
 .history-header {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 16px;
+  gap: 12px;
   margin-bottom: 14px;
+  flex-wrap: wrap;
 }
 
 .history-header h3 {
@@ -408,6 +542,7 @@ const formatOccurredAt = (value) => {
   font-weight: 700;
   color: #ffffff;
   letter-spacing: -0.2px;
+  white-space: nowrap;
 }
 
 .header-controls {
@@ -415,6 +550,25 @@ const formatOccurredAt = (value) => {
   align-items: center;
   gap: 12px;
   margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.charger-select {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid #3a4a5a;
+  border-radius: 6px;
+  background: #1e2a36;
+  color: #d6dde5;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  min-width: 110px;
+}
+
+.charger-select:focus {
+  border-color: #78c8ff;
 }
 
 .status-filters {
@@ -456,16 +610,10 @@ const formatOccurredAt = (value) => {
   display: inline-block;
 }
 
-.filter-dot.check {
-  background: #ffcc00;
-}
-
-.filter-dot.risk {
-  background: #ff2b2b;
-}
+.filter-dot.check { background: #ffcc00; }
+.filter-dot.risk  { background: #ff2b2b; }
 
 .sort-button {
-  margin-left: auto;
   border: none;
   background: transparent;
   color: #ffffff;
@@ -476,6 +624,7 @@ const formatOccurredAt = (value) => {
   align-items: center;
   gap: 4px;
   padding: 0;
+  white-space: nowrap;
 }
 
 .sort-arrows {
@@ -484,7 +633,7 @@ const formatOccurredAt = (value) => {
 }
 
 .table-wrap {
-  height: calc(100% - 80px);
+  height: calc(100% - 90px);
   overflow-x: auto;
   overflow-y: auto;
 }
@@ -533,33 +682,14 @@ const formatOccurredAt = (value) => {
   border-radius: 50%;
 }
 
-.status-text.check {
-  color: #ffcc00;
-}
+.status-text.check  { color: #ffcc00; }
+.status-text.risk   { color: #ff2b2b; }
+.status-dot.check   { background: #ffcc00; }
+.status-dot.risk    { background: #ff2b2b; }
 
-.status-text.risk {
-  color: #ff2b2b;
-}
-
-.status-dot.check {
-  background: #ffcc00;
-}
-
-.status-dot.risk {
-  background: #ff2b2b;
-}
-
-.detail-cell {
-  font-weight: 600;
-}
-
-.detail-cell.check {
-  color: #d3b100;
-}
-
-.detail-cell.risk {
-  color: #ff2b2b;
-}
+.detail-cell { font-weight: 600; }
+.detail-cell.check { color: #d3b100; }
+.detail-cell.risk  { color: #ff2b2b; }
 
 .action-buttons {
   display: flex;
@@ -588,70 +718,75 @@ const formatOccurredAt = (value) => {
   background: transparent;
 }
 
-.action-btn.inspection {
-  border: 1px solid #d3a600;
-  color: #d3a600;
-}
+.action-btn.inspection { border: 1px solid #d3a600; color: #d3a600; }
+.action-btn.shutdown   { border: 1px solid #ff2b2b; color: #ff2b2b; }
 
-.action-btn.shutdown {
-  border: 1px solid #ff2b2b;
-  color: #ff2b2b;
-}
-
-.action-done.inspection-done {
-  color: #d3a600;
-}
-
-.action-done.shutdown-done {
-  color: #ff6a6a;
-}
-
-.action-done.complete {
-  color: #d9e1ea;
-}
+.action-done.inspection-done { color: #d3a600; }
+.action-done.shutdown-done   { color: #ff6a6a; }
+.action-done.complete        { color: #d9e1ea; }
+.action-done.status-updated  { color: #94a3b8; }
 
 .empty-row {
   padding: 26px 12px !important;
   color: #94a3b8 !important;
 }
 
+/* 페이지네이션 */
 .pagination {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
-  margin-top: 16px;
+  gap: 4px;
+  margin-top: 12px;
 }
 
-.page-nav,
-.page-number {
+.page-nav {
   border: none;
   background: transparent;
-  color: #6b7c8f;
-  font-size: 18px;
-  font-weight: 600;
-  cursor: pointer;
-  min-width: auto;
-  height: auto;
-  padding: 0;
-  margin-top: -40px;
-}
-
-.page-number {
-  font-size: 18px;
-}
-
-.page-number.active {
-  color: #ffffff;
-}
-
-.page-nav:not(:disabled) {
   color: #59bfff;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 6px;
+  line-height: 1;
 }
 
 .page-nav:disabled {
-  opacity: 0.35;
+  opacity: 0.3;
   cursor: not-allowed;
+}
+
+.page-number {
+  border: 1px solid transparent;
+  background: transparent;
+  color: #6b7c8f;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-number:hover {
+  background: #1e2a36;
+  color: #d6dde5;
+}
+
+.page-number.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.page-ellipsis {
+  color: #6b7c8f;
+  font-size: 14px;
+  padding: 0 2px;
+  user-select: none;
 }
 
 @media (max-width: 1024px) {
@@ -659,14 +794,8 @@ const formatOccurredAt = (value) => {
     flex-direction: column;
     align-items: flex-start;
   }
-
   .header-controls {
     width: 100%;
-    justify-content: space-between;
   }
-}
-
-.action-done.status-updated {
-  color: #94a3b8;
 }
 </style>
