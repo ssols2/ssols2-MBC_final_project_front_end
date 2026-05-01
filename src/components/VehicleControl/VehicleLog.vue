@@ -356,6 +356,24 @@ import axios from 'axios'
 
 const backendUrl = 'http://localhost:8080'
 
+// 임소리: 주소창의 쿼리를 읽기 위해 추가
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+
+// 임소리 추가
+watch(() => route.query.search, (newSearch) => {
+    if (newSearch) {
+        searchQuery.value = newSearch
+        executeSearch()
+    } else {
+        // 주소창에서 검색어가 빠지면 검색 모드 해제하고 기본 화면으로 복귀
+        searchActive.value = false
+        searchQuery.value = ''
+        renderCharts()
+    }
+})
+
 // ── 국가 ─────────────────────────────────────────────
 const FLAG_MAP = { KOR: 'https://flagcdn.com/w40/kr.png', CHN: 'https://flagcdn.com/w40/cn.png', BRA: 'https://flagcdn.com/w40/br.png', EUR: 'https://flagcdn.com/w40/eu.png', IND: 'https://flagcdn.com/w40/in.png' }
 const COUNTRY_NAMES = { KOR: '대한민국', CHN: '중국', BRA: '브라질', EUR: '유럽', IND: '인도' }
@@ -552,6 +570,14 @@ const fetchLogs = async () => {
         currentPage.value = 1
         await nextTick()
         if (!searchActive.value) renderCharts()
+
+        // 임소리 추가: 목록을 다 불러온 직후, 주소창에 검색어가 있으면 바로 검색 실행
+        if (route.query.search) {
+            searchQuery.value = route.query.search
+            executeSearch()
+        } else if (!searchActive.value) {
+            renderCharts()
+        }
     } catch (e) { console.error('로그 조회 실패:', e) }
     finally { loading.value = false }
 }

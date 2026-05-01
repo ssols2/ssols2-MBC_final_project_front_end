@@ -1,378 +1,548 @@
 <template>
-  <div class="management-wrapper">
-    <header class="view-header">
-      <h3 class="view-title">시스템 및 계정 관리</h3>
-      <p class="view-desc">관리자 권한 제어 및 시스템 환경 변수를 설정합니다</p>
+  <div class="management-container">
+    <header class="mgmt-header">
+      <div class="header-left">
+        <h2 class="page-title">시스템 관리</h2>
+        <p class="page-subtitle">
+          {{ isAuthorizedManager ? '관리자 권한 제어 및 시스템 환경을 설정합니다' : '내 계정 정보 및 개인 환경 설정을 관리합니다' }}
+        </p>
+      </div>
     </header>
 
-    <div class="management-content">
-      <section class="mgmt-card">
-        <div class="card-header">
-          <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            <path d="M12 8v4m0 4h.01" />
-          </svg>
-          <h4>관리자 권한 및 계정 관리</h4>
-        </div>
+    <div class="mgmt-main-layout">
 
-        <div class="admin-list">
-          <div class="admin-row" v-for="admin in adminList" :key="admin.empNumber">
-            <div class="admin-info">
-              <span class="admin-id">사번: {{ admin.empnumber }}</span>
-              <span class="admin-name">{{ admin.adminname }} {{ admin.rank }} ({{ admin.deptname }})</span>
+      <div class="side-column">
+        <!-- 프로필 카드 -->
+        <div class="glass-card profile-section flex-grow-2">
+          <h3 class="card-title">프로필</h3>
+          <div class="profile-layout-vertical">
+            <div class="avatar-container">
+              <div class="avatar-circle-large">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              </div>
             </div>
-            <div class="admin-actions">
-              <span class="role-badge">Super Admin</span>
-
-              <button class="action-btn" :class="admin.status === '재직' ? 'revoke-btn' : 'grant-btn'"
-                @click="toggleAdminStatus(admin)" :disabled="!isAuthorizedManager">
-                {{ admin.status === '재직' ? '권한 해제' : '권한 부여' }}
-              </button>
+            <div class="profile-details-expanded">
+              <div class="detail-item"><span class="label">이름</span><span class="val">{{ loginUser?.name ||
+                loginUser?.adminname }}</span></div>
+              <div class="detail-item"><span class="label">부서</span><span class="val">{{ loginUser?.deptName ||
+                loginUser?.deptname }}</span></div>
+              <div class="detail-item"><span class="label">사원번호</span><span class="val">{{ loginUser?.emp_number ||
+                loginUser?.empnumber }}</span></div>
+              <div class="detail-item"><span class="label">직위</span><span class="val">{{ loginUser?.rank }}</span></div>
+              <!-- 마이페이지 새 창 연동 -->
+              <button class="mypage-btn-large" @click="goToMyPage">마이페이지</button>
             </div>
           </div>
         </div>
-      </section>
 
-      <section class="mgmt-card">
-        <div class="card-header">
-          <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3" />
-            <path
-              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-          </svg>
-          <h4>시스템 환경 설정</h4>
-        </div>
-
-        <div class="env-body">
-          <div class="env-item">
-            <div class="env-info">
-              <span class="env-label">시스템 테마 모드 (현재: {{ currentTheme }})</span>
-              <span class="env-sub">다크 / 라이트 모드 중 하나를 선택합니다</span>
+        <!-- 시스템 설정 및 로그아웃 -->
+        <div class="glass-card settings-compact-section">
+          <h3 class="card-title">시스템 설정</h3>
+          <div class="settings-list-compact">
+            <div class="setting-row-mini">
+              <div class="s-info-mini">
+                <span class="s-label-mini">화면 모드</span>
+              </div>
+              <button class="mini-action-btn" @click="toggleTheme">{{ currentTheme }}</button>
             </div>
-            <button class="mode-switch-btn" @click="toggleTheme">테마 전환</button>
+
+            <!-- 세션 시간: 팀장은 컨트롤 셀렉트, 일반 직원은 텍스트 노출 -->
+            <div class="setting-row-mini">
+              <div class="s-info-mini">
+                <span class="s-label-mini">세션 시간</span>
+              </div>
+              <div v-if="isAuthorizedManager" class="s-control-mini">
+                <select class="mini-select" v-model="timeoutValue">
+                  <option value="15">15분</option>
+                  <option value="30">30분</option>
+                  <option value="60">60분</option>
+                </select>
+                <button class="mini-save-btn" @click="saveSettings">저장</button>
+              </div>
+              <div v-else class="s-control-mini">
+                <span style="font-size: 13px; color: #a1a1aa;">{{ timeoutValue }}분 (자동 로그아웃)</span>
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <button class="logout-btn-full" @click="handleLogout">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                class="logout-icon">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+              시스템 로그아웃
+            </button>
           </div>
+        </div>
+      </div>
 
-          <div class="env-item">
-            <div class="env-info">
-              <span class="env-label">비활동 자동 로그아웃</span>
-              <span class="env-sub">미사용 시 보안을 위해 자동으로 세션을 종료합니다</span>
-            </div>
-            <div style="display: flex; gap: 10px; align-items: center;">
-              <select class="timeout-select" v-model="timeoutValue" :disabled="!isAuthorizedManager">
-                <option value="10">10분</option>
-                <option value="30">30분</option>
-                <option value="60">60분</option>
+      <!-- 관리자 목록 -->
+      <div class="main-column">
+        <div class="glass-card list-card-full">
+          <div class="card-header-flex">
+            <h3 class="card-title">시스템 관리자 목록</h3>
+            <div class="header-tools">
+              <select class="glass-select-mini" v-model="selectedDept">
+                <option v-for="dept in uniqueDepts" :key="dept" :value="dept">{{ dept }}</option>
               </select>
-              <button class="action-btn grant-btn" @click="saveSystemSettings" :disabled="!isAuthorizedManager">
-                설정 저장
-              </button>
+              <span class="count-badge">Total: {{ filteredAdminList.length }}</span>
             </div>
           </div>
+
+          <div class="table-container scrollable-area">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>사원번호</th>
+                  <th>성함</th>
+                  <th>직위</th>
+                  <th>부서</th>
+                  <th>상태</th>
+                  <!-- 팀장일 때만 권한 제어 테이블 헤더 노출 -->
+                  <th v-if="isAuthorizedManager">권한 제어</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="filteredAdminList.length === 0">
+                  <!-- 컬럼 수 동적 변화에 대응하기 위해 colspan 조절 -->
+                  <td :colspan="isAuthorizedManager ? 6 : 5" style="text-align: center; color: #a1a1aa; padding: 30px;">
+                    해당 부서의 데이터가 없습니다
+                  </td>
+                </tr>
+                <tr v-for="admin in filteredAdminList" :key="admin.empnumber || admin.empNumber">
+                  <td class="emp-id-text">{{ admin.empnumber || admin.empNumber }}</td>
+                  <td>{{ admin.adminname || admin.adminName }}</td>
+                  <td>{{ admin.rank }}</td>
+                  <td>{{ admin.deptname || admin.deptName }}</td>
+                  <td>
+                    <span class="dot-indicator" :class="{ 'active': admin.status === '재직' }"></span>
+                    {{ admin.status }}
+                  </td>
+                  <!-- 팀장일 때만 액션 버튼 컬럼 노출 -->
+                  <td v-if="isAuthorizedManager" class="btn-cell">
+                    <button class="status-btn" :class="admin.status === '재직' ? 'revoke' : 'grant'"
+                      @click="toggleAdminStatus(admin)">
+                      {{ admin.status === '재직' ? '해제' : '부여' }}
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-      </section>
+      </div>
+
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import axios from 'axios'
+import { useRouter } from 'vue-router'
 
-// ── [1] 상태 변수 정의 ──
+const router = useRouter()
 const adminList = ref([])
-const currentUser = ref({ deptName: '', rank: '' })
-const currentTheme = ref('다크')
-const timeoutValue = ref('30')
+const loginUser = ref(null)
+const currentTheme = ref(localStorage.getItem('theme') === 'light' ? 'Light' : 'Dark')
+const timeoutValue = ref(localStorage.getItem('sessionTimeout') || '30')
+const selectedDept = ref('전체')
 
-// ── [2] 실제 로그인 유저 정보 연동 ──
-const fetchCurrentUser = () => {
-  // 로그인 시 sessionStorage나 localStorage에 저장해둔 유저 정보를 가져옴
-  // 예: sessionStorage.setItem('loginUser', JSON.stringify({ deptName: '주차관리팀', rank: '팀장', ... }))
-  const storedUser = sessionStorage.getItem('loginUser')
-  
-  if (storedUser) {
-    currentUser.value = JSON.parse(storedUser)
-  } else {
-    console.warn('로그인된 사용자 정보가 없습니다')
-  }
+let sessionTimer = null
+
+const fetchCurrentUser = async () => {
+  try {
+    const res = await axios.get('http://localhost:8080/admin/my-info', { withCredentials: true });
+    if (res.data) loginUser.value = res.data;
+  } catch (error) { console.error('Auth Error', error); }
 }
 
-// ── [3] 권한 검사 로직 (주차팀 & 팀장) ──
 const isAuthorizedManager = computed(() => {
-  return currentUser.value.deptName?.includes('주차') && currentUser.value.rank === '팀장'
+  const user = loginUser.value;
+  if (!user) return false;
+  const dept = user.deptName || user.deptname || '';
+  return dept.includes('주차') && user.rank === '팀장';
 })
 
-// ── [4] 관리자 목록 로드 API ──
 const fetchAdmins = async () => {
   try {
-    const res = await axios.get('http://localhost:8080/admin/dashboard-admins')
+    const res = await axios.get('http://localhost:8080/admin/dashboard-admins', { withCredentials: true })
     adminList.value = res.data
-  } catch (e) {
-    console.error('관리자 목록 로드 실패', e)
-  }
+  } catch (e) { console.error('List Error', e) }
 }
 
-// ── [5] 관리자 권한 상태 변경 API ──
+const uniqueDepts = computed(() => {
+  const depts = new Set(adminList.value.map(a => a.deptname || a.deptName))
+  return ['전체', ...Array.from(depts)]
+})
+
+const filteredAdminList = computed(() => {
+  if (selectedDept.value === '전체') return adminList.value
+  return adminList.value.filter(a => (a.deptname || a.deptName) === selectedDept.value)
+})
+
 const toggleAdminStatus = async (admin) => {
-  if (!isAuthorizedManager.value) {
-    alert('권한 관리는 주차팀 팀장만 가능합니다')
-    return
-  }
-
   const isRevoke = admin.status === '재직'
-  const actionText = isRevoke ? '권한을 해제' : '권한을 부여'
-  
-  if (!confirm(`정말 ${admin.adminname}님의 ${actionText}하시겠습니까?`)) {
-    return
-  }
-
-  try {
-    const newStatus = isRevoke ? '권한해제' : '재직'
-    await axios.put('http://localhost:8080/admin/update-status', {
-      empNumber: admin.empnumber,
-      status: newStatus
-    })
-
-    admin.status = newStatus
-    alert(`정상적으로 ${actionText}되었습니다`)
-  } catch (e) {
-    console.error('상태 변경 실패', e)
-    alert('권한 변경에 실패했습니다')
+  const newStatus = isRevoke ? '권한해제' : '재직'
+  const targetEmp = admin.empnumber || admin.empNumber
+  if (confirm('권한 상태를 변경하시겠습니까?')) {
+    try {
+      const res = await axios.put('http://localhost:8080/admin/update-status',
+        { empNumber: targetEmp, status: newStatus }, { withCredentials: true }
+      );
+      if (res.data === 'success') { admin.status = newStatus; alert('처리 완료'); }
+    } catch (e) { alert('오류 발생'); }
   }
 }
 
-// ── [6] 테마 전환 로직 (개인 설정) ──
+const handleLogout = () => {
+  if (confirm('시스템에서 로그아웃 하시겠습니까?')) {
+    sessionStorage.clear()
+    router.push('/admin/login')
+  }
+}
+
 const toggleTheme = () => {
-  currentTheme.value = currentTheme.value === '다크' ? '라이트' : '다크'
-  // 실제 CSS 변수나 body 클래스를 변경하는 로직
-  document.body.setAttribute('data-theme', currentTheme.value === '다크' ? 'dark' : 'light')
+  const newTheme = currentTheme.value === 'Dark' ? 'Light' : 'Dark'
+  currentTheme.value = newTheme
+  const themeValue = newTheme === 'Light' ? 'light' : 'dark'
+  localStorage.setItem('theme', themeValue)
+  if (themeValue === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light')
+  } else {
+    document.documentElement.removeAttribute('data-theme')
+  }
+  window.dispatchEvent(new Event('storage'))
 }
 
-// ── [7] 시스템 환경 설정 저장 로직 (전역 설정) ──
-const saveSystemSettings = async () => {
-  if (!isAuthorizedManager.value) {
-    alert('시스템 환경 설정은 주차관리팀 팀장만 수정할 수 있습니다')
-    return
-  }
-
-  try {
-    // 나중에 자바 백엔드에 세션 타임아웃 값을 업데이트하는 API 연동 공간
-    // await axios.post('http://localhost:8080/admin/update-settings', { timeout: timeoutValue.value })
-    alert(`비활동 자동 로그아웃 시간이 ${timeoutValue.value}분으로 저장되었습니다`)
-  } catch (e) {
-    console.error('설정 저장 실패', e)
-  }
+const goToMyPage = () => {
+  window.open('/mypage', '_blank')
 }
 
-// ── [8] 마운트 시 실행 ──
-onMounted(() => {
-  fetchCurrentUser()
-  fetchAdmins()
+const startSessionTimer = (minutes) => {
+  if (sessionTimer) clearTimeout(sessionTimer)
+  const ms = minutes * 60 * 1000
+  sessionTimer = setTimeout(() => {
+    alert('보안을 위해 세션이 만료되어 자동 로그아웃됩니다.')
+    sessionStorage.clear()
+    router.push('/admin/login')
+  }, ms)
+}
+
+const saveSettings = () => {
+  localStorage.setItem('sessionTimeout', timeoutValue.value)
+  startSessionTimer(Number(timeoutValue.value))
+  alert(`세션 시간이 ${timeoutValue.value}분으로 적용되어 타이머가 재시작되었습니다`)
+}
+
+onMounted(async () => {
+  await fetchCurrentUser()
+  await fetchAdmins()
+  startSessionTimer(Number(timeoutValue.value))
+})
+
+onUnmounted(() => {
+  if (sessionTimer) clearTimeout(sessionTimer)
 })
 </script>
 
 <style scoped>
-.management-wrapper {
-  padding: 30px;
-  background: #09090b;
-  min-height: 100%;
+.management-container {
+  padding: 0;
+  color: #fff;
+  height: calc(100vh - 105px);
   display: flex;
   flex-direction: column;
-  gap: 30px;
 }
 
-.view-header {
-  border-left: 4px solid #82c2e3;
-  padding-left: 15px;
+.mgmt-header {
+  margin-bottom: 15px;
+  flex-shrink: 0;
 }
 
-.view-title {
-  font-size: 24px;
+.page-title {
+  font-size: 26px;
   font-weight: 700;
-  color: #fff;
-  margin: 0 0 8px 0;
+  margin: 0;
 }
 
-.view-desc {
-  font-size: 14px;
+.page-subtitle {
   color: #a1a1aa;
-  margin: 0;
+  font-size: 13px;
 }
 
-.management-content {
+/* 🪄 레이아웃 통합: 권한 상관없이 동일한 그리드 적용 */
+.mgmt-main-layout {
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 24px;
+  grid-template-columns: 320px 1fr;
+  gap: 15px;
+  flex: 1;
+  min-height: 0;
 }
 
-.mgmt-card {
-  background: #1e1e2d;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
-  padding: 24px;
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-.card-icon {
-  width: 22px;
-  height: 22px;
-  color: #82c2e3;
-}
-
-.card-header h4 {
-  font-size: 18px;
-  color: #f4f4f5;
-  margin: 0;
-}
-
-.admin-list {
+.side-column {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 15px;
+  min-height: 0;
 }
 
-.admin-row {
-  background: #12121c;
-  padding: 16px;
-  border-radius: 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.admin-info {
+.profile-layout-vertical {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.admin-id {
-  font-size: 12px;
-  color: #82c2e3;
-  font-family: monospace;
-}
-
-.admin-name {
-  font-size: 15px;
-  color: #fff;
-}
-
-.admin-actions {
-  display: flex;
   align-items: center;
   gap: 20px;
+  padding: 10px 0;
 }
 
-.role-badge {
-  background: rgba(130, 194, 227, 0.1);
-  color: #82c2e3;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.status-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: #71717a;
-}
-
-.env-body {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.env-item {
+.detail-item {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding-bottom: 20px;
+  padding-bottom: 8px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.env-info {
+.main-column {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  min-height: 0;
 }
 
-.env-label {
-  font-size: 15px;
+.glass-card {
+  background: rgba(68, 77, 86, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.avatar-circle-large {
+  width: 140px;
+  height: 140px;
+  background: #31363f;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #82c2e3;
+  border: 2px solid rgba(130, 194, 227, 0.2);
+}
+
+.profile-details-expanded {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-item .label {
+  color: #a1a1aa;
+  font-size: 13px;
+}
+
+.detail-item .val {
   color: #fff;
   font-weight: 600;
+  font-size: 15px;
 }
 
-.env-sub {
+.mypage-btn-large {
+  margin-top: auto;
+  background: #fbb900;
+  border: none;
+  border-radius: 6px;
+  padding: 12px;
+  font-weight: 700;
+  color: #1a1d21;
+  cursor: pointer;
+  width: 100%;
+}
+
+.settings-compact-section {
+  flex: 1;
+  justify-content: space-between;
+}
+
+.settings-list-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.setting-row-mini {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.s-label-mini {
+  font-size: 14px;
+  font-weight: 500;
+  color: #e5edf8;
+}
+
+.mini-action-btn,
+.mini-save-btn {
+  background: rgba(130, 194, 227, 0.1);
+  border: 1px solid #82c2e3;
+  color: #82c2e3;
+  padding: 5px 12px;
+  border-radius: 4px;
   font-size: 12px;
-  color: #71717a;
+  cursor: pointer;
 }
 
-.timeout-select {
-  background: #12121c;
+.mini-select {
+  background: #1a1d21;
   border: 1px solid #3f3f46;
   color: #fff;
-  padding: 8px 12px;
-  border-radius: 8px;
-  outline: none;
+  font-size: 12px;
+  padding: 4px;
+  border-radius: 4px;
 }
 
-.mode-switch-btn {
-  background: #3f3f46;
+.divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 10px 0;
+}
+
+.logout-btn-full {
+  width: 100%;
+  background: rgba(255, 82, 82, 0.1);
+  border: 1px solid #ff5252;
+  color: #ff5252;
+  padding: 10px;
+  border-radius: 6px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.list-card-full {
+  height: 100%;
+  flex: 1;
+}
+
+.scrollable-area {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 5px;
+  margin-top: 10px;
+}
+
+.scrollable-area::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollable-area::-webkit-scrollbar-thumb {
+  background: #4a5568;
+  border-radius: 10px;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-table th {
+  position: sticky;
+  top: 0;
+  background: #252a30;
+  padding: 12px;
+  text-align: left;
+  font-size: 13px;
+  color: #a1a1aa;
+  z-index: 2;
+}
+
+.admin-table td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  font-size: 14px;
+}
+
+.emp-id-text {
+  color: #82c2e3;
+  font-weight: 500;
+}
+
+.dot-indicator {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #444;
+  margin-right: 5px;
+}
+
+.dot-indicator.active {
+  background: #4caf50;
+  box-shadow: 0 0 6px #4caf50;
+}
+
+.status-btn {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: #fff;
+}
+
+.status-btn.revoke {
+  color: #ff5252;
+  border-color: rgba(255, 82, 82, 0.2);
+}
+
+.del-row-btn {
+  background: #ff5252;
   color: #fff;
   border: none;
-  padding: 8px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 13px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  margin-left: 4px;
 }
 
-/* 권한 버튼 스타일 지정 */
-.action-btn {
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-size: 13px;
+.card-title {
+  font-size: 18px;
   font-weight: 600;
-  cursor: pointer;
-  border: none;
-  transition: all 0.2s;
-}
-
-/* 권한 해제 (위험행동 - 붉은색) */
-.revoke-btn {
-  background: rgba(255, 77, 79, 0.1);
-  color: #ff4d4f;
-  border: 1px solid rgba(255, 77, 79, 0.3);
-}
-.revoke-btn:hover:not(:disabled) {
-  background: rgba(255, 77, 79, 0.2);
-}
-
-/* 권한 부여 (안전행동 - 푸른색) */
-.grant-btn {
-  background: rgba(130, 194, 227, 0.1);
   color: #82c2e3;
-  border: 1px solid rgba(130, 194, 227, 0.3);
-}
-.grant-btn:hover:not(:disabled) {
-  background: rgba(130, 194, 227, 0.2);
+  margin: 0 0 15px 0;
 }
 
-/* 비활성화 상태 (권한 없는 사람) */
-.action-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-  background: transparent;
-  border: 1px solid #d4d4d4;
-  color: #d4d4d4;
+.card-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.glass-select-mini {
+  background: #1a1d21;
+  border: 1px solid #3f3f46;
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.count-badge {
+  font-size: 11px;
+  color: #82c2e3;
+  background: rgba(130, 194, 227, 0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
 }
 </style>

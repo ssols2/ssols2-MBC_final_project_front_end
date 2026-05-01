@@ -598,10 +598,6 @@
               </div>
             </div>
 
-            <!-- <div class="receipt-footer">
-              <qrcode-vue :value="generateReceiptLink(selectedReceipt.approval_number)" :size="80" level="M" />
-              <p>QR을 스캔하여 모바일에서 확인하세요</p>
-            </div> -->
           </div>
           <div class="modal-btns mt-20">
             <button @click="showReceiptModal = false" class="btn-modal-cancel" style="width: 100%;">닫기</button>
@@ -610,33 +606,33 @@
       </div>
 
     </main>
-  </div>
 
-  <!--[공통 모달] 보안 비밀번호 재확인 모달-->
-  <div v-if="isAuthModalOpen" class="modal-overlay">
-    <div class="modal-card auth-modal">
-      <h3>보안을 위해 비밀번호를 입력해 주세요</h3>
-      <div class="pw-field-box mb-25">
-        <input v-model="authPw" :type="showAuthPw ? 'text' : 'password'" class="auth-pw-input"
-          @keyup.enter="verifyAccess" />
-        <div class="pw-eye-icon" @click="showAuthPw = !showAuthPw">
-          <svg v-if="showAuthPw" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-            <circle cx="12" cy="12" r="3"></circle>
-          </svg>
-          <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path
-              d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24">
-            </path>
-            <line x1="1" y1="1" x2="23" y2="23"></line>
-          </svg>
+    <!--[공통 모달] 보안 비밀번호 재확인 모달-->
+    <div v-if="isAuthModalOpen" class="modal-overlay">
+      <div class="modal-card auth-modal">
+        <h3>보안을 위해 비밀번호를 입력해 주세요</h3>
+        <div class="pw-field-box mb-25">
+          <input v-model="authPw" :type="showAuthPw ? 'text' : 'password'" class="auth-pw-input"
+            @keyup.enter="verifyAccess" />
+          <div class="pw-eye-icon" @click="showAuthPw = !showAuthPw">
+            <svg v-if="showAuthPw" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24">
+              </path>
+              <line x1="1" y1="1" x2="23" y2="23"></line>
+            </svg>
+          </div>
         </div>
-      </div>
-      <div class="modal-btns">
-        <button @click="verifyAccess" class="btn-modal-confirm">확인</button>
-        <button @click="cancelAccess" class="btn-modal-cancel">취소</button>
+        <div class="modal-btns">
+          <button @click="verifyAccess" class="btn-modal-confirm">확인</button>
+          <button @click="cancelAccess" class="btn-modal-cancel">취소</button>
+        </div>
       </div>
     </div>
   </div>
@@ -657,7 +653,7 @@ import { getAdminInfoReq } from '@/api/customer.js';
 // 최종 프로젝트: 결제 수단 관리 api 연결 추가
 import { addPaymentReq, getPaymentReq, setDefaultPaymentReq, delPaymentReq } from '@/api/payment/method.js'
 // 최종 프로젝트: 결제 내역 api 연결 추가
-import { getMyReceiptsReq, getReceiptDetailReq } from '@/api/payment/receipt.js'
+import { getMyReceiptsReq } from '@/api/payment/receipt.js'
 
 import MemberDash from '@/components/mypage/MemberDash.vue'
 import DoctorDash from '@/components/mypage/DoctorDash.vue'
@@ -1068,23 +1064,11 @@ const fetchMyReceipts = async () => {
 }
 
 // [추가] 상세 영수증 모달 열기
-const openReceiptDetail = async (receipt) => {
-  try {
-    const res = await getReceiptDetailReq(receipt.approval_number)
-
-    selectedReceipt.value = res.data
-    showReceiptModal.value = true
-  } catch (err) {
-    console.error("상세 영수증 조회 에러:", err)
-    alert("영수증 상세 정보를 불러올 수 없습니다.")
-  }
+const openReceiptDetail = (receipt) => {
+  selectedReceipt.value = receipt // 클릭한 행의 데이터를 그대로 넣기
+  showReceiptModal.value = true // 영수증 모달 열기
 }
 
-// const generateReceiptLink = (id) => {
-//   const host = "192.168.137.178"
-//   const port = window.location.port || "5173"
-//   return `http://${host}:${port}/receipt/${id}`
-// }
 
 const formatDateTime = (dateStr) => {
   if (!dateStr) return '-'
@@ -1592,7 +1576,7 @@ onMounted(async () => {
 .hospital-tbl th {
   background-color: #f8f9fa;
   padding: 30px;
-  text-align: left;
+  text-align: center;
   font-weight: 600;
   color: #555;
   border-bottom: 2px solid #eee;
@@ -1604,6 +1588,8 @@ onMounted(async () => {
   border-bottom: 1px solid #f0f0f0;
   color: #444;
   font-size: 18px;
+  text-align: center;
+  vertical-align: middle;
 }
 
 .bold-blue {
@@ -1936,6 +1922,13 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
   padding: 15px;
   border: none;
   font-size: 18px;
+  cursor: pointer;
+}
+
+.btn-modal-cancel:hover {
+  flex: 1;
+  background: #dfdfdf;
+  color: #333;
 }
 
 .modal-card .input-section {
@@ -1987,5 +1980,91 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
   font-size: 20px;
   margin-top: 30px;
   text-align: center;
+}
+
+/* ====================================
+   결제 내역 (영수증) 모달 디자인
+======================================= */
+.receipt-detail-modal {
+  background: #f8f9fa;
+  padding: 30px !important;
+  border-radius: 12px;
+}
+
+.receipt-paper {
+  background: #fff;
+  padding: 30px 25px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.receipt-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.receipt-header h4 {
+  font-size: 28px;
+  font-weight: 800;
+  color: #333;
+  margin: 0 0 5px 0;
+}
+
+.receipt-header p {
+  font-size: 20px;
+  color: #888;
+  margin: 0;
+}
+
+.dash-line {
+  border: none;
+  border-top: 2px dashed #ddd;
+  margin: 20px 0;
+}
+
+/* 라벨(좌)과 값(우)을 가로로 예쁘게 찢어주는 핵심 마법 */
+.receipt-body .r-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 18px;
+}
+
+.receipt-body .r-row span {
+  color: #666;
+  font-weight: 600;
+}
+
+.receipt-body .r-row p {
+  margin: 0;
+  color: #333;
+  font-weight: 700;
+  text-align: right;
+}
+
+/* 합계 금액 강조 */
+.receipt-body .r-row.total-amount {
+  margin-top: 10px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+}
+
+.receipt-body .r-row.total-amount span {
+  font-size: 18px;
+  color: #005baa;
+  font-weight: 800;
+}
+
+.receipt-body .r-row.total-amount p {
+  font-size: 24px;
+  color: #005baa;
+  font-weight: 800;
+}
+
+/* 할인 금액은 포인트 컬러로 */
+.receipt-body .r-row.discount-txt span,
+.receipt-body .r-row.discount-txt p {
+  color: #dc3545; 
 }
 </style>

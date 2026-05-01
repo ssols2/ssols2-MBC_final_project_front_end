@@ -315,6 +315,11 @@ const handleLogin = async () => {
             loginData.adminDeptName = adminExtraRes.data.deptName; // "홍보팀" 등 진짜 이름
             loginData.isWonmu = adminExtraRes.data.isWonmu;      // true/false
             loginData.isPr = adminExtraRes.data.isPr;            // true/false
+
+            loginData.emp_number = adminExtraRes.data.emp_number || res.data.emp_number;
+            
+            // [최종 프로젝트 추가]
+            loginData.isAdminVerified = false;
           }
         } catch (e) {
           console.error("행정 상세 정보 로드 실패", e);
@@ -333,7 +338,16 @@ const handleLogin = async () => {
     if (saveId.value) cookies.set("userId", user.value.id, '7d');
     else cookies.remove("userId");
 
-    router.push(route.query.redirect || "/");
+    // [최종 프로젝트 수정]
+    const redirectUrl = route.query.redirect;
+
+    if (redirectUrl && redirectUrl.startsWith('/dashboard')) {
+      // 원래 목적지가 대시보드 쪽이면, 무조건 2차 인증 화면을 먼저 거치게 만듦
+      router.push({ path: '/dashboard/admin-login', query: { redirect: redirectUrl } });
+    } else {
+      // 목적지가 대시보드가 아니거나 꼬리표가 없으면 원래대로 이동
+      router.push(redirectUrl || "/");
+    }
 
   } catch (err) {
     console.error(err);
@@ -510,6 +524,7 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
   width: 240px;
   height: 44px;
   background-color: #f0f2f5;
+  border: 1px solid #cccccc;
   border-radius: 22px;
   padding: 4px;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
@@ -727,7 +742,8 @@ input:focus {
   width: 100%;
   padding: 12px 0;
   border: none;
-  border-bottom: 1px solid #ddd; /* 메인창과 동일 */
+  border-bottom: 1px solid #ddd;
+  /* 메인창과 동일 */
   margin-bottom: 20px;
   background: transparent;
   font-size: 16px;
@@ -743,7 +759,8 @@ input:focus {
 .btn-m-find {
   width: 100%;
   padding: 16px;
-  background: #005baa; /* 메인 버튼 컬러와 통일 */
+  background: #005baa;
+  /* 메인 버튼 컬러와 통일 */
   color: #fff;
   border: none;
   font-size: 18px;
@@ -761,7 +778,8 @@ input:focus {
   border: none;
   font-size: 14px;
   cursor: pointer;
-  text-decoration: underline; /* 닫기 버튼은 링크 느낌으로 */
+  text-decoration: underline;
+  /* 닫기 버튼은 링크 느낌으로 */
 }
 
 /* 아이디 결과 박스 */

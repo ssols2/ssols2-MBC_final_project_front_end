@@ -53,7 +53,10 @@
                 <div v-if="upcomingResList.length > 0">
                     <div class="res-highlight main-res">
                         <span class="d-day">D-{{ calculateDday(upcomingRes.reservation_date) }}</span>
-                        <p class="res-time-txt">{{ formatDate(upcomingRes.reservation_time) }}</p>
+                        <p class="res-time-txt">
+                            {{ formatDate(upcomingRes.reservation_date) }}
+                            {{ String(upcomingRes.reservation_time || '').substring(0, 5) }}
+                        </p>
                         <p class="res-doc-txt">{{ upcomingRes.med_dept_name }} | {{ upcomingRes.doctor_name }} 의사</p>
                     </div>
 
@@ -242,7 +245,8 @@
                         <tr v-for="res in filteredMyReservations" :key="res.reservation_id">
                             <td class="bold-blue">{{ res.med_dept_name }}</td>
                             <td class="bold-blue">{{ res.doctor_name }}</td>
-                            <td>{{ formatDate(res.reservation_date) }} {{ res.reservation_time }}</td>
+                            <td>{{ formatDate(upcomingRes.reservation_date) }}
+                            {{ String(upcomingRes.reservation_time || '').substring(0, 5) }}</td>
                             <td><span :class="['status-badge',
                                 res.reservation_status === '예약' ? 'active' :
                                     res.reservation_status === '완료' ? 'done' :
@@ -655,7 +659,7 @@ onMounted(() => {
 .hospital-tbl th {
     background-color: #f8f9fa;
     padding: 30px;
-    text-align: left;
+    text-align: center;
     font-weight: 600;
     color: #555;
     border-bottom: 2px solid #eee;
@@ -668,6 +672,7 @@ onMounted(() => {
     color: #444;
     font-size: 18px;
     vertical-align: middle;
+    text-align: center;
 }
 
 .bold-blue {

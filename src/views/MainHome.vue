@@ -152,7 +152,7 @@ const goToLocation = () => router.push('/location')
 .footer-inner.wide-footer {
   max-width: 1800px; /* 공주님이 말씀하신 1800px 규격 고수 */
   margin: 0 auto;
-  padding: 0 50px;   /* 1번과 동일한 좌우 여백 */
+  padding: 0 60px;
   text-align: left;
 }
 

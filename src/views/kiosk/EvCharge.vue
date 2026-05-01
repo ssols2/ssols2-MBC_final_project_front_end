@@ -604,16 +604,20 @@ const chargers = ref([])
 
 // 고장/점검/위험 상태 판별기
 const isChargerBroken = (id) => {
-    const target = chargers.value.find(c => c.evChargerId === id);
-    if (!target) return false;
-    return target.chargerStatus === 'POWER_OFF' || target.aiStatus === 'RISK' || target.aiStatus === 'CHECK';
+    // c.evChargerId -> c.id 로, chargerStatus -> status 로 이름표 일치시킴
+    const target = chargers.value.find(c => c.id === id)
+    if (!target) return false
+    return target.status === 'POWER_OFF' || target.aiStatus === 'RISK' || target.aiStatus === 'CHECK'
 }
 
 // 대기화면 <select>에서 기기 변경 시 실행되는 함수
 const checkChargerStatus = () => {
     if (isChargerBroken(selectedChargerId.value)) {
         viewMode.value = 'error'; // 고장이면 에러 화면으로 이동
-    } 
+    } else if (viewMode.value === 'error') {
+        // 정상 기기를 선택하면 다시 대기 화면으로
+        viewMode.value = 'idle'  
+    }
 }
 
 // 실시간 동기화를 위한 타이머 변수
@@ -910,27 +914,41 @@ const startCharging = async () => {
 // ==========================================
 // 7. 충전 중지 및 API 연동 (파이썬 /stop 호출)
 // ==========================================
+// 매개변수의 기본값 -> FORCE_STOPPED로 설정 (아무것도 안 넘어오면 이게 들어감)
 const stopCharging = async (status = 'FORCE_STOPPED') => {
+    
+    // 게이지 상승 중지
+    // 만약 충전 타이머(게이지 올리는 setInterval)가 돌고 있다면 화면 멈춤
     if (chargingTimer) clearInterval(chargingTimer)
 
-    const ratio = status === 'COMPLETED' ? 1 : chargingProgress.value / 100
+    // 타입 검사
+    // status가 string이면 -> 그대로, 마우스 클릭 이벤트 같은 이상한 객체면 'FORCE_STOPPED'로 덮어씌움
+    const finalStatus = (typeof status === 'string') ? status : 'FORCE_STOPPED';
+
+    // 100% 완료면 1(전액), 중간 종료면 현재 게이지(%)를 100으로 나눈 비율을 구함
+    const ratio = finalStatus === 'COMPLETED' ? 1 : chargingProgress.value / 100
+    
+    // 비율을 적용하여 최종 충전량(kWh)과 최종 요금(원)을 역산함
     finalChargedKwh.value = expectedKwh.value * ratio
-    finalAmount.value = Math.floor(inputAmount.value * ratio)
+    finalAmount.value = Math.floor(inputAmount.value * ratio) // 요금은 소수점 버림 처리
 
     try {
+        // 파이썬 서버로 보낼 데이터
         const stopRequestData = {
             ev_log_id: currentEvLogId.value,
-            actual_kwh: parseFloat(finalChargedKwh.value.toFixed(2)),
+            actual_kwh: parseFloat(finalChargedKwh.value.toFixed(2)), // 소수점 2자리까지만
             final_fee: finalAmount.value,
-            charging_status: status
+            charging_status: finalStatus
         }
 
         await stopEvChargeReq(stopRequestData)
-        console.log(`충전 종료 처리 완료! 상태: ${status}`)
+        console.log(`충전 종료 처리 완료! 상태: ${finalStatus}`)
     } catch (error) {
+        // 에러 나면 콘솔에 찍음
         console.error("충전 종료 API 에러:", error)
     }
 
+    // 7. 화면을 영수증이 뜨는 'complete' 모드로 넘기고, 10초 뒤에 작별 화면으로 이동시킴
     viewMode.value = 'complete'
     startTimer(10, 'goodbye')
 }

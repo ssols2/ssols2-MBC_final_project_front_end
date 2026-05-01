@@ -51,7 +51,10 @@
                 <div v-if="upcomingResList.length > 0">
                     <div class="res-highlight main-res">
                         <span class="d-day">D-{{ calculateDday(upcomingRes.reservation_date) }}</span>
-                        <p class="res-time-txt">{{ formatDate(upcomingRes.reservation_time) }}</p>
+                        <p class="res-time-txt">
+                            {{ formatDate(upcomingRes.reservation_date) }}
+                            {{ String(upcomingRes.reservation_time || '').substring(0, 5) }}
+                        </p>
                         <p class="res-doc-txt">{{ upcomingRes.med_dept_name }} | {{ upcomingRes.doctor_name }} 의사</p>
                     </div>
 
@@ -230,7 +233,8 @@
                         <tr v-for="res in filteredMyReservations" :key="res.reservation_id">
                             <td class="bold-blue">{{ res.med_dept_name }}</td>
                             <td class="bold-blue">{{ res.doctor_name }}</td>
-                            <td>{{ formatDate(res.reservation_date) }}</td>
+                            <td>{{ formatDate(upcomingRes.reservation_date) }}
+                            {{ String(upcomingRes.reservation_time || '').substring(0, 5) }}</td>
                             <td>
                                 <span :class="['status-badge',
                                     res.reservation_status === '예약' ? 'active' :
@@ -615,6 +619,48 @@ onMounted(() => {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
 }
 
+.profile-card {
+    display: block !important;
+}
+
+.profile-card .card-head {
+    display: block !important;
+    text-align: left;
+    margin-bottom: 25px;
+}
+
+.info-list {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.info-list .info-item {
+    display: flex;
+    flex-direction: column;
+    /* 텍스트 수직 정렬 */
+    align-items: flex-start;
+    margin-bottom: 17px;
+}
+
+.info-item .label {
+    width: 100% !important;
+    font-size: 18px;
+    color: #888;
+    font-weight: 700;
+    padding: 0 0 20px 0;
+}
+
+.info-item .val {
+    width: 100%;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    padding: 0 0 12px 0;
+    margin: 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
 /*  폰트 및 컬러*/
 .card-head {
     display: flex;
@@ -777,7 +823,7 @@ onMounted(() => {
 .hospital-tbl th {
     background-color: #f8f9fa;
     padding: 30px 40px;
-    text-align: left;
+    text-align: center;
     font-weight: 600;
     font-size: 18px;
     border-bottom: 2px solid #eee;
@@ -788,6 +834,7 @@ onMounted(() => {
     border-bottom: 1px solid #f0f0f0;
     font-size: 18px;
     vertical-align: middle;
+    text-align: center;
 }
 
 .bold-blue {

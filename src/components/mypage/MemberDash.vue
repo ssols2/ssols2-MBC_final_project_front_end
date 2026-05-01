@@ -24,17 +24,6 @@
                 </div>
             </section>
 
-            <!-- <section class="dash-card">
-                <div class="card-head">
-                    <h3>나의 병원 예약</h3>
-                </div>
-                <div v-if="upcomingRes" class="res-highlight">
-                    <span class="d-day">D-{{ calculateDday(upcomingRes.reservation_date) }}</span>
-                    <p class="res-time-txt">{{ upcomingRes.reservation_time }}</p>
-                    <p class="res-doc-txt">{{ upcomingRes.med_dept_name }} | {{ upcomingRes.doctor_name }} 의사</p>
-                </div>
-                <div v-else class="empty-res">예정된 예약이 없습니다</div>
-            </section> -->
             <section class="dash-card clickable-card" @click="goToList">
                 <div class="card-head">
                     <h3>나의 병원 예약</h3>
@@ -44,12 +33,12 @@
                 <div v-if="upcomingResList.length > 0">
                     <div class="res-highlight main-res">
                         <span class="d-day">D-{{ calculateDday(upcomingRes.reservation_date) }}</span>
-                        <p class="res-time-txt">{{ formatDate(upcomingRes.reservation_time) }}</p>
+                        <p class="res-time-txt">{{ formatDate(upcomingRes.reservation_date) }} {{ String(upcomingRes.reservation_time || '').substring(0, 5) }}</p>
                         <p class="res-doc-txt">{{ upcomingRes.med_dept_name }} | {{ upcomingRes.doctor_name }} 의사</p>
                     </div>
 
                     <div v-if="upcomingResList.length > 1" class="sub-res-list">
-                        <div v-for="(res, idx) in upcomingResList.slice(1)" :key="res.reservation_id"
+                        <div v-for="res in upcomingResList.slice(1)" :key="res.reservation_id"
                             class="sub-res-item">
                             <span class="sub-time">{{ formatDate(res.reservation_time) }}</span>
                             <span class="sub-info">{{ res.med_dept_name }} ({{ res.doctor_name }})</span>
@@ -85,7 +74,7 @@
                         <tr v-for="res in filteredMyReservations" :key="res.reservation_id">
                             <td class="bold-blue">{{ res.med_dept_name }}</td>
                             <td class="bold-blue">{{ res.doctor_name }}</td>
-                            <td>{{ formatDate(res.reservation_time) }}</td>
+                            <td>{{ formatDate(upcomingRes.reservation_date) }} {{ String(upcomingRes.reservation_time || '').substring(0, 5) }}</td>
                             <td>
                                 <span :class="['status-badge',
                                     res.reservation_status === '예약' ? 'active' :
@@ -183,54 +172,43 @@ const formatPhone = (phone) => {
     return phone
 }
 
-// [날짜] 날짜 형식 '20260222' -> '2026년 02월 22일' 형태로 변환
-/*
-const formatDate = (date) => {
-    if (!date) {
-        return '-'
+// [MemberDash.vue] <script setup> 내 수정
+// 날짜 변환기 (밀리초 타임스탬프 대응)
+const formatDate = (dateVal) => {
+    if (!dateVal) return '-'
+    let s = String(dateVal).trim()
+
+    // 뒤에 붙은 T15:00:00... 자르기
+    if (s.includes('T')) s = s.split('T')[0]
+
+    // 하이픈(-) 기준으로 자르기
+    const parts = s.split('-')
+    if (parts.length >= 3) {
+        // 앞에 + 기호 빼고 숫자만 남김
+        let year = parts[0].replace(/[^0-9]/g, '')
+        // 연도가 57441년 처럼 괴상하면 2026년으로 멱살 잡고 끌고 옴
+        if (year.length > 4) year = '2026'
+        
+        return `${year}년 ${parts[1]}월 ${parts[2]}일`
     }
-    const s = String(date)
-    if (s.length === 8) {
+
+    // 8자리 숫자 (20260501) 처리
+    if (/^\d{8}$/.test(s)) {
         return `${s.substring(0, 4)}년 ${s.substring(4, 6)}월 ${s.substring(6, 8)}일`
     }
-    try {
-        const d = new Date(date)
-        const mm = d.getMonth() + 1 < 10 ? `0${d.getMonth() + 1}` : d.getMonth() + 1
-        const dd = d.getDate() < 10 ? `0${d.getDate()}` : d.getDate()
-        return `${d.getFullYear()}년 ${mm}월 ${dd}일`
-    } catch (e) { return s }
-} */
-// [MemberDash.vue] <script setup> 내 수정
-const formatDate = (date) => {
-    if (!date) return '-';
-    const s = String(date); 
 
-    // 1. 생년월일(19900101)처럼 원래 시간이 없는 8자리 데이터 처리
-    if (s.length === 8 && !s.includes('-') && !s.includes(':')) {
-        return `${s.substring(0, 4)}년 ${s.substring(4, 6)}월 ${s.substring(6, 8)}일`;
+    const d = new Date(dateVal)
+    if (!isNaN(d.getTime())) {
+        const y = d.getFullYear()
+        const m = String(d.getMonth() + 1).padStart(2, '0')
+        const dd = String(d.getDate()).padStart(2, '0')
+        return `${y}년 ${m}월 ${dd}일`
     }
-    try {
-        const d = new Date(date);
-        if (isNaN(d.getTime())) return s;
 
-        const f = (n) => String(n).padStart(2, '0');
-        const year = d.getFullYear();
-        const mm = f(d.getMonth() + 1);
-        const dd = f(d.getDate());
-        const hh = f(d.getHours());
-        const min = f(d.getMinutes());
+    return s
+}
 
-        // 시간이 00:00이면 날짜만, 아니면 시간까지 "딱 한 번만" 리턴
-        if (hh === '00' && min === '00') {
-            return `${year}년 ${mm}월 ${dd}일`;
-        }
-        return `${year}년 ${mm}월 ${dd}일 ${hh}:${min}`;
-    } catch (e) {
-        return s;
-    }
-};
-
-// [D-Day] 예약 날짜와 오늘 날짜의 차이를 계산 (밀리초 단위 계산 후 일 단위로 변환)
+// D-Day 계산기
 const calculateDday = (dateStr) => {
     if (!dateStr) return 0
     const formattedDate = String(dateStr).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')
@@ -295,8 +273,8 @@ onMounted(() => {
 
 .card-head h3 {
     padding: 8px;
-    font-size: 1.4rem;
-    font-weight: 700;
+    font-size: 1.7rem;
+    font-weight: 800;
     color: #005baa;
 }
 
@@ -354,7 +332,7 @@ onMounted(() => {
 .hospital-tbl th {
     background-color: #f8f9fa;
     padding: 30px;
-    text-align: left;
+    text-align: center;
     font-weight: 600;
     color: #555;
     border-bottom: 2px solid #eee;
@@ -366,6 +344,7 @@ onMounted(() => {
     border-bottom: 1px solid #f0f0f0;
     color: #444;
     font-size: 18px;
+    text-align: center;
     vertical-align: middle;
 }
 
@@ -434,16 +413,51 @@ onMounted(() => {
     color: #616161;
 }
 
-/*  정보 요약 및 기타 유틸리티 */
+/* 정보 요약 및 기타 유틸리티 */
+.profile-card {
+    display: block !important;
+}
+
+.profile-card .card-head {
+    display: block !important;
+    text-align: left;
+    margin-bottom: 25px;
+}
+
+.profile-card .card-head h3 {
+    margin: 0;
+    padding: 0;
+}
+
+.info-list {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
 .info-list .info-item {
-    font-size: 17px;
-    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;    /* 라벨 위, 값 아래로 수직 정렬 */
+    align-items: flex-start;
+    margin-bottom: 17px;
 }
 
 .info-item .label {
-    width: 100px;
+    width: 100%;
+    font-size: 18px;
     color: #888;
     font-weight: 700;
+    padding: 0 0 20px 0;
+}
+
+.info-item .val {
+    width: 100%;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    padding: 0 0 12px 0;
+    margin: 0;
+    border-bottom: 1px solid #f0f0f0;
 }
 
 .bold-blue {

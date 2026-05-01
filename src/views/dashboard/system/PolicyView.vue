@@ -1,7 +1,7 @@
 <template>
   <div class="policy-wrapper">
     <header class="view-header">
-      <h3 class="view-title">운영 정책 및 요금 설정</h3>
+      <h3 class="view-title">운영 정책 및 요금</h3>
       <p class="view-desc">병원의 주차 및 충전 인프라 운영 규칙을 실시간으로 관리합니다</p>
     </header>
 
@@ -91,9 +91,9 @@
       </section>
     </div>
 
-    <footer class="action-footer">
+    <!-- <footer class="action-footer">
       <button class="btn-save">운영 정책 실시간 반영</button>
-    </footer>
+    </footer> -->
   </div>
 </template>
 

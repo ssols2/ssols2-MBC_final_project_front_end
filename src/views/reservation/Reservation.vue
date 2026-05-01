@@ -22,7 +22,7 @@
           <div class="grid-row">
             <select v-model="form.medDeptId" @change="fetchDoctors" class="res-select">
               <option value="">진료과 선택</option>
-              <option v-for="d in depts" :key="d.med_dept_id" :value="d.med_dept_id"> {{ d.med_dept_name }}</option>
+              <option v-for="d in filteredDepts" :key="d.med_dept_id" :value="d.med_dept_id"> {{ d.med_dept_name }}</option>
             </select>
 
             <select v-if="form.medDeptId" v-model="form.doctorId" @change="resetDateTime" class="res-select">
@@ -39,9 +39,9 @@
           <div class="grid-col-group">
             <div class="input-wrapper">
               <label class="sub-label-sm">성함</label>
-              <input type="text" v-model="form.patientName" @input="handleNameInput" placeholder="한글 2자 이상 입력"
+              <input type="text" v-model="form.patientName" @input="handleNameInput" placeholder="2자 이상 입력 (공백 제외)" maxlength="20"
                 class="res-input" :class="{ 'input-error': form.patientName && !isValidName }">
-              <p v-if="form.patientName && !isValidName" class="error-msg">정확한 한글 이름을 입력해 주세요.</p>
+              <p v-if="form.patientName && !isValidName" class="error-msg">정확한 이름을 입력해 주세요.</p>
             </div>
 
             <div class="input-wrapper">
@@ -197,8 +197,17 @@ const allTimeSlots = computed(() => {
   return slots;
 });
 
-const isValidName = computed(() => /^[가-힣]{2,}$/.test(form.patientName));
+const isValidName = computed(() => {
+  const nameLen = form.patientName.replace(/\s/g, '').length; // 띄어쓰기 뺀 길이
+  const isValidChars = /^[가-힣a-zA-Z\s]+$/.test(form.patientName); // 허용된 글자인지
+  return nameLen >= 2 && isValidChars;
+});
 const isValidPhone = computed(() => phonePart2.value.length >= 3 && phonePart3.value.length === 4);
+
+const filteredDepts = computed(() => {
+  // 진료과 목록에서 응급이 들어간 과만 제외하고 다시 만듦
+  return depts.value.filter(d => !d.med_dept_name.includes('응급'));
+});
 
 // =========================================
 // 3. 달력 및 날짜 함수
@@ -245,7 +254,10 @@ const selectDate = (day) => {
 // =========================================
 // 4. 입력 핸들러
 // =========================================
-const handleNameInput = (e) => { form.patientName = e.target.value.replace(/[^가-힣]/g, ''); };
+const handleNameInput = (e) => { 
+  form.patientName = e.target.value.replace(/[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z\s]/g, ''); 
+};
+
 const handlePhonePart2 = (e) => {
   phonePart2.value = e.target.value.replace(/[^0-9]/g, '');
   if (phonePart2.value.length === 4) phone2Ref.value.blur();
@@ -300,9 +312,24 @@ const fetchBookedSlots = async () => {
   } catch (err) { bookedSlots.value = []; }
 };
 
+// 응급의학과 원천 차단
 const fetchDoctors = async () => {
   if (!form.medDeptId) return;
-  try { const res = await getDoctorsReq(form.medDeptId); doctors.value = res.data; } catch (err) { }
+
+  const selectedDept = depts.value.find(d => d.med_dept_id === form.medDeptId);
+  
+  if (selectedDept && selectedDept.med_dept_name.includes('응급')) {
+    alert("응급의학과는 홈페이지 예약이 불가합니다.\n응급 상황 시 본원 응급의료센터로 즉시 방문해 주세요.");
+    form.medDeptId = ''; // 선택 초기화
+    return;
+  }
+
+  try { 
+    const res = await getDoctorsReq(form.medDeptId); 
+    doctors.value = res.data; 
+  } catch (err) { 
+    console.error("의료진 로드 실패", err);
+  }
 };
 
 const resetDateTime = () => { form.reservationDate = ''; form.reservationTime = ''; };
@@ -333,7 +360,7 @@ const submitReservation = async () => {
     memId: Number(loginInfo.memId || loginInfo.mem_id),
     medDeptId: finalDeptId,
     doctorId: Number(form.doctorId),
-    reservationDate: Number(form.reservationDate.replaceAll('-', '')),
+    reservationDate: form.reservationDate,
     reservationTime: fullDateTime,
     patientName: form.patientName,
     patientPhone: form.patientPhone,
@@ -390,6 +417,17 @@ onMounted(async () => {
     isFixedDoc.value = true;
     fetchBookedSlots();
   }
+
+  // 최종 프로젝트 추가
+  setTimeout(() => {
+    if (form.medDeptId) {
+      const selectedDept = depts.value.find(d => d.med_dept_id === form.medDeptId);
+      if (selectedDept && selectedDept.med_dept_name.includes('응급')) {
+        alert("응급의학과는 예약이 불가한 과입니다. 메인으로 이동합니다.");
+        useRouterInstance.push('/'); // 메인으로 튕겨내기
+      }
+    }
+  }, 500); // 목록 로드 시간을 위해 약간의 지연시간 부여
 });
 </script>
 
@@ -423,7 +461,10 @@ onMounted(async () => {
 }
 
 .res-header {
-  text-align: center;
+  display: flex;           
+  flex-direction: column;  
+  align-items: center;     
+  text-align: center;    
   margin-bottom: 50px;
 }
 

@@ -10,12 +10,50 @@ const fastApi = axios.create({
   timeout: 5000
 })
 
-export async function getChargerDetail(chargerId) {
-  const response = await springApi.get(`/api/ev/predict/${chargerId}`)
-  const data = response.data
+// export async function getChargerDetail(chargerId) {
+//   const response = await springApi.get(`/api/ev/predict/${chargerId}`)
+//   const data = response.data
 
-  const shutdownDone = data.shutdown_done ?? false
-  const inspectionRequested = data.inspection_requested ?? false
+//   const shutdownDone = data.shutdown_done ?? false
+//   const inspectionRequested = data.inspection_requested ?? false
+
+//   return {
+//     chargerId: chargerId,
+//     aiStatus: data.ai_status ?? 'NORMAL',
+//     status: data.status ?? '정상',
+//     action: data.action ?? '',
+//     alarm: data.alarm ?? false,
+
+//     deviceStatus: shutdownDone
+//       ? '전원꺼짐'
+//       : (data.device_status ?? '대기 중'),
+
+//     faultProb7d: data.fault_prob_7d ?? 0,
+
+//     inspectionRequested: inspectionRequested,
+//     inspectionStatus: inspectionRequested ? 'REQUESTED' : 'NONE',
+
+//     shutdownDone: shutdownDone,
+
+//     mainReason: data.main_reason ?? '',
+//     message: data.message ?? '',
+
+//     predClass: data.pred_class ?? null,
+//     probNormal: data.prob_normal ?? 0,
+//     probCheck: data.prob_check ?? 0,
+//     probRisk: data.prob_risk ?? 0,
+
+//     temperature: data.temperature ?? null,
+//     current: data.current ?? null,
+//     voltage: data.voltage ?? null
+//   }
+// }
+
+
+// 260501 임소리 getChargerDetail 수정(springApi -> fastApi 변경)
+export async function getChargerDetail(chargerId) {
+  const response = await fastApi.get(`/predict/db/${chargerId}`)
+  const data = response.data
 
   return {
     chargerId: chargerId,
@@ -23,26 +61,20 @@ export async function getChargerDetail(chargerId) {
     status: data.status ?? '정상',
     action: data.action ?? '',
     alarm: data.alarm ?? false,
-
-    deviceStatus: shutdownDone
-      ? '전원꺼짐'
-      : (data.device_status ?? '대기 중'),
-
+    
+    // 파이썬 응답 키값(snake_case)에 맞게 매핑
+    deviceStatus: data.shutdown_done ? '전원꺼짐' : (data.device_status ?? '대기 중'),
     faultProb7d: data.fault_prob_7d ?? 0,
-
-    inspectionRequested: inspectionRequested,
-    inspectionStatus: inspectionRequested ? 'REQUESTED' : 'NONE',
-
-    shutdownDone: shutdownDone,
-
+    inspectionRequested: data.inspection_requested ?? false,
+    inspectionStatus: data.inspection_requested ? 'REQUESTED' : 'NONE',
+    shutdownDone: data.shutdown_done ?? false,
+    
     mainReason: data.main_reason ?? '',
     message: data.message ?? '',
-
     predClass: data.pred_class ?? null,
     probNormal: data.prob_normal ?? 0,
     probCheck: data.prob_check ?? 0,
     probRisk: data.prob_risk ?? 0,
-
     temperature: data.temperature ?? null,
     current: data.current ?? null,
     voltage: data.voltage ?? null
