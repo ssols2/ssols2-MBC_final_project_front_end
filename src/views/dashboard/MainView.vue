@@ -5,20 +5,11 @@
         <h2 class="page-title">Overview</h2>
       </div>
 
-      <div class="header-right relative-box">
-        <div class="date-trigger-box" @click="isCalendarOpen = true">
-          <span class="date-text">{{ startDate }} ~ {{ endDate }}</span>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="16" y1="2" x2="16" y2="6"></line>
-            <line x1="8" y1="2" x2="8" y2="6"></line>
-            <line x1="3" y1="10" x2="21" y2="10"></line>
-          </svg>
+      <div class="header-right">
+        <div class="live-status-box">
+          <div class="pulse-dot"></div>
+          <span class="live-text">LIVE : 실시간 모니터링 중</span>
         </div>
-
-        <DatePopup :visible="isCalendarOpen" :start-date="startDate" :end-date="endDate" @close="isCalendarOpen = false"
-          @apply="handleDateApply" />
       </div>
     </header>
 
@@ -39,7 +30,7 @@
             </div>
           </div>
 
-          <div class="chart-container" style="position: relative; width: 115px; height: 115px;">
+          <div class="chart-container" style="position: relative;">
             <canvas ref="revenueChartRef"></canvas>
             <div class="donut-inner-text">총 {{ (revenueData.pre_payment_count || 0) + (revenueData.on_site_payment_count
               || 0) }}건</div>
@@ -47,43 +38,24 @@
         </div>
       </div>
 
-
-
       <div class="glass-card visitor-ratio" @click="goPage('/dashboard/vehicle-control')">
         <h3 class="card-title">회원/비회원 방문 비율</h3>
 
         <div class="chart-content ratio-content" v-if="logData">
-
-          <div class="chart-container glowing-donut" style="position: relative; width: 160px; height: 160px;">
+          <div class="chart-container" style="position: relative; width: 180px; height: 180px;">
             <canvas ref="memberChartRef"></canvas>
-
-            <div class="donut-inner-center">
-              <div class="inner-main">
-                {{ logData.memberCount }}<span class="inner-slash"> / {{ logData.totalCount }}</span>
-              </div>
-              <div class="inner-sub">
-                ({{ logData.totalCount > 0 ? Math.round((logData.memberCount / logData.totalCount) * 100) : 0 }}%)
-              </div>
-            </div>
           </div>
 
           <div class="ratio-info-area">
-            <ul class="ratio-legend-list">
-              <li class="member-dot">회원 방문</li>
-              <li class="non-member-dot">전체 방문</li>
-            </ul>
-
-            <hr class="ratio-divider" />
-
             <div class="ratio-emphasis">
-              <strong>{{ logData.memberCount }}</strong><span class="unit">명 회원</span>
+              <span class="inner-main">{{ memberPercent }}</span><span class="unit">%</span>
             </div>
-
-            <div class="ratio-badge">
-              비회원 {{ logData.nonMemberCount }}명
-            </div>
+            <ul class="ratio-legend-list">
+              <li class="member-dot">회원 {{ logData.memberCount }}명</li>
+              <li class="non-member-dot">비회원 {{ logData.nonMemberCount }}명</li>
+            </ul>
+            <div class="ratio-badge">전체 방문 {{ logData.totalCount }}명</div>
           </div>
-
         </div>
       </div>
 
@@ -93,22 +65,120 @@
           <div class="status-badge">AI 실시간 분석중</div>
         </div>
 
-        <div class="chart-placeholder"
-          style="position: relative; flex: 1; min-height: 180px; width: 100%; margin-top: -5px;">
+        <div class="chart-placeholder">
           <canvas ref="predictionChartRef"></canvas>
         </div>
       </div>
     </section>
 
     <section class="middle-grid mt-20">
-      <div class="glass-card ev-status-alert" @click="goPage('/dashboard/ev-infra')">
+      <div class="glass-card ev-monitor-card" @click="goPage('/dashboard/ev-infra')" style="cursor: pointer;">
         <h3 class="card-title">EV 충전기 현황 및 알림</h3>
-        <div class="chart-content"><span style="color: #a1a1aa">내일 API 연동 예정</span></div>
+
+        <div class="ev-split-container">
+          <div class="ev-left-panel">
+            <div class="panel-header">
+              <span class="panel-sub-title">실시간 충전기 상태</span>
+              <select class="floor-select" v-model="selectedFloor" @click.stop>
+                <option value="ALL">전체(선택)</option>
+                <option value="1F">B1층</option>
+                <option value="2F">B2층</option>
+                <option value="3F">B3층</option>
+                <option value="4F">B4층</option>
+                <option value="5F">B5층</option>
+              </select>
+            </div>
+
+            <div class="status-bars" v-if="allChargers.length > 0">
+              <div class="status-row">
+                <span class="s-label">사용중</span>
+                <div class="s-bar-bg">
+                  <div class="s-bar-fill bg-blue" :style="{ width: getBarHeight(evStatusCount.CHARGING) }"></div>
+                </div>
+                <span class="s-val">{{ evStatusCount.CHARGING }} / {{ allChargers.length }}대 ({{
+                  Math.round((evStatusCount.CHARGING / allChargers.length) * 100) || 0 }}%)</span>
+                <span class="s-icon icon-blue">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                  </svg>
+                </span>
+              </div>
+
+              <div class="status-row">
+                <span class="s-label">대기</span>
+                <div class="s-bar-bg">
+                  <div class="s-bar-fill bg-teal" :style="{ width: getBarHeight(evStatusCount.READY) }"></div>
+                </div>
+                <span class="s-val">{{ evStatusCount.READY }} / {{ allChargers.length }}대 ({{
+                  Math.round((evStatusCount.READY / allChargers.length) * 100) || 0 }}%)</span>
+                <span class="s-icon icon-teal">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </span>
+              </div>
+
+              <div class="status-row">
+                <span class="s-label">경고/고장</span>
+                <div class="s-bar-bg">
+                  <div class="s-bar-fill bg-red" :style="{ width: getBarHeight(evStatusCount.FAULT) }"></div>
+                </div>
+                <span class="s-val">{{ evStatusCount.FAULT }} / {{ allChargers.length }}대</span>
+                <span class="s-icon icon-red">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                    </path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                  </svg>
+                </span>
+              </div>
+            </div>
+
+            <div class="status-bars" v-else>
+              <div style="color: #94a3b8; text-align: center; margin-top: 20px;">데이터를 불러오는 중입니다...</div>
+            </div>
+
+            <div class="total-status-text">전체 현황 {{ evStatusCount.CHARGING + evStatusCount.READY + evStatusCount.FAULT
+            }} / {{ allChargers.length }}대</div>
+          </div>
+
+          <div class="ev-vertical-divider"></div>
+
+          <div class="ev-right-panel">
+            <div class="noti-section">
+              <div class="panel-sub-title">장애 및 이상 징후 알림</div>
+              <ul class="noti-list">
+                <li v-if="filteredIssueList.length === 0">
+                  <div class="noti-content" style="color: #94a3b8;">현재 발생한 장애나 이상 징후가 없습니다.</div>
+                </li>
+                <li v-for="(issue, index) in filteredIssueList" :key="index" class="clickable-issue"
+                  @click.stop="goToEvDetail(issue.evChargerId)">
+                  <div class="noti-content">
+                    <svg width="8" height="8" class="dot-svg"
+                      :class="issue.chargerStatus === 'FAULT' ? 'red' : 'yellow'">
+                      <circle cx="4" cy="4" r="4" fill="currentColor" />
+                    </svg>
+                    <span class="tag" :class="issue.chargerStatus === 'FAULT' ? 'red' : 'yellow'">[{{
+                      issue.chargerStatus === 'FAULT' ? '장애' : '경고' }}]</span>
+                    {{ issue.evChargerId }} | {{ issue.statusLabel }}
+                  </div>
+                  <div class="noti-badge" :class="issue.chargerStatus === 'FAULT' ? 'red-outline' : 'yellow-outline'">
+                    {{ issue.chargerStatus === 'FAULT' ? '조치 필요' : '확인 필요' }}
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="glass-card stay-time" @click="goPage('/vehicle-control/logs')">
-        <h3 class="card-title">요일별 평균 체류시간</h3>
-        <div class="chart-placeholder" style="height: 250px; width: 100%;">
+      <div class="glass-card stay-time" @click="goPage('/dashboard/vehicle-control')">
+        <h3 class="card-title" style="margin-bottom: 5px;">요일별 평균 체류시간</h3>
+        <div class="chart-placeholder" style="position: relative; flex: 1; width: 100%; min-height: 0;">
           <canvas ref="stayTimeChartRef"></canvas>
         </div>
       </div>
@@ -124,23 +194,35 @@
               <th>회원여부</th>
               <th>입차시간</th>
               <th>출차시간</th>
-              <th>정확도(국가|OCR)</th>
+              <th>국가 정확도</th>
+              <th>번호판 정확도</th>
               <th>금액</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="logData.recentLogs.length === 0">
-              <td colspan="7">데이터가 없습니다</td>
+              <td colspan="8">데이터가 없습니다</td>
             </tr>
             <tr v-for="log in logData.recentLogs" :key="log.parkingLogId">
               <td style="color: #82c2e3">{{ log.vehicleNum }}</td>
               <td>{{ log.isMember ? '회원' : '비회원' }}</td>
               <td>{{ formatTime(log.entryTime) }}</td>
               <td>{{ log.exitTime ? formatTime(log.exitTime) : '-' }}</td>
+              <td>{{ Math.round(log.countryAccuracy || 0) }}%</td>
+              <td
+                :style="{ color: log.ocrAccuracy < 85 ? '#f59e0b' : '#fff', fontWeight: log.ocrAccuracy < 85 ? '700' : 'normal' }">
+                <svg v-if="log.ocrAccuracy < 85" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                  style="vertical-align: middle; margin-right: 4px;">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                  </path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                {{ Math.round(log.ocrAccuracy || 0) }}%
+              </td>
 
-              <td>{{ Math.round(log.countryAccuracy || 0) }}% | {{ Math.round(log.ocrAccuracy || 0) }}%</td>
-
-              <td style="font-weight: 600; color: #ffeb3b;">
+              <td style="font-weight: 600;">
                 {{ calculateRealTimeFee(log) }}
               </td>
             </tr>
@@ -148,33 +230,18 @@
         </table>
       </div>
     </section>
-
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import axios from 'axios'
 import Chart from 'chart.js/auto'
 import { useRouter } from 'vue-router'
-import DatePopup from '@/components/DatePopup.vue'
 
 // [달력]
 // 오늘 날짜 기본 세팅 함수
 const getTodayStr = () => new Date().toISOString().split('T')[0]
-
-const currentTab = ref('revenue')
-
-// 달력 제어용 상태 변수들
-const isCalendarOpen = ref(false)
-const startDate = ref(getTodayStr())
-const endDate = ref(getTodayStr())
-
-// 달력 팝업에서 '적용' 버튼 눌렀을 때 실행될 함수
-const handleDateApply = (dates) => {
-  startDate.value = dates.startDate
-  endDate.value = dates.endDate
-}
 
 const router = useRouter()
 
@@ -189,8 +256,12 @@ const revenueData = ref({
   ev_charging_revenue: 0,
   total_discount: 0
 })
+
 const logData = reactive({ totalCount: 0, memberCount: 0, nonMemberCount: 0, recentLogs: [] })
-const reservationCount = ref(0) // 메인 예약 건수 변수 추가
+const memberPercent = computed(() => {
+  if (logData.totalCount === 0) return 0
+  return Math.round((logData.memberCount / logData.totalCount) * 100)
+})
 
 // 차트 Refs
 const memberChartRef = ref(null)
@@ -204,9 +275,6 @@ const formatTime = (dt) => {
   const d = new Date(dt)
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
-// const getTodayStr = () => {
-//   const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-// }
 
 // ===== 3. API 호출 및 데이터 가공 =====
 
@@ -225,14 +293,20 @@ const fetchRevenue = async () => {
           datasets: [{
             // 파이썬에서 넘어올 데이터 바인딩
             data: [revenueData.value.pre_payment_count || 0, revenueData.value.on_site_payment_count || 0],
-            backgroundColor: ['#82c2e3', '#ffffff'], // 하늘색, 흰색
+            backgroundColor: ['#82c2e3', '#e2e8f0'], // 하늘색, 흰색
             borderWidth: 0,
+            cutout: '55%',           // 도넛 차트 두께 조절
+            borderRadius: 10,        // 끝부분을 둥글게
+            spacing: 4,              // 세그먼트 사이 간격 추가
+            hoverOffset: 4
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          cutout: '80%',
+          layout: {
+            padding: 5               // 도넛이 박스에 너무 딱 붙지 않게 여유 공간 확보
+          },
           plugins: {
             legend: { display: false },
             tooltip: {
@@ -245,9 +319,7 @@ const fetchRevenue = async () => {
               displayColors: true,
               boxPadding: 4,
               callbacks: {
-                label: function (context) {
-                  return ` ${context.label}: ${context.raw}건`;
-                }
+                label: (context) => ` ${context.label}: ${context.raw}건`
               }
             }
           }
@@ -269,50 +341,49 @@ const fetchLogs = async () => {
     logData.nonMemberCount = logData.totalCount - logData.memberCount
     logData.recentLogs = logs.slice(0, 10)
 
-    // 1. 도넛 차트 그리기 (비율)
-    const isLogEmpty = logData.totalCount === 0; // 데이터 0건 체크
+    // 파이 차트 그리기 (비율)
+    const isLogEmpty = logData.totalCount === 0
+    // 둘 중 한 종류의 방문자만 있을 경우 체크
+    const hasOnlyOneType = logData.memberCount === 0 || logData.nonMemberCount === 0
 
     new Chart(memberChartRef.value, {
-      type: 'doughnut',
+      type: 'pie',
       data: {
-        labels: isLogEmpty ? ['데이터 없음'] : ['회원', '비회원'],
+        labels: isLogEmpty ? ['기록 없음'] : ['회원', '비회원'],
         datasets: [{
-          // 데이터가 없으면 가짜 링(1)을 그림
           data: isLogEmpty ? [1] : [logData.memberCount, logData.nonMemberCount],
-
-          // 회원은 하늘색, 비회원은 반투명 그레이
-          backgroundColor: isLogEmpty ? ['rgba(255, 255, 255, 0.05)'] : ['#82c2e3', 'rgba(255, 255, 255, 0.1)'],
+          backgroundColor: isLogEmpty ? ['rgba(255, 255, 255, 0.05)'] : ['#fdd45f', '#3a4349'],
           borderWidth: 0,
-          borderRadius: isLogEmpty ? 0 : 20
+          borderRadius: (isLogEmpty || hasOnlyOneType) ? 0 : 8,
+          spacing: (isLogEmpty || hasOnlyOneType) ? 0 : 5,
+          hoverOffset: isLogEmpty ? 0 : 8
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: '65%',
+        layout: { padding: 15 },
         plugins: {
           legend: { display: false },
           tooltip: {
+            enabled: true,
             backgroundColor: 'rgba(26, 29, 33, 0.95)',
             titleColor: '#ffffff',
             bodyColor: '#ffffff',
-            bodyFont: { size: 13, family: 'Pretendard' },
-            padding: 10, cornerRadius: 6, displayColors: true, boxPadding: 4,
-
+            bodyFont: { size: 14, family: 'Pretendard' },
+            padding: 15, cornerRadius: 6, displayColors: true, boxPadding: 4,
+            xAlign: 'center',
             yAlign: 'bottom',
-            caretPadding: 15,
-
             callbacks: {
-              label: function (context) {
-                if (isLogEmpty) return ' 현재 방문 기록이 없습니다';
-                return ` ${context.label}: ${context.raw}명`;
+              label: (context) => {
+                if (isLogEmpty) return ' 방문 기록이 없습니다'
+                return ` ${context.label}: ${context.raw}명`
               }
             }
           }
         }
       }
     })
-
     // 요일별 평균 체류 시간
     const dowTotals = new Array(7).fill(0); const dowCounts = new Array(7).fill(0)
     logs.forEach(log => {
@@ -323,76 +394,93 @@ const fetchLogs = async () => {
     const dowAvg = dowTotals.map((t, i) => dowCounts[i] > 0 ? Math.round(t / dowCounts[i]) : 0)
 
     // [기존 코드에서 차트 생성 부분 교체]
-new Chart(stayTimeChartRef.value, {
-  type: 'bar',
-  data: {
-    labels: ['월', '화', '수', '목', '금', '토', '일'],
-    datasets: [{
-      label: '평균 체류시간(분)',
-      data: dowAvg,
-      // 그라데이션 효과를 위한 배경색 설정 (옵션)
-      backgroundColor: (context) => {
-        const chart = context.chart
-        const { ctx, chartArea } = chart
-        if (!chartArea) return '#82c2e3'
-        const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom)
-        gradient.addColorStop(0, 'rgba(130, 194, 227, 0.9)')
-        gradient.addColorStop(1, 'rgba(130, 194, 227, 0.3)')
-        return gradient
+    new Chart(stayTimeChartRef.value, {
+      type: 'bar',
+      data: {
+        labels: ['월', '화', '수', '목', '금', '토', '일'],
+        datasets: [{
+          label: '평균 체류시간(분)',
+          data: dowAvg,
+          // 그라데이션 효과를 위한 배경색 설정 (옵션)
+          backgroundColor: (context) => {
+            const chart = context.chart
+            const { ctx, chartArea } = chart
+            if (!chartArea) return null
+
+            const dayColors = [
+              '#ffd54f',
+              '#fbb900',
+              '#005baa',
+              '#0d79c2',
+              '#3492cd',
+              '#5baad8',
+              '#82c2e3'
+            ]
+
+            const index = context.dataIndex
+            const baseColor = dayColors[index] || '#82c2e3'
+
+            const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom)
+            gradient.addColorStop(0, baseColor)
+            gradient.addColorStop(1, baseColor + '44')
+            return gradient
+          },
+          borderColor: (context) => {
+            const dayColors = ['#ffd54f', '#fbb900', '#005baa', '#0d79c2', '#3492cd', '#5baad8', '#82c2e3']
+            return dayColors[context.dataIndex] || '#82c2e3'
+          },
+          borderWidth: 1,
+          borderRadius: 8,
+          barThickness: 30
+        }]
       },
-      borderColor: '#82c2e3',
-      borderWidth: 1,
-      borderRadius: 6, // 막대 상단 둥글게
-      barThickness: 24 // 막대 두께 조정으로 꽉 찬 느낌 부여
-    }]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    layout: {
-      padding: { top: 20, right: 10, bottom: 0, left: 0 } // 상단 여백 추가
-    },
-    plugins: {
-      legend: { display: false },
-      // 툴팁 디자인 고도화
-      tooltip: {
-        backgroundColor: 'rgba(26, 29, 33, 0.95)',
-        titleColor: '#ffffff',
-        bodyColor: '#82c2e3',
-        bodyFont: { size: 14, family: 'Pretendard', weight: 'bold' },
-        padding: 12,
-        cornerRadius: 8,
-        displayColors: false,
-        callbacks: {
-          label: function (context) { return `${context.parsed.y} 분` }
-        }
-      }
-    },
-    scales: {
-      y: {
-        display: true, // Y축 활성화
-        beginAtZero: true,
-        // Y축 그리드 라인 스타일링
-        grid: {
-          display: true,
-          color: 'rgba(255, 255, 255, 0.05)',
-          drawBorder: false,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: {
+          padding: { top: 10, right: 10, bottom: 0, left: 0 } // 상단 여백 추가
         },
-        // Y축 텍스트 스타일링
-        ticks: {
-          color: '#a1a1aa',
-          font: { family: 'Pretendard', size: 11 },
-          padding: 10,
-          callback: function(value) { return value + '분' } // 단위 추가
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(26, 29, 33, 0.95)',
+            titleColor: '#ffffff',
+            bodyColor: '#82c2e3',
+            bodyFont: { size: 14, family: 'Pretendard', weight: 'bold' },
+            padding: 12,
+            cornerRadius: 8,
+            displayColors: false,
+            callbacks: {
+              label: function (context) { return `${context.parsed.y} 분` }
+            }
+          }
+        },
+        scales: {
+          y: {
+            display: true, // Y축 활성화
+            beginAtZero: true,
+            // Y축 그리드 라인 스타일링
+            grace: '10%',
+            grid: {
+              display: true,
+              color: 'rgba(255, 255, 255, 0.05)',
+              drawBorder: false,
+            },
+            // Y축 텍스트 스타일링
+            ticks: {
+              color: '#a1a1aa',
+              font: { family: 'Pretendard', size: 11 },
+              padding: 10,
+              callback: function (value) { return value + '분' } // 단위 추가
+            }
+          },
+          x: {
+            grid: { display: false },
+            ticks: { color: '#a1a1aa', font: { family: 'Pretendard', size: 12 } }
+          }
         }
-      },
-      x: {
-        grid: { display: false },
-        ticks: { color: '#a1a1aa', font: { family: 'Pretendard', size: 12 } }
       }
-    }
-  }
-})
+    })
   } catch (e) { console.error('로그 로드 실패', e) }
 }
 
@@ -425,8 +513,9 @@ const fetchPrediction = async () => {
         const peakTime = chart.data.labels[maxIdx]
 
         const meta = chart.getDatasetMeta(0)
+        if (!meta.data || meta.data.length === 0) return
+
         const point = meta.data[maxIdx]
-        // 점의 위치가 아직 계산 안 됐으면 대기
         if (!point || point.x === undefined) return
 
         ctx.save()
@@ -453,11 +542,19 @@ const fetchPrediction = async () => {
         // AI 피크 예상' 네모 박스 그리기
         const text = `AI 피크 예상: ${peakTime}`
         ctx.font = 'bold 12px Pretendard'
+
         const textWidth = ctx.measureText(text).width
         const boxWidth = textWidth + 20
         const boxHeight = 28
-        const boxX = point.x - boxWidth / 2
-        const boxY = 0
+
+        let boxX = point.x - boxWidth / 2
+        let boxY = point.y - boxHeight - 12
+        if (boxY < 0) {
+          boxY = point.y + 15
+        }
+
+        if (boxX < chartArea.left) boxX = chartArea.left
+        if (boxX + boxWidth > chartArea.right) boxX = chartArea.right - boxWidth
 
         ctx.fillStyle = '#82c2e3'
         ctx.beginPath()
@@ -479,7 +576,7 @@ const fetchPrediction = async () => {
         ctx.fillStyle = '#1a1d21'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
-        ctx.fillText(text, point.x, boxY + boxHeight / 2)
+        ctx.fillText(text, boxX + boxWidth / 2, boxY + boxHeight / 2)
 
         ctx.restore()
       }
@@ -518,7 +615,7 @@ const fetchPrediction = async () => {
         responsive: true,
         maintainAspectRatio: false,
         layout: {
-          padding: { top: 32, right: 10 }
+          padding: { top: 35, right: 20, left: 10 }
         },
         interaction: { mode: 'index', intersect: false },
         plugins: {
@@ -559,7 +656,86 @@ const fetchPrediction = async () => {
 }
 
 // ===== D. EV 충전기 현황 및 알림 =====
+// EV 상태별 카운트 저장용 변수
+const selectedFloor = ref('ALL')
+const allChargers = ref([])
+const evStatusCount = ref({ READY: 0, CHARGING: 0, FAULT: 0 })
+let updateTimer = null
 
+// 알림 클릭 시 특정 기기의 예지보전 탭으로 바로 이동
+const goToEvDetail = (chargerId) => {
+  router.push({
+    path: '/dashboard/ev-infra',
+    query: { tab: 'predictive', chargerId: chargerId }
+  })
+}
+
+// 막대그래프 실제 전체 기기 수로 동적 계산
+const getBarHeight = (count) => {
+  const max = allChargers.value.length || 15
+  return `${(count / max) * 100}%`
+}
+
+// 데이터 호출 함수
+const fetchEvData = async () => {
+  try {
+    const response = await axios.get('http://localhost:8080/api/ev/chargers')
+
+    if (Array.isArray(response.data)) {
+      allChargers.value = response.data.map(c => {
+        const floorStr = c.evChargerId ? c.evChargerId.split('-')[0] : 'ALL'
+
+        const statusKor =
+          c.chargerStatus === 'CHARGING' ? '충전 중' :
+            (c.chargerStatus === 'STANDBY' || c.chargerStatus === 'READY') ? '대기 중' :
+              c.chargerStatus === 'FAULT' ? '장애 발생' :
+                c.chargerStatus === 'CHECK' ? '점검 필요' :
+                  c.chargerStatus === 'RISK' ? '위험 감지' : '상태 불명'
+
+        return {
+          ...c,
+          floorLabel: floorStr,      // 화면 표출 및 필터링용 층수 (예: '1F')
+          statusLabel: statusKor     // 화면 표출용 한글 상태 (예: '대기 중')
+        }
+      })
+    } else {
+      console.warn('서버에서 올바른 배열 데이터를 주지 않았습니다.', response.data)
+      allChargers.value = []
+    }
+    updateCounts()
+  } catch (error) {
+    console.error('EV 데이터 호출 실패:', error)
+    allChargers.value = [] // 통신 실패 시 화면 뻗지 않게 빈 배열 처리
+    updateCounts()
+  }
+}
+
+// 카운트 및 필터링
+const updateCounts = () => {
+  // allChargers.value가 배열이 아닐 경우 강제 종료 (filter 에러 원천 차단)
+  if (!Array.isArray(allChargers.value)) return;
+
+  const filtered = selectedFloor.value === 'ALL'
+    ? allChargers.value
+    : allChargers.value.filter(c => c.floorLabel === selectedFloor.value)
+
+  evStatusCount.value = {
+    READY: filtered.filter(c => c.chargerStatus === 'READY' || c.chargerStatus === 'STANDBY').length,
+    CHARGING: filtered.filter(c => c.chargerStatus === 'CHARGING').length,
+    FAULT: filtered.filter(c => ['CHECK', 'RISK', 'FAULT', 'POWER_OFF'].includes(c.chargerStatus)).length
+  }
+}
+
+const filteredIssueList = computed(() => {
+  if (!Array.isArray(allChargers.value)) return []
+
+  return allChargers.value
+    .filter(c => ['CHECK', 'RISK', 'FAULT', 'POWER_OFF'].includes(c.chargerStatus))
+    .filter(c => selectedFloor.value === 'ALL' || c.floorLabel === selectedFloor.value)
+    .slice(0, 5)
+})
+
+watch(selectedFloor, updateCounts)
 
 // ===== E. 최근 입출차 현황 테이블 =====
 // 실시간 주차 요금 계산 (상한제 및 회원 여부 반영)
@@ -590,18 +766,23 @@ const calculateRealTimeFee = (log) => {
   return currentFee.toLocaleString() + '원'
 }
 
-// ===== 4. 마운트 시 실행 =====
 onMounted(async () => {
   await fetchRevenue()
   await nextTick() // DOM 렌더링 대기
   fetchLogs()
   fetchPrediction()
+  fetchEvData()
+  updateTimer = setInterval(fetchEvData, 15000)
+})
+
+onUnmounted(() => {
+  if (updateTimer) clearInterval(updateTimer) // 페이지 나갈 때 타이머 해제
 })
 </script>
 
 <style scoped>
 /* ==========================================
-   전역 테마 연동 및 카드 기본 스타일
+   1. 전역 & 공통 레이아웃 (Global & Common)
    ========================================== */
 .dashboard-main-container {
   font-family: 'Pretendard', sans-serif;
@@ -615,12 +796,12 @@ onMounted(async () => {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   padding: 17px;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-  height: 100%;
 }
 
 .glass-card:hover {
@@ -630,24 +811,30 @@ onMounted(async () => {
 }
 
 .card-title {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 600;
   margin-bottom: 17px;
-  color: #ffffff;
+  color: #f5f5f5;
   letter-spacing: -0.5px;
 }
 
-/* =================
-   레이아웃 그리드
-   ================= */
+.mt-20 {
+  margin-top: 17px;
+}
+
 /* 1열: 매출(1) : 비율(1) : 예측(1.5) */
 .top-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1.5fr;
   gap: 17px;
-  /* 카드 사이 간격 */
   align-items: stretch;
-  /* 옆 카드 높이에 맞춰 똑같이 늘어나게 함 */
+}
+
+.top-grid .glass-card {
+  height: 280px;
+  display: flex;
+  flex-direction: column;
+  padding: 17px;
 }
 
 .middle-grid {
@@ -662,97 +849,111 @@ onMounted(async () => {
   gap: 17px;
 }
 
-.mt-20 {
-  margin-top: 17px !important;
-  /* 세로 간격도 17px로 통일 */
-}
-
-/* ==========================================
-   내부 컴포넌트 디테일
-   ========================================== */
-.discount-text {
-  color: #ff0000;
-  font-weight: 500;
-}
-
 .chart-content {
   display: flex;
   justify-content: space-between;
-  /* 좌우는 양끝으로 넓게 */
   align-items: center;
   flex: 1;
+  height: 100%;
 }
 
 .chart-container {
-  align-self: center;
-}
-
-.ratio-content {
-  padding-left: 0 !important;
-  justify-content: flex-start;
-  gap: 35px;
-}
-
-/* 도넛 차트 정중앙에 들어갈 텍스트*/
-.donut-inner-text {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: #fff;
-  font-size: 14px;
-  font-weight: bold;
-  pointer-events: none;
-  white-space: nowrap;
-}
-
-/* 매출 레전드 리스트 */
-.sales-legend {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.sales-legend li {
-  font-size: 14px;
-  color: #e5e8eb;
+  position: relative;
+  width: 170px;
+  height: 170px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-weight: 500;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.sales-legend li::before {
-  content: '';
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  border-radius: 3px;
+
+/* ==========================================
+   2. 헤더 영역 (Overview Header & 달력)
+   ========================================== */
+.overview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 17px;
 }
 
-/* 사전 결제는 하늘색 박스 */
-.sales-legend li.pre-pay::before {
-  background-color: #82c2e3;
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 17px;
 }
 
-/* 현장 결제는 흰색 박스 */
-.sales-legend li.on-site-pay::before {
-  background-color: #ffffff;
+.page-title {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* ==========================================
+   3. 상단 왼쪽 카드: 금일 총 매출
+   ========================================== */
+.sales-status {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.sales-status .chart-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+  padding: 0;
 }
 
 .sales-info {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 15px;
+  gap: 8px;
 }
 
 .sales-info h2 {
   color: #ffffff;
-  font-size: 32px;
+  font-size: 30px;
   font-weight: 800;
+  margin: 5px 0 17px 0;
+}
+
+.sales-legend {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 8px 0 17px 0;
+}
+
+.sales-legend li {
+  font-size: 16px;
+  color: #ebebeb9c;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 500;
+}
+
+/* 도넛 색상 맞춤 동그라미 아이콘 */
+.sales-legend li::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.sales-legend li.pre-pay::before {
+  background-color: #82c2e3;
+}
+
+.sales-legend li.on-site-pay::before {
+  background-color: #ffffff;
 }
 
 .discount-badge {
@@ -761,96 +962,106 @@ onMounted(async () => {
   color: #a1a1aa;
   padding: 8px 14px;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   align-self: flex-start;
-  margin-top: 0;
+  margin-bottom: 17px 0 17px 0;
 }
 
-.sales-info ul {
-  font-size: 14px;
-  color: #a1a1aa;
-  margin: 0;
-  list-style: none;
-  padding: 0;
-  line-height: 1.6;
+/* 뚱도넛 내부 텍스트 위치 정중앙 고정 */
+.chart-container {
+  position: relative;
+  width: 145px;
+  height: 145px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-
-/* ==========================================
-   회원 방문 비율 카드 전용 CSS (글로우 & 디테일)
-   ========================================== */
-
-.glowing-donut canvas {
-  filter: drop-shadow(0 0 8px rgba(130, 194, 227, 0.6));
-}
-
-/* 도넛 정중앙 텍스트 그룹 */
-.donut-inner-center {
+.donut-inner-text {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  text-align: center;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
   pointer-events: none;
-  /* 툴팁 방해 금지 */
-  width: 100%;
+  white-space: nowrap;
+  text-align: center;
 }
 
-.inner-main {
-  font-size: 24px;
-  font-weight: 800;
-  color: #82c2e3;
-  /* 앞 숫자는 강조된 하늘색 */
+/* ==========================================
+   4. 상단 중앙 카드: 회원/비회원 방문 비율
+   ========================================== */
+.visitor-ratio {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
-.inner-slash {
-  font-size: 16px;
-  color: #e5e8eb;
-  /* 뒷 숫자는 연한 색 */
-  font-weight: 500;
+.visitor-ratio .ratio-content {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  flex: 1;
+  padding: 0;
+  gap: 80px;
 }
 
-.inner-sub {
-  font-size: 16px;
-  color: #a1a1aa;
-  margin-top: 4px;
-}
-
-/* 우측 정보 영역 레이아웃 */
 .ratio-info-area {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  flex: 1;
-  padding-left: 14px;
-  gap: 10px;
+  gap: 8px;
 }
 
-/* 범례 리스트 */
+.ratio-emphasis {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin: -5px 0 17px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 15px;
+}
+
+.ratio-emphasis .inner-main {
+  font-size: 30px;
+  font-weight: 800;
+  color: #82c2e3;
+}
+
+.ratio-emphasis .unit {
+  font-size: 18px;
+  color: #e5e8eb;
+  font-weight: 600;
+}
+
 .ratio-legend-list {
   list-style: none;
   padding: 0;
-  margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+  margin: -5px 0 17px 0;
 }
 
 .ratio-legend-list li {
+  font-size: 16px;
+  color: #ebebeb9c;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 16px;
-  color: #e5e8eb;
+  gap: 12px;
   font-weight: 500;
 }
 
 .ratio-legend-list li::before {
   content: '';
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
 }
 
 .member-dot::before {
@@ -861,43 +1072,323 @@ onMounted(async () => {
   background: rgba(255, 255, 255, 0.15);
 }
 
-/* 구분선 */
-.ratio-divider {
-  border: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  margin: 5px 0;
-  width: 100%;
-}
-
-.ratio-emphasis {
-  color: #fff;
-  font-size: 32px;
-  font-weight: 800;
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  margin-bottom: 10px;
-}
-
-.ratio-emphasis .unit {
-  font-size: 16px;
-  font-weight: 500;
-  color: #e5e8eb;
-}
-
-/* 하단 다크 배지 */
 .ratio-badge {
-  background: rgba(255, 255, 255, 0.05);
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.08);
   color: #a1a1aa;
-  padding: 6px 12px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  align-self: flex-start;
+  margin-bottom: -5px;
+}
+
+
+/* ==========================================
+   5. 상단 우측 카드: 예상 주차 대수
+   ========================================== */
+.card-header-flex {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 5px;
+}
+
+.status-badge {
+  background: rgba(130, 194, 227, 0.15);
+  color: #82c2e3;
+  padding: 5px 10px;
   border-radius: 6px;
   font-size: 13px;
   font-weight: 600;
-  display: inline-block;
-  align-self: flex-start;
 }
 
-/* 입출차 현황 테이블*/
+.entry-prediction .chart-placeholder {
+  flex: 1;
+  /* 남은 공간 꽉 채우기 */
+  min-height: 0;
+  /* 찌부러짐 방지 */
+  position: relative;
+  width: 100%;
+}
+
+
+/* ==========================================
+   6. 중단 왼쪽 카드: EV 충전기 현황 및 알림
+   ========================================== */
+.ev-monitor-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.ev-split-container {
+  display: flex;
+  flex: 1;
+  margin-top: 5px;
+}
+
+/* 좌우 패널 및 중앙 선 */
+.ev-left-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding-right: 17px;
+}
+
+.ev-vertical-divider {
+  width: 1px;
+  background-color: rgba(255, 255, 255, 0.1);
+  margin: 0 10px;
+}
+
+.ev-right-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding-left: 17px;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 17px;
+}
+
+.panel-sub-title {
+  font-size: 18px;
+  color: #e5e8eb;
+  font-weight: 500;
+}
+
+/* 층 선택 셀렉트박스 */
+.floor-select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e5e8eba6;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 14px;
+  outline: none;
+  cursor: pointer;
+}
+
+.floor-select:hover {
+  border-color: rgba(130, 194, 227, 0.5);
+}
+
+.floor-select option {
+  background: #1a1d21;
+  color: #fff;
+}
+
+/* 좌측 가로 진행바 (사용중, 대기, 고장) */
+.status-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.s-label {
+  width: 65px;
+  font-size: 16px;
+  color: #a1a1aa;
+  font-weight: 500;
+}
+
+.s-bar-bg {
+  flex: 1;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.s-bar-fill {
+  height: 100%;
+  border-radius: 8px;
+  transition: width 0.5s ease-out;
+}
+
+.bg-blue {
+  background: #82c2e3;
+}
+
+.bg-teal {
+  background: #359ca5;
+}
+
+.bg-red {
+  background: #ff0000;
+}
+
+.s-val {
+  width: 90px;
+  font-size: 13px;
+  color: #94a3b8;
+  text-align: right;
+}
+
+.s-icon {
+  display: block;
+}
+
+.dot-svg {
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+
+.icon-blue {
+  color: #60a5fa;
+}
+
+.icon-teal {
+  color: #2dd4bf;
+}
+
+.icon-red {
+  color: #ef4444;
+}
+
+.dot-svg.red {
+  color: #ef4444;
+}
+
+.dot-svg.yellow {
+  color: #f59e0b;
+}
+
+.dot-svg.teal {
+  color: #2dd4bf;
+}
+
+
+.total-status-text {
+  text-align: right;
+  color: #f59e0b;
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 20px;
+}
+
+/* 우측 알림 리스트 영역 */
+.noti-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mt-10 {
+  margin-top: 15px;
+}
+
+.noti-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.noti-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 16px;
+  color: #d1d5db;
+}
+
+.noti-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot.red {
+  background: #ef4444;
+}
+
+.dot.yellow {
+  background: #f59e0b;
+}
+
+.dot.teal {
+  background: #2dd4bf;
+}
+
+.tag {
+  font-weight: 700;
+  margin-right: 2px;
+}
+
+.tag.red {
+  color: #ef4444;
+}
+
+.tag.yellow {
+  color: #f59e0b;
+}
+
+.tag.teal {
+  color: #2dd4bf;
+}
+
+.noti-badge {
+  font-size: 14px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.red-outline {
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  color: #ef4444;
+}
+
+.yellow-outline {
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #f59e0b;
+}
+
+/* 우측 알림 리스트 클릭(호버) 효과 */
+.clickable-issue {
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  margin-left: -8px;
+  /* 패딩 준 만큼 왼쪽으로 당겨서 글씨 열 맞춤 */
+}
+
+.clickable-issue:hover {
+  background: rgba(255, 255, 255, 0.08);
+  /* 마우스 올리면 배경색 살짝 들어옴 */
+  transform: translateX(4px);
+  /* 오른쪽으로 살짝 밀리는 애니메이션 */
+}
+
+
+/* ==========================================
+   7. 하단 카드: 최근 입출차 현황 테이블
+   ========================================== */
 .admin-table {
   width: 100%;
   border-collapse: collapse;
@@ -918,121 +1409,55 @@ onMounted(async () => {
   color: #f5f5f5;
 }
 
-/* 데이터가 없을 때의 테이블 표시 */
 .admin-table td[colspan="7"] {
   color: #a1a1aa;
   padding: 30px;
   font-style: italic;
 }
 
-/* EV 현황 파트 */
-.ev-content-flex {
-  display: flex;
-  gap: 30px;
-}
-
-.ev-progress-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.prog-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-}
-
-/* 체류시간 막대차트 목업 */
-.bar-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  height: 100%;
-  justify-content: flex-end;
-}
-
-.bar-fill {
-  width: 24px;
-  background: #4a63e6;
-  border-radius: 4px 4px 0 0;
-}
-
-.bar-col span {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-/* 헤더 레이아웃 수정: 양끝 정렬(space-between) 적용 */
-.overview-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 17px;
-}
-
-/* 왼쪽 타이틀과 탭 사이 간격 유지 */
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 30px;
-}
-
-.page-title {
-  font-size: 24px;
-  font-weight: 700;
-  margin: 0;
-  /* flex 적용 시 여백 초기화 */
-}
-
-/* 오른쪽 달력 영역 디자인 */
-.relative-box {
-  position: relative;
-  /* 팝업이 이 박스를 기준으로 아래에 뜨게 함 */
-}
-
-.date-trigger-box {
+/* 상단 우측 영역 */
+.live-status-box {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #444d5630;
+  background: rgba(34, 197, 94, 0.1);
+  /* 초록색 반투명 배경 */
+  border: 1px solid rgba(34, 197, 94, 0.3);
   padding: 8px 16px;
   border-radius: 8px;
-  border: 1px solid #3f3f46;
-  color: #a1a1aa;
-  cursor: pointer;
-  transition: 0.2s;
 }
 
-.date-trigger-box:hover {
-  border-color: #82c2e3;
-  color: #fff;
-}
-
-.date-text {
+.live-text {
   font-size: 14px;
-  font-weight: 500;
-  color: #e5edf8;
-}
-
-/* ==========================================
-   3번 카드: 예상 주차 대수 뱃지 디테일
-   ========================================== */
-.card-header-flex {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.status-badge {
-  background: rgba(130, 194, 227, 0.15);
-  color: #82c2e3;
-  padding: 5px 10px;
-  border-radius: 6px;
-  font-size: 13px;
   font-weight: 600;
+  color: #22c55e;
+  /* 산뜻한 초록색 */
+  letter-spacing: 0.5px;
+}
+
+.pulse-dot {
+  width: 10px;
+  height: 10px;
+  background-color: #22c55e;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(34, 197, 94, 1);
+  animation: pulse-green 2s infinite;
+}
+
+@keyframes pulse-green {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+  }
+
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
 }
 </style>

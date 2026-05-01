@@ -1,4 +1,5 @@
 // src/api/payment/stats.js
+// 관리자 대시보드 - 요금 정산 관리 화면
 import axios from 'axios'
 
 const PYTHON_API_URL = 'http://localhost:8004/api/admin-payment'

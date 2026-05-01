@@ -57,22 +57,40 @@
               </select>
             </div>
           </div>
-          <div v-else class="grid-row">
-            <div class="input-section">
+
+          <div v-else>
+            <div class="grid-row">
+              <div class="input-section">
+                <label>행정 부서 <span class="req">*</span></label>
+                <select v-model="user.admin_dept_id" @change="validateEmpNumber">
+                  <option value="">선택</option>
+                  <option v-for="a in adminDepts" :key="a.admin_dept_id" :value="a.admin_dept_id">{{ a.admin_dept_name
+                  }}</option>
+                </select>
+              </div>
+              <div class="input-section">
+                <label>직위 <span class="req">*</span></label>
+                <select v-model="user.rank" @change="validateEmpNumber">
+                  <option value="">선택</option>
+                  <option value="사원">사원</option>
+                  <option value="주임">주임</option>
+                  <option value="대리">대리</option>
+                  <option value="과장">과장</option>
+                  <option value="차장">차장</option>
+                  <option value="부장">부장</option>
+                  <option value="팀장">팀장</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="input-section mt-8">
               <label>사원 번호 <span class="req">*</span></label>
-              <input type="text" v-model="user.emp_number" placeholder="A20260101" maxlength="9"
-                @input="checkEmpInput" class="ime-en" />
+              <input type="text" v-model="user.emp_number" placeholder="A20260101" maxlength="9" @input="checkEmpInput"
+                class="ime-en" />
               <p class="guide-msg"
                 :class="{ 'success': isEmpValid, 'error': !isEmpValid && user.emp_number.length > 0 }">
                 {{ empMsg }}
               </p>
-            </div>
-            <div class="input-section">
-              <label>행정 부서 <span class="req">*</span></label>
-              <select v-model="user.admin_dept_id">
-                <option value="">선택</option>
-                <option v-for="a in adminDepts" :key="a.admin_dept_id" :value="a.admin_dept_id">{{ a.admin_dept_name }}</option>
-              </select>
             </div>
           </div>
         </div>
@@ -133,7 +151,8 @@
         <div class="grid-row">
           <div class="input-section">
             <label>이름 <span class="req">*</span></label>
-            <input type="text" v-model="user.name" placeholder="한글 입력 (2자 이상)" @input="checkName" maxlength="10" class="ime-ko" />
+            <input type="text" v-model="user.name" placeholder="2자 이상 입력" @input="checkName" maxlength="20"
+              class="ime-ko" />
             <p class="guide-msg" :class="{ 'success': isNameValid, 'error': !isNameValid && user.name.length > 0 }">
               {{ nameMsg || '' }}
             </p>
@@ -149,8 +168,10 @@
 
         <div class="input-section">
           <label>생년월일 <span class="req">*</span></label>
-          <input type="text" v-model="user.birthday" placeholder="YYYYMMDD" maxlength="8" @input="checkBirthInput" class="ime-en" />
-          <p class="guide-msg" :class="{ 'success': isBirthValid, 'error': !isBirthValid && user.birthday.length > 0 }">{{ birthMsg || '' }}</p>
+          <input type="text" v-model="user.birthday" placeholder="YYYYMMDD" maxlength="8" @input="checkBirthInput"
+            class="ime-en" />
+          <p class="guide-msg" :class="{ 'success': isBirthValid, 'error': !isBirthValid && user.birthday.length > 0 }">
+            {{ birthMsg || '' }}</p>
         </div>
 
         <div class="input-section">
@@ -158,18 +179,19 @@
           <div class="tel-flex-row">
             <select v-model="tel1">
               <option value="010">010</option>
-                  <option value="011">011</option>
-                  <option value="070">070</option>
-                  <option value="02">02</option>
-                  <option value="031">031</option>
-                  <option value="032">032</option>
-                  <option value="051">051</option>
-                  <option value="042">042</option>
+              <option value="011">011</option>
+              <option value="070">070</option>
+              <option value="02">02</option>
+              <option value="031">031</option>
+              <option value="032">032</option>
+              <option value="051">051</option>
+              <option value="042">042</option>
             </select>
             <span class="tel-dash">-</span>
             <input type="text" v-model="tel2" maxlength="4" @input="onlyNumber($event, 'tel2')" class="ime-en" />
             <span class="tel-dash">-</span>
-            <input type="text" ref="tel3Input" v-model="tel3" maxlength="4" @input="onlyNumber($event, 'tel3')" class="ime-en" />
+            <input type="text" ref="tel3Input" v-model="tel3" maxlength="4" @input="onlyNumber($event, 'tel3')"
+              class="ime-en" />
           </div>
           <p class="guide-msg" :class="{ 'success': isPhoneValid }">
             {{ isPhoneValid ? '' : '전화번호를 입력해 주세요' }}
@@ -178,7 +200,8 @@
 
         <div class="input-section">
           <label>이메일 <span class="req">*</span></label>
-          <input type="text" v-model="user.email" placeholder="example@email.com" @input="checkEmailInput" class="ime-en" />
+          <input type="text" v-model="user.email" placeholder="example@email.com" @input="checkEmailInput"
+            class="ime-en" />
           <p class="guide-msg" :class="{ 'success': isEmailValid, 'error': !isEmailValid && user.email.length > 0 }">
             {{ emailMsg }}
           </p>
@@ -225,8 +248,8 @@ const user = ref({
 });
 
 // 전화번호 분리 (010 - 1234 - 5678)
-const tel1 = ref('010'); 
-const tel2 = ref(''); 
+const tel1 = ref('010');
+const tel2 = ref('');
 const tel3 = ref('');
 const tel3Input = ref(null); // 자동 포커스 이동용 ref
 
@@ -267,15 +290,15 @@ const empMsg = ref("사원번호를 입력해 주세요 (예: A12345678)");
 const checkID = () => {
   user.value.id = user.value.id.toLowerCase().replace(/[^a-z0-9]/g, '');
   isIdChecked.value = false; // 내용 바뀌면 중복확인 초기화
-  
+
   if (!user.value.id) idMsg.value = "";
   else if (user.value.id.length < 6 || user.value.id.length > 16) idMsg.value = "6 ~ 16자 이내로 입력해 주세요";
   else idMsg.value = "중복 확인이 필요합니다";
 }
 
 // [비밀번호] 한글 입력 방지
-const handlePasswordInput = () => { 
-  user.value.password = user.value.password.replace(/[ㄱ-ㅎㅏ-ㅣ가-힣]/g, ''); 
+const handlePasswordInput = () => {
+  user.value.password = user.value.password.replace(/[ㄱ-ㅎㅏ-ㅣ가-힣]/g, '');
 }
 
 // 비밀번호 실시간 조건 감시 (길이, 대문자, 특수문자)
@@ -286,19 +309,23 @@ watch(() => user.value.password, (val) => {
 });
 
 // [비번확인] 한글 입력 방지
-const handlePwCk = () => { 
-  user.value.pwCk = user.value.pwCk.replace(/[ㄱ-ㅎㅏ-ㅣ가-힣]/g, ''); 
+const handlePwCk = () => {
+  user.value.pwCk = user.value.pwCk.replace(/[ㄱ-ㅎㅏ-ㅣ가-힣]/g, '');
 }
 
-// [이름] 한글만 입력 가능 (영어/숫자 제거)
+// [이름] 한글, 영문, 띄어쓰기 허용
 const checkName = (e) => {
-  user.value.name = e.target.value.replace(/[^ㄱ-ㅎㅏ-ㅣ가-힣]/g, '');
-  if (user.value.name.length < 2) { 
-    isNameValid.value = false; 
-    nameMsg.value = "2자 이상 입력해 주세요"; 
-  } else { 
-    isNameValid.value = true; 
-    nameMsg.value = ""; 
+  user.value.name = e.target.value.replace(/[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z\s]/g, '');
+
+  // 이름 길이 검사 (띄어쓰기 제외하고 2글자 이상이어야 통과)
+  const nameLen = user.value.name.replace(/\s/g, '').length;
+
+  if (nameLen < 2) {
+    isNameValid.value = false;
+    nameMsg.value = "2자 이상 입력해 주세요 (공백 제외)";
+  } else {
+    isNameValid.value = true;
+    nameMsg.value = "";
   }
 }
 
@@ -307,19 +334,19 @@ const checkBirthInput = (e) => {
   // 1. 숫자만 남기기
   user.value.birthday = e.target.value.replace(/[^0-9]/g, '');
   const val = user.value.birthday;
-  
+
   // 2. 8자리가 아니면 에러
-  if (val.length !== 8) { 
-    isBirthValid.value = false; 
-    birthMsg.value = "8자리 숫자로 입력해 주세요"; 
-    return; 
+  if (val.length !== 8) {
+    isBirthValid.value = false;
+    birthMsg.value = "8자리 숫자로 입력해 주세요";
+    return;
   }
 
   // 3. 날짜 분해
   const y = parseInt(val.substring(0, 4));
   const m = parseInt(val.substring(4, 6));
   const d = parseInt(val.substring(6, 8));
-  
+
   const date = new Date(y, m - 1, d);
   const today = new Date();
 
@@ -385,177 +412,244 @@ const checkLicenseInput = (e) => {
   }
 }
 
-// [사원번호] 대문자 변환 + 포맷(A+숫자8) 확인
-const checkEmpInput = (e) => {
-  const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  user.value.emp_number = val;
+// 사원번호 부서 제약 검사 함수 (추가)
+const validateEmpNumber = () => {
+  const val = user.value.emp_number;
 
-  const pattern = /^[A-Z][0-9]{8}$/;
+  if (!user.value.admin_dept_id || !user.value.rank) {
+    isEmpValid.value = false;
+    empMsg.value = "행정 부서와 직위를 먼저 선택해 주세요.";
+    return;
+  }
 
   if (val.length === 0) {
-    isEmpValid.value = false; empMsg.value = "사원번호를 입력해 주세요";
-  } else if (!pattern.test(val)) {
-    isEmpValid.value = false; empMsg.value = "올바르지 않는 형식입니다. 다시 입력해 주세요.";
-  } else {
-    isEmpValid.value = true; empMsg.value = "✔ 사원 인증이 완료되었습니다. 부서를 선택해주세요.";
+    isEmpValid.value = false;
+    empMsg.value = "사원번호를 입력해 주세요 (예: A12345678)";
+    return;
   }
-}
 
-// 탭/직무 변경 시 병원 관련 필드 초기화
-const resetHospitalFields = () => {
-  user.value.license_number = '';
-  user.value.emp_number = '';
-  isLicenseValid.value = false; licenseMsg.value = "면허번호 6자리를 입력해 주세요.";
-  isEmpValid.value = false; empMsg.value = "사원번호를 입력해 주세요. (예: A12345678)";
-}
-
-// 숫자만 입력 + 전화번호 자동 포커스 이동
-const onlyNumber = (e, field) => {
-  const val = e.target.value.replace(/[^0-9]/g, '');
-  if (field === 'tel2') {
-    tel2.value = val;
-    if (val.length === 4) tel3Input.value?.focus(); // 4글자 되면 다음 칸 이동
-  } else if (field === 'tel3') {
-    tel3.value = val;
-  } else if (field === 'license_number') {
-    user.value.license_number = val;
+  const pattern = /^[A-Z][0-9]{8}$/;
+  if (!pattern.test(val)) {
+    isEmpValid.value = false;
+    empMsg.value = "올바르지 않는 형식입니다. 다시 입력해 주세요.";
+    return;
   }
-}
 
+  if (user.value.admin_dept_id) {
+    const selectedDept = adminDepts.value.find(d => d.admin_dept_id === user.value.admin_dept_id);
 
-// =========================================
-// 3. API 통신 및 버튼 핸들러
-// =========================================
+    if (selectedDept) {
+      const deptName = selectedDept.admin_dept_name;
+      let requiredPrefix = '';
 
-// [아이디 중복확인]
-const idcheck = async () => {
-  if (idMsg.value === "6 ~ 16자 이내로 입력해 주세요" || !user.value.id) { 
-    alert("아이디 형식을 확인해주세요."); return; 
-  }
-  try {
-    const res = await idCheckReq(user.value.id);
-    if (res.data === true) { 
-      alert("사용 가능한 아이디입니다."); 
-      isIdChecked.value = true; 
-      idMsg.value = "✔ 사용 가능한 아이디입니다"; 
-    } else { 
-      alert("이미 사용 중인 아이디입니다."); 
-      user.value.id = ''; 
-      isIdChecked.value = false; 
-      idMsg.value = ""; 
-    }
-  } catch (e) { alert("중복 확인 실패"); }
-}
+      if (deptName === '주차관리팀') requiredPrefix = 'P';
+      else if (deptName === '시설관리팀') requiredPrefix = 'F';
+      else if (deptName === '보안팀') requiredPrefix = 'S';
 
-// [주소 검색] 다음 우편번호 API
-const openPostcode = () => {
-  if (!window.daum) { alert("다음 주소 API 로딩 중..."); return; }
-  
-  // (수정) user 코드에서 kakao로 되어있던 것을 daum으로 통일 (안전장치)
-  new window.kakao.Postcode({
-    oncomplete: (data) => {
-      user.value.address = data.roadAddress || data.jibunAddress;
-      document.getElementById("userAddrDetail")?.focus();
-    }
-  }).open();
-}
-
-// 헤더 텍스트 및 버튼 텍스트 계산
-const headerTitle = computed(() => mainTab.value === 'member' ? '회원가입' : '병원 관계자 등록');
-const submitBtnText = computed(() => mainTab.value === 'member' ? '가입하기' : '등록 신청하기');
-
-// [탭 전환] 폼 초기화 및 탭 설정
-const setMainTab = (type) => {
-  mainTab.value = type; 
-  user.value.type = type;
-  user.value = { ...user.value, id: '', password: '', pwCk: '', name: '', birthday: '', email: '', role: type === 'hospital' ? '의사' : '' };
-  
-  // 에러 메시지 초기화
-  isIdChecked.value = false; idMsg.value = "";
-  isNameValid.value = false; nameMsg.value = "";
-  isBirthValid.value = false; birthMsg.value = "";
-  isEmailValid.value = false; emailMsg.value = "이메일 주소를 입력해 주세요";
-  resetHospitalFields();
-}
-
-// [가입하기 버튼] 최종 유효성 검사 및 전송
-const handleRegi = async () => {
-  // 1. 공통 필수값 체크
-  if (!user.value.id || !isIdChecked.value) { alert("아이디 중복 확인을 해주세요."); return; }
-  if (!user.value.password || !isPwLenValid.value || !isPwUpValid.value || !isPwSpValid.value) { alert("비밀번호 형식을 모두 만족해야 합니다."); return; }
-  if (user.value.password !== user.value.pwCk) { alert("비밀번호 확인이 일치하지 않습니다."); return; }
-  if (!isNameValid.value) { alert("이름을 확인해주세요."); return; }
-  if (!isBirthValid.value) { alert("생년월일을 확인해주세요."); return; }
-  if (!isPhoneValid.value) { alert("전화번호를 입력해주세요."); return; }
-  
-  user.value.phoneNumber = `${tel1.value}${tel2.value}${tel3.value}`;
-  
-  if (!isEmailValid.value) { alert("이메일을 확인해주세요."); return; }
-  if (!user.value.address) { alert("주소를 입력해주세요."); return; }
-
-  // 2. 병원 관계자 전용 체크
-  if (mainTab.value === 'hospital') {
-    if (user.value.role !== '행정부서') { // 의사, 간호사
-      if (!isLicenseValid.value) { alert(licenseMsg.value); return; }
-      if (!user.value.med_dept_id) { alert("진료과를 선택해주세요."); return; }
-    } else { // 행정직
-      if (!isEmpValid.value) { alert(empMsg.value); return; }
-      if (!user.value.admin_dept_id) { alert("부서를 선택해주세요."); return; }
+      if (requiredPrefix && !val.startsWith(requiredPrefix)) {
+        isEmpValid.value = false;
+        empMsg.value = `${deptName} 사원번호 형식과 일치하지 않습니다.`;
+        return;
+      }
     }
   }
 
-  // 3. 전송 데이터 정리 (숫자 변환 등)
-  const sendData = {
-    ...user.value,
-    birthday: Number(user.value.birthday),
-    gender: Number(user.value.gender),
-    licenseNumber: user.value.license_number || null,
-    medDeptId: user.value.med_dept_id ? Number(user.value.med_dept_id) : null,
-    empNumber: user.value.emp_number || null,
-    adminDeptId: user.value.admin_dept_id ? Number(user.value.admin_dept_id) : null
-  };
-
-  // 4. API 전송
-  try {
-    let res;
-    if (mainTab.value === 'member') res = await regiReq(sendData);
-    else {
-      if (user.value.role === '행정부서') res = await adminRegiReq(sendData);
-      else res = await staffRegiReq(sendData);
-    }
-
-    if (res.data === "success" || res.data === true) {
-      alert("환영합니다!");
-      router.push('/login');
-    } else {
-      alert("가입에 실패했습니다. 입력 정보를 확인해주세요.");
-    }
-  } catch (err) { alert("서버 오류가 발생했습니다."); }
+  isEmpValid.value = true;
+  empMsg.value = "✔ 사원 인증이 완료되었습니다.";
 }
 
-// [초기화] 페이지 로드 시 진료과/부서 목록 가져오기
-onMounted(async () => {
-  if (route.query.type === 'hospital') {
-    setMainTab('hospital');
+// 기존 입력 핸들러 (타이핑마다 위 함수 호출)
+  const checkEmpInput = (e) => {
+    if (!user.value.admin_dept_id || !user.value.rank) {
+    alert("행정 부서와 직위를 먼저 선택해 주세요!");
+    user.value.emp_number = ''; 
+    e.target.value = ''; 
+    validateEmpNumber();
+    return;
   }
 
-  try {
-    const medRes = await getDeptsReq();
-    medDepts.value = medRes.data;
-    const adminRes = await getAdminDeptsReq();
-    adminDepts.value = adminRes.data;
-  } catch (e) { }
-})
+    // 대문자 변환 및 영문/숫자 외 제거
+    let val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+    if (val.length > 0) {
+      // 첫 글자는 무조건 알파벳(A-Z)만 남김 (숫자 치면 바로 삭제됨)
+      const firstChar = val.charAt(0).replace(/[^A-Z]/g, '');
+
+      // 두 번째 글자부터는 무조건 숫자(0-9)만 남김 (알파벳 치면 바로 삭제됨)
+      const restChars = val.substring(1).replace(/[^0-9]/g, '');
+
+      val = firstChar + restChars;
+    }
+
+    // 4. 최대 9자리까지만 잘라서 폼에 적용
+    user.value.emp_number = val.substring(0, 9);
+
+    // 5. 부서 규칙에 맞는지 검사 로직 돌림
+    validateEmpNumber();
+  }
+
+  // 탭/직무 변경 시 병원 관련 필드 초기화
+  const resetHospitalFields = () => {
+    user.value.license_number = '';
+    user.value.emp_number = '';
+    isLicenseValid.value = false; licenseMsg.value = "면허번호 6자리를 입력해 주세요.";
+    isEmpValid.value = false; empMsg.value = "사원번호를 입력해 주세요. (예: A12345678)";
+  }
+
+  // 숫자만 입력 + 전화번호 자동 포커스 이동
+  const onlyNumber = (e, field) => {
+    const val = e.target.value.replace(/[^0-9]/g, '');
+    if (field === 'tel2') {
+      tel2.value = val;
+      if (val.length === 4) tel3Input.value?.focus(); // 4글자 되면 다음 칸 이동
+    } else if (field === 'tel3') {
+      tel3.value = val;
+    } else if (field === 'license_number') {
+      user.value.license_number = val;
+    }
+  }
+
+
+  // =========================================
+  // 3. API 통신 및 버튼 핸들러
+  // =========================================
+
+  // [아이디 중복확인]
+  const idcheck = async () => {
+    if (idMsg.value === "6 ~ 16자 이내로 입력해 주세요" || !user.value.id) {
+      alert("아이디 형식을 확인해주세요."); return;
+    }
+    try {
+      const res = await idCheckReq(user.value.id);
+      if (res.data === true) {
+        alert("사용 가능한 아이디입니다.");
+        isIdChecked.value = true;
+        idMsg.value = "✔ 사용 가능한 아이디입니다";
+      } else {
+        alert("이미 사용 중인 아이디입니다.");
+        user.value.id = '';
+        isIdChecked.value = false;
+        idMsg.value = "";
+      }
+    } catch (e) { alert("중복 확인 실패"); }
+  }
+
+  // [주소 검색] 다음 우편번호 API
+  const openPostcode = () => {
+    if (!window.daum) { alert("다음 주소 API 로딩 중..."); return; }
+
+    // (수정) user 코드에서 kakao로 되어있던 것을 daum으로 통일 (안전장치)
+    new window.kakao.Postcode({
+      oncomplete: (data) => {
+        user.value.address = data.roadAddress || data.jibunAddress;
+        document.getElementById("userAddrDetail")?.focus();
+      }
+    }).open();
+  }
+
+  // 헤더 텍스트 및 버튼 텍스트 계산
+  const headerTitle = computed(() => mainTab.value === 'member' ? '회원가입' : '병원 관계자 등록');
+  const submitBtnText = computed(() => mainTab.value === 'member' ? '가입하기' : '등록 신청하기');
+
+  // [탭 전환] 폼 초기화 및 탭 설정
+  const setMainTab = (type) => {
+    mainTab.value = type;
+    user.value.type = type;
+    user.value = { ...user.value, id: '', password: '', pwCk: '', name: '', birthday: '', email: '', role: type === 'hospital' ? '의사' : '' };
+
+    // 에러 메시지 초기화
+    isIdChecked.value = false; idMsg.value = "";
+    isNameValid.value = false; nameMsg.value = "";
+    isBirthValid.value = false; birthMsg.value = "";
+    isEmailValid.value = false; emailMsg.value = "이메일 주소를 입력해 주세요";
+    resetHospitalFields();
+  }
+
+  // [가입하기 버튼] 최종 유효성 검사 및 전송
+  const handleRegi = async () => {
+    // 1. 공통 필수값 체크
+    if (!user.value.id || !isIdChecked.value) { alert("아이디 중복 확인을 해주세요."); return; }
+    if (!user.value.password || !isPwLenValid.value || !isPwUpValid.value || !isPwSpValid.value) { alert("비밀번호 형식을 모두 만족해야 합니다."); return; }
+    if (user.value.password !== user.value.pwCk) { alert("비밀번호 확인이 일치하지 않습니다."); return; }
+    if (!isNameValid.value) { alert("이름을 확인해주세요."); return; }
+    if (!isBirthValid.value) { alert("생년월일을 확인해주세요."); return; }
+    if (!isPhoneValid.value) { alert("전화번호를 입력해주세요."); return; }
+
+    user.value.phoneNumber = `${tel1.value}${tel2.value}${tel3.value}`;
+
+    if (!isEmailValid.value) { alert("이메일을 확인해주세요."); return; }
+    if (!user.value.address) { alert("주소를 입력해주세요."); return; }
+
+    // 2. 병원 관계자 전용 체크
+    if (mainTab.value === 'hospital') {
+      if (user.value.role !== '행정부서') { // 의사, 간호사
+        if (!isLicenseValid.value) { alert(licenseMsg.value); return; }
+        if (!user.value.med_dept_id) { alert("진료과를 선택해주세요."); return; }
+      } else { // 행정직
+        if (!isEmpValid.value) { alert(empMsg.value); return; }
+        if (!user.value.admin_dept_id) { alert("부서를 선택해주세요."); return; }
+        if (!user.value.rank) { alert("직위를 선택해주세요."); return; }
+      }
+    }
+
+    // 3. 전송 데이터 정리 (숫자 변환 등)
+    const sendData = {
+      ...user.value,
+      birthday: Number(user.value.birthday),
+      gender: Number(user.value.gender),
+      licenseNumber: user.value.license_number || null,
+      medDeptId: user.value.med_dept_id ? Number(user.value.med_dept_id) : null,
+      empNumber: user.value.emp_number || null,
+      adminDeptId: user.value.admin_dept_id ? Number(user.value.admin_dept_id) : null
+    };
+
+    // 4. API 전송
+    try {
+      let res;
+      if (mainTab.value === 'member') res = await regiReq(sendData);
+      else {
+        if (user.value.role === '행정부서') res = await adminRegiReq(sendData);
+        else res = await staffRegiReq(sendData);
+      }
+
+      if (res.data === "success" || res.data === true) {
+        alert("환영합니다!");
+        router.push('/login');
+      } else {
+        alert("가입에 실패했습니다. 입력 정보를 확인해주세요.");
+      }
+    } catch (err) { alert("서버 오류가 발생했습니다."); }
+  }
+
+  // [초기화] 페이지 로드 시 진료과/부서 목록 가져오기
+  onMounted(async () => {
+    if (route.query.type === 'hospital') {
+      setMainTab('hospital');
+    }
+
+    if (route.query.role === 'admin') {
+      user.value.role = '행정부서';
+    }
+
+    try {
+      const medRes = await getDeptsReq();
+      medDepts.value = medRes.data;
+      const adminRes = await getAdminDeptsReq();
+      adminDepts.value = adminRes.data;
+    } catch (e) { }
+  })
 </script>
 
 <style scoped>
 /* 입력 모드(IME) 설정 */
 .ime-en {
-  ime-mode: disabled; /* 한글 입력 불가 (영문 전용) */
+  ime-mode: disabled;
+  /* 한글 입력 불가 (영문 전용) */
 }
 
 .ime-ko {
-  ime-mode: active; /* 한글 입력 우선 */
+  ime-mode: active;
+  /* 한글 입력 우선 */
 }
 
 input::-ms-reveal,

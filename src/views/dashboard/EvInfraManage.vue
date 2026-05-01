@@ -85,6 +85,9 @@
               @charger-change="handleChargerChange"
               @inspection-request="openSummaryInspectionModal"
               @force-shutdown="openSummaryForceShutdownModal"
+              
+              @inspection-complete="handleInspectionComplete"
+              @power-on="handlePowerOnConfirm"
             />
           </section>
 
@@ -107,6 +110,9 @@
             @inspection-request="openInspectionModal"
             @force-shutdown="openForceShutdownModal"
             @charger-select="handleHistoryChargerSelect"
+
+            @inspection-complete="handleInspectionComplete"
+            @power-on="handlePowerOnConfirm"
           />
         </section>
       </div>
@@ -129,7 +135,67 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount, watch, inject } from 'vue'
+
+// [임소리] 추가 ======================================================================
+import { useRoute } from 'vue-router'
+const route = useRoute()
+
+// DashboardLayout에서 던져준 새로고침 받기
+const refreshPendingCount = inject('refreshPendingCount', () => {})
+
+import axios from 'axios'
+
+// 플로팅 팝업에서 다른 기기를 클릭했을 때 화면 즉시 갱신
+watch(() => route.query.chargerId, async (newId) => {
+  if (newId && route.query.tab === 'predictive') {
+    await handleChargerDetailView(newId)
+  }
+})
+
+// 시설관리팀 점검 완료 처리 함수
+const handleInspectionComplete = async (item = null) => {
+  // 테이블에서 넘어오면 item.chargerId, 요약 카드에서 넘어오면 현재 선택된 getActiveChargerId() 사용
+  const targetId = item ? item.chargerId : getActiveChargerId()
+  
+  if (confirm(`[${targetId}] 기기의 점검을 완료 처리하시겠습니까?`)) {
+    try {
+      const res = await axios.post('http://localhost:8003/inspection/complete', { chargerId: targetId })
+      if (res.data.success) {
+        alert('점검 완료 처리되었습니다')
+        await fetchChargerList()
+        await fetchChargerDetail(targetId)
+        await fetchHistoryData()
+
+        refreshPendingCount()
+      }
+    } catch (e) {
+      console.error('점검 완료 처리 실패:', e)
+      alert('처리 중 오류가 발생했습니다')
+    }
+  }
+}
+
+// 주차/보안팀 가동 재개 처리 함수
+const handlePowerOnConfirm = async (item = null) => {
+  const targetId = item ? item.chargerId : getActiveChargerId()
+  
+  if (confirm(`[${targetId}] 기기를 다시 가동하시겠습니까?`)) {
+    try {
+      const res = await axios.post('http://localhost:8003/control/power-on', { chargerId: targetId })
+      if (res.data.success) {
+        alert('기기 가동이 재개되었습니다')
+        await fetchChargerList()
+        await fetchChargerDetail(targetId)
+        await fetchHistoryData()
+      }
+    } catch (e) {
+      console.error('가동 재개 실패:', e)
+      alert('처리 중 오류가 발생했습니다')
+    }
+  }
+}
+// =============================================================================================
 
 // 예지보전 컴포넌트
 import PredictiveSummaryCard from '@/components/ev_infra/predictive/PredictiveSummaryCard.vue'
@@ -533,15 +599,34 @@ const handleWindowClick = (event) => {
   }
 }
 
+// onMounted(async () => {
+//   await fetchChargerList()
+//   const initialChargerId = chargerList.value.length > 0 ? chargerList.value[0].chargerId : '5F-D-10'
+
+//   await Promise.all([
+//     fetchChargerDetail(initialChargerId),
+//     fetchMetricData(initialChargerId),
+//     fetchHistoryData()
+//   ])
+
+//   startPolling()
+//   window.addEventListener('click', handleWindowClick)
+// })
+
 onMounted(async () => {
   await fetchChargerList()
-  const initialChargerId = chargerList.value.length > 0 ? chargerList.value[0].chargerId : '5F-D-10'
-  
-  await Promise.all([
-    fetchChargerDetail(initialChargerId),
-    fetchMetricData(initialChargerId),
-    fetchHistoryData()
-  ])
+
+  if (route.query.tab === 'predictive' && route.query.chargerId) {
+    await handleChargerDetailView(route.query.chargerId)
+  } else {
+    // 꼬리표 없이 그냥 메뉴로 들어왔으면 원래대로 첫 번째 기기 띄워주기
+    const initialChargerId = chargerList.value.length > 0 ? chargerList.value[0].chargerId : '5F-D-10'
+    await Promise.all([
+      fetchChargerDetail(initialChargerId),
+      fetchMetricData(initialChargerId),
+      fetchHistoryData()
+    ])
+  }
 
   startPolling()
   window.addEventListener('click', handleWindowClick)
@@ -558,7 +643,7 @@ onBeforeUnmount(() => {
 
 .ev-infra-page {
   height: 100vh;
-  overflow-y: auto;
+  /* overflow-y: auto; */
   padding: 20px;
   color: #ffffff;
   box-sizing: border-box;

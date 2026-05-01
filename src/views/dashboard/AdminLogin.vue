@@ -38,7 +38,7 @@
                             d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" />
                     </svg>
                     <input type="text" v-model="empId" placeholder="예: P20115782" class="glass-input pl-40"
-                        @input="empId = empId.toUpperCase()" />
+                        maxlength="9" @input="handleEmpIdInput" @keyup.enter="isLoginReady && handleLogin()" />
                 </div>
 
                 <p v-if="idValidationMessage" class="error-msg">
@@ -52,16 +52,16 @@
 
             <div class="modal-footer mt-20">
                 <span class="text-link" @click="showFindModal = true">사원번호 찾기</span>
-                <span class="divider">|</span>
-                <span class="text-link">관리자 등록</span>
+                <span class="divider" style="color: rgba(255, 255, 255, 0.653);">|</span>
+                <span class="text-link" @click="goToAdminRegi">관리자 등록</span>
             </div>
         </div>
 
         <div v-if="showFindModal" class="overlay">
-            <div class="glass-modal find-modal">
+            <div class="glass-modal find-modal" :class="{ 'is-result': findResult }">
 
                 <div v-if="!findResult">
-                    <h2 class="modal-title text-center mb-30">사원번호 조회</h2>
+                    <h2 class="modal-title text-center mb-50">사원번호 조회</h2>
 
                     <div class="input-group mb-20">
                         <label class="row-label">부서 선택</label>
@@ -76,20 +76,20 @@
 
                     <div class="input-group mb-20">
                         <label class="row-label">이름</label>
-                        <input type="text" v-model="findForm.name" placeholder="홍길동" class="glass-input" />
+                        <input type="text" v-model="findForm.name" placeholder="홍길동" class="glass-input" @keyup.enter="isFindReady && executeFindId()"/>
                         <p v-if="findForm.name && findIdErrors.name" class="error-msg-small">{{ findIdErrors.name }}</p>
                     </div>
 
                     <div class="input-group mb-20">
                         <label class="row-label">아이디</label>
-                        <input type="text" v-model="findForm.userId" placeholder="hong123" class="glass-input" />
+                        <input type="text" v-model="findForm.userId" placeholder="hong123" class="glass-input" @keyup.enter="isFindReady && executeFindId()"/>
                         <p v-if="findForm.userId && findIdErrors.userId" class="error-msg-small">{{ findIdErrors.userId
-                            }}</p>
+                        }}</p>
                     </div>
 
-                    <div class="input-group mb-30">
+                    <div class="input-group mb-10">
                         <label class="row-label">이메일</label>
-                        <input type="email" v-model="findForm.email" placeholder="hong@naver.com" class="glass-input" />
+                        <input type="email" v-model="findForm.email" placeholder="hong@naver.com" class="glass-input" @keyup.enter="isFindReady && executeFindId()"/>
                         <p v-if="findForm.email && findIdErrors.email" class="error-msg-small">{{ findIdErrors.email }}
                         </p>
                     </div>
@@ -115,9 +115,10 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { findAdminIdReq, loginAdminReq } from '@/api/dashboard/adminLogin.js'
 
+const route = useRoute()
 const router = useRouter()
 
 // ==========================================
@@ -200,13 +201,35 @@ const handleLogin = async () => {
 
         if (response.data.is_success) {
             const adminName = response.data.admin_name
+            const adminLoginId = response.data.admin_id
 
-            sessionStorage.setItem('loginId', empId.value)
+            // 기존 세션 가져오기
+            const loginDataStr = sessionStorage.getItem('loginId')
+            if (!loginDataStr) {
+                alert("로그인 정보가 유실되었습니다. 다시 로그인해주세요.")
+                return router.push('/login')
+            }
+
+            const loginData = JSON.parse(loginDataStr)
+
+            // 1차 로그인한 사람과 2차 사원번호 치는 사람이 같은지 확인
+            if (!adminLoginId || loginData.id.toUpperCase() !== adminLoginId.toUpperCase()) {
+                alert('로그인한 계정의 사원번호와 일치하지 않습니다! 보안을 위해 차단됩니다.')
+                return;
+            }
+
+            loginData.isAdminVerified = true
+            sessionStorage.setItem('loginId', JSON.stringify(loginData))
+
+            // 나머지 정보도 따로 저장
             sessionStorage.setItem('dept', selectedDept.value)
             sessionStorage.setItem('adminName', adminName)
 
             alert(`${selectedDept.value} ${adminName} 관리자님 인증되었습니다`)
-            router.push('/dashboard/main')
+
+            const redirectUrl = route.query.redirect
+            router.push(redirectUrl || '/dashboard/main')
+
         } else {
             alert(response.data.message || "부서 또는 사원번호가 일치하지 않습니다")
         }
@@ -301,6 +324,33 @@ const resetFindModal = () => {
     findResult.value = null
     showFindModal.value = false
 }
+
+// 관리자 등록
+const goToAdminRegi = () => {
+    router.push({ 
+        path: '/regi', 
+        query: { type: 'hospital', role: 'admin' } 
+    });
+}
+
+// 사원번호 입력 제약
+const handleEmpIdInput = (e) => {
+    // 1. 대문자 변환 및 영문/숫자 외 문자 즉시 제거
+    let val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+    if (val.length > 0) {
+        // 2. 첫 글자는 무조건 알파벳(A-Z)만 남김 (숫자 입력 시 삭제)
+        const firstChar = val.charAt(0).replace(/[^A-Z]/g, '');
+
+        // 3. 두 번째 글자부터는 무조건 숫자(0-9)만 남김 (알파벳 입력 시 삭제)
+        const restChars = val.substring(1).replace(/[^0-9]/g, '');
+
+        val = firstChar + restChars;
+    }
+
+    // 4. 최대 9자리까지만 잘라서 데이터에 반영
+    empId.value = val.substring(0, 9);
+}
 </script>
 
 <style scoped>
@@ -309,9 +359,9 @@ const resetFindModal = () => {
     width: 100%;
     height: 100vh;
     background-image: linear-gradient(rgba(0, 0, 0, 0.845), rgba(0, 0, 0, 0.511)), url('@/assets/hospital.jpg');
-    background-size: cover;         
-    background-position: center;    
-    background-repeat: no-repeat;       
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -324,86 +374,297 @@ const resetFindModal = () => {
     background: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(30px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
     position: absolute;
     top: 0;
     width: 100%;
-    padding: 10px 40px;
+    padding: 0 40px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     color: rgba(255, 255, 255, 0.8);
-    font-family: 'pretendard';
-    font-size: 18px;
+    font-size: 20px;
+    z-index: 10;
 }
-.header-logo { 
-    height: 42px;
+
+.header-logo {
+    height: 60px;
     margin-top: 2px;
+}
+
+.time-area {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 20px;
+    font-weight: 300;
+    letter-spacing: 0.5px;
 }
 
 /* 3. 글래스모피즘 모달 박스 */
 .glass-modal {
     background: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 10px;
-    padding: 40px;
+    padding: 50px 45px;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    transition: all 0.4s ease;
 }
-.modal-logo { height: 80px; }
-.main-login-box { 
-    width: 420px;
-    height: 580px;
 
+.main-login-box {
+    width: 440px;
+    height: auto;
+    text-align: center;
+
+}
+
+.modal-logo {
+    height: 70px;
+    margin-bottom: 17px;
+}
+
+.modal-title {
+    color: #f5f5f5;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    margin-bottom: 40px;
 }
 
 /* 4. 입력창 및 버튼 */
+.input-group {
+    text-align: left;
+}
+
+.input-group label {
+    display: block;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    margin-left: 5px;
+}
+
+.input-with-icon {
+    position: relative;
+}
+
+.input-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
 .glass-input {
     width: 100%;
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 12px;
-    padding: 12px 15px;
-    color: white;
+    padding: 14px 18px;
+    color: #9f9f9f;
     outline: none;
     transition: 0.3s;
+    font-size: 15px;
 }
-.glass-input:focus { border-color: #82c2e3; background: rgba(255, 255, 255, 0.1); }
 
+.pl-40 {
+    padding-left: 45px !important;
+}
+
+.glass-input:focus {
+    border-color: #82c2e3;
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 0 15px rgba(130, 194, 227, 0.2);
+}
+
+/* 5. 버튼 (Admin 전용 컬러) */
 .btn-primary {
     width: 100%;
-    padding: 15px;
-    background: #82c2e3;
+    padding: 16px;
+    background: linear-gradient(135deg, #82c2e3 0%, #64b5f6 100%);
     border: none;
     border-radius: 12px;
-    color: white;
+    color: #fafafa;
+    font-size: 18px;
     font-weight: 600;
     cursor: pointer;
-    transition: 0.3s;
+    transition: all 0.3s ease;
+    margin-top: 40px;
 }
-.btn-primary:disabled { background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.3); cursor: not-allowed; }
 
-/* 5. 에러 메시지 */
-.error-msg { color: #ff0000; font-size: 13px; margin-top: 8px; }
-.error-msg-small { color: #f87171; font-size: 11px; margin-top: 4px; }
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(130, 194, 227, 0.12);
+    filter: brightness(1.1);
+}
 
-/* 6. 모달 오버레이 */
-.overlay {
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.7);
+.btn-primary:disabled {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.3);
+    cursor: not-allowed;
+}
+
+/* 6. 모달 푸터 (링크) */
+.modal-footer {
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 999;
+    gap: 15px;
+    margin-top: 25px;
+    cursor: pointer;
 }
-.find-modal { width: 400px; }
 
-/* 7. 공통 유틸리티 */
-.text-center { text-align: center; }
-.mb-30 { margin-bottom: 30px; }
+.divider {
+    color: rgba(255, 255, 255, 0.1);
+}
+
+.text-link {
+    color: rgba(255, 255, 255, 0.653);
+    font-size: 16px;
+    text-decoration: none;
+    transition: 0.3s;
+}
+
+.text-link:hover {
+    color: #fff;
+    text-decoration: underline;
+}
+
+/* 7. 찾기 모달 (오버레이 및 레이아웃) */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.593);
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+.find-modal {
+    width: 460px;  
+    height: auto !important; 
+    min-height: 580px;   
+    padding: 50px 45px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.find-modal.is-result {
+    min-height: 400px;  /* 결과창일 때만 짧게 */
+}
+
+.input-group.mb-20 {
+    margin-bottom: 17px;
+}
+
+.row-label {
+    display: block;
+    margin-bottom: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.9); 
+}
+
+/* 입력창 내부 텍스트 및 높이 */
+.find-modal .glass-input {
+    padding: 16px 20px;
+    font-size: 16px;    
+}
+
+.btn-text {
+    width: 100%;
+    padding: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-text:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.find-modal .btn-primary {
+    margin-top: 17px !important;
+}
+
+/* 결과 박스 */
+.result-box {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 30px;
+    border-radius: 15px;
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+}
+
+.result-box.mb-40 {
+    margin-top: 20px;
+    margin-bottom: 17px !important;
+}
+
+.highlight-emp-id {
+    font-size: 36px;
+    color: #82c2e3;
+    font-weight: 900;
+    letter-spacing: 2px;
+}
+
+.result-label {
+    color: #f5f5f5;
+    margin-bottom: 7px;
+}
+
+/* 유틸리티 */
+.mt-10 { 
+    margin-top: 10px; 
+}
 .mt-20 { margin-top: 20px; }
-.text-link { color: #94a3b8; cursor: pointer; font-size: 14px; }
-.text-link:hover { color: white; }
+.mt-30 { margin-top: 30px; }
+.mb-20 { margin-bottom: 20cpx; }
+.mb-30 { margin-bottom: 10px; }
+.mb-40 { margin-bottom: 40px; }
+.mb-50 { 
+    margin-bottom: 27px;
+    margin-top: -10px;
+}
+
+.error-msg {
+    color: #f87171;
+    font-size: 14px;
+    margin-top: 8px;
+    font-weight: 500;
+}
+
+.error-msg-small {
+    color: #f87171;
+    font-size: 14px;
+    margin-top: 8px;
+    padding-left: 5px;
+}
+
+/* 애니메이션 */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.glass-modal {
+    animation: fadeIn 0.6s ease-out;
+}
 </style>

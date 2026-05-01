@@ -8,8 +8,8 @@ export const getMyReceiptsReq = (memId) => {
   return axios.get(`${BASE_URL}/my-receipts`, { params: { mem_id: memId } })
 }
 
-// 영수증 단건 상세 조회 (모바일 QR용)
-export const getReceiptDetailReq = (approvalNumber) => {
-  // 기존: `/api/payment/receipt/${approvalNumber}` -> 수정: prefix 반영
-  return axios.get(`${BASE_URL}/receipt/${approvalNumber}`)
+// 차량번호 뒷자리로 영수증 목록 조회 (비회원 모달용)
+export const getReceiptsByVehicleReq = (last4Digits) => {
+  // 백엔드 @router.get("/receipts/{last_4_digits}") 주소와 매칭
+  return axios.get(`${BASE_URL}/receipts/${last4Digits}`)
 }

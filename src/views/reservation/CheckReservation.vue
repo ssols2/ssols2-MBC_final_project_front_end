@@ -108,11 +108,35 @@ const filteredReservations = computed(() => {
 // =========================================
 
 // 날짜 변환 함수 (20240206 -> 2024-02-06)
-const formatDate = (dateInt) => {
-  if (!dateInt) return '-'
-  const s = String(dateInt) // 숫자를 문자로 변환
-  // YYYY-MM-DD 형식으로 조립
-  return `${s.substring(0, 4)}-${s.substring(4, 6)}-${s.substring(6, 8)}`
+const formatDate = (dateVal) => {
+    if (!dateVal) return '-'
+    let s = String(dateVal).trim()
+
+    // ISO 형식(T 포함)인 경우 날짜만 추출
+    if (s.includes('T')) s = s.split('T')[0]
+
+    // YYYY-MM-DD 형식 처리[cite: 15]
+    const parts = s.split('-')
+    if (parts.length >= 3) {
+        let year = parts[0].replace(/[^0-9]/g, '')
+        if (year.length > 4) year = '2026' // 연도 오류 방어
+        return `${year}년 ${parts[1]}월 ${parts[2]}일`
+    }
+
+    // 8자리 숫자(YYYYMMDD) 처리[cite: 15]
+    if (/^\d{8}$/.test(s)) {
+        return `${s.substring(0, 4)}년 ${s.substring(4, 6)}월 ${s.substring(6, 8)}일`
+    }
+
+    // 타임스탬프 등 기타 형식[cite: 15]
+    const d = new Date(dateVal)
+    if (!isNaN(d.getTime())) {
+        const y = d.getFullYear()
+        const m = String(d.getMonth() + 1).padStart(2, '0')
+        const dd = String(d.getDate()).padStart(2, '0')
+        return `${y}년 ${m}월 ${dd}일`
+    }
+    return s
 }
 
 // 상태에 따른 CSS 클래스 반환 함수 (색깔 바꾸기용)

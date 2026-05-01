@@ -82,6 +82,18 @@
                     </td>
                   </tr>
                   <tr>
+                    <th>{{ t.evStatus }}</th>
+                    <td>
+                      <!-- 한국 차량: 전기차 / 일반차량 표시 -->
+                      <span v-if="licensePlateCountry === 'KOR' && isEvLicensePlate"
+                            class="badge ev-badge">⚡ {{ t.ev }}</span>
+                      <span v-else-if="licensePlateCountry === 'KOR' && !isEvLicensePlate"
+                            class="badge normal-badge">{{ t.nonEv }}</span>
+                      <!-- 외국 차량: 한국 전용 분석임을 안내 -->
+                      <span v-else class="ev-disabled">{{ t.evNotSupported }}</span>
+                    </td>
+                  </tr>
+                  <tr>
                     <th>{{ t.entryTime }}</th>
                     <td>{{ formatDateTime(entryTime) }}</td>
                   </tr>
@@ -165,6 +177,10 @@ const TRANSLATIONS = {
     member: '등록회원',
     guest: '일반차량',
     country: '국가',
+    evStatus: '전기차 여부',
+    ev: '전기차',
+    nonEv: '일반 차량',
+    evNotSupported: '한국 차량 전용 분석',
     entryTime: '입차 시각',
     recommendedSpot: '추천 주차 위치',
     status: '상태',
@@ -193,6 +209,10 @@ const TRANSLATIONS = {
     member: 'Membro',
     guest: 'Visitante',
     country: 'Pais',
+    evStatus: 'Tipo de Veiculo',
+    ev: 'Eletrico',
+    nonEv: 'Convencional',
+    evNotSupported: 'Disponivel apenas para placas KOR',
     entryTime: 'Hora de Entrada',
     recommendedSpot: 'Vaga Recomendada',
     status: 'Status',
@@ -221,6 +241,10 @@ const TRANSLATIONS = {
     member: '注册会员',
     guest: '普通车辆',
     country: '国家',
+    evStatus: '车辆类型',
+    ev: '电动车',
+    nonEv: '普通车',
+    evNotSupported: '仅韩国车牌支持',
     entryTime: '入场时间',
     recommendedSpot: '推荐车位',
     status: '状态',
@@ -249,6 +273,10 @@ const TRANSLATIONS = {
     member: 'Member',
     guest: 'Guest',
     country: 'Country',
+    evStatus: 'EV Status',
+    ev: 'Electric',
+    nonEv: 'Regular',
+    evNotSupported: 'Korean plates only',
     entryTime: 'Entry Time',
     recommendedSpot: 'Recommended Spot',
     status: 'Status',
@@ -277,6 +305,10 @@ const TRANSLATIONS = {
     member: 'सदस्य',
     guest: 'आगंतुक',
     country: 'देश',
+    evStatus: 'EV स्थिति',
+    ev: 'इलेक्ट्रिक',
+    nonEv: 'सामान्य',
+    evNotSupported: 'केवल KOR के लिए',
     entryTime: 'प्रवेश समय',
     recommendedSpot: 'अनुशंसित पार्किंग स्थान',
     status: 'स्थिति',
@@ -648,6 +680,18 @@ const translatedSpot = computed(() => {
 .normal-badge {
   background: #f2f4f6;
   color: #444D56;
+}
+
+.ev-badge {
+  background: #e8f9ee;
+  color: #00875a;
+  border: 1px solid #b6e6c8;
+}
+
+.ev-disabled {
+  color: #8b95a1;
+  font-size: 14px;
+  font-style: italic;
 }
 
 /* ── 9. 이미지 그리드 영역 ── */

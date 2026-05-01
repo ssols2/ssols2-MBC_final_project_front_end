@@ -3,57 +3,65 @@
     <div class="summary-header">
       <h3 class="card-title">EV 기기 상태 요약 및 관리</h3>
 
+      <!-- 260501 임소리 수정: 부서별 권한에 따른 버튼/텍스트 노출 분기 -->
       <div class="header-actions">
-        <template v-if="normalizedInspectionStatus === 'DONE'">
-          <span class="action-done complete">조치완료</span>
+
+        <!-- 시설관리팀 화면 -->
+        <template v-if="isFacilityTeam">
+          <button v-if="normalizedInspectionStatus === 'REQUESTED' || normalizedInspectionStatus === 'IN_PROGRESS'"
+            type="button" class="action-btn inspection" @click="$emit('inspection-complete')">
+            점검 완료
+          </button>
+          <span v-else-if="normalizedInspectionStatus === 'DONE'" class="action-done complete">
+            조치완료
+          </span>
         </template>
 
+        <!-- 주차관리팀 / 보안팀 화면 -->
         <template v-else>
-          <template
-            v-if="
-              normalizedInspectionStatus === 'REQUESTED' ||
-              normalizedInspectionStatus === 'IN_PROGRESS'
-            "
-          >
-            <span class="action-done inspection-done">요청됨</span>
-          </template>
-          <button
-            v-else
-            type="button"
-            class="action-btn inspection"
-            :disabled="!canRequestInspection"
-            @click="handleInspectionRequest"
-          >
-            점검요청
+          <!-- 강제 종료 후 점검 완료됨 -> 가동 재개 (활성) -->
+          <button v-if="normalizedInspectionStatus === 'DONE' && chargerDetail.shutdownDone" type="button"
+            class="action-btn restart active" @click="$emit('power-on')">
+            가동 재개
           </button>
 
-          <template v-if="chargerDetail.shutdownDone">
-            <span class="action-done shutdown-done">전원꺼짐</span>
-          </template>
+          <!-- 강제 종료 후 아직 점검 안됨 -> 가동 재개 (비활성) -->
           <button
-            v-else
-            type="button"
-            class="action-btn shutdown"
-            :disabled="!canForceShutdown"
-            @click="handleForceShutdown"
-          >
-            강제종료
+            v-else-if="chargerDetail.shutdownDone && normalizedInspectionStatus !== 'DONE' && normalizedInspectionStatus !== 'NONE'"
+            type="button" class="action-btn restart disabled" disabled>
+            가동 재개
           </button>
+
+          <!-- 모든 조치 완료 & 전원 켜짐 -> 조치완료 텍스트 -->
+          <span v-else-if="normalizedInspectionStatus === 'DONE' && !chargerDetail.shutdownDone"
+            class="action-done complete">
+            조치완료
+          </span>
+
+          <!-- 초기 장애 상태 (버튼 2개 혹은 텍스트) -->
+          <template v-else>
+            <span v-if="normalizedInspectionStatus === 'REQUESTED' || normalizedInspectionStatus === 'IN_PROGRESS'"
+              class="action-done inspection-done">요청됨</span>
+            <button v-else type="button" class="action-btn inspection" :disabled="!canRequestInspection"
+              @click="handleInspectionRequest">
+              점검 요청
+            </button>
+
+            <span v-if="chargerDetail.shutdownDone" class="action-done shutdown-done">전원차단</span>
+            <button v-else type="button" class="action-btn shutdown" :disabled="!canForceShutdown"
+              @click="handleForceShutdown">
+              강제 종료
+            </button>
+          </template>
         </template>
+        <!-- 임소리 수정 부분 끝 -->
+
       </div>
     </div>
 
     <div class="summary-toolbar">
-      <select
-        v-model="selectedChargerId"
-        class="charger-select"
-        @change="handleChargerChange"
-      >
-        <option
-          v-for="item in normalizedChargerList"
-          :key="item.chargerId"
-          :value="item.chargerId"
-        >
+      <select v-model="selectedChargerId" class="charger-select" @change="handleChargerChange">
+        <option v-for="item in normalizedChargerList" :key="item.chargerId" :value="item.chargerId">
           {{ item.chargerId }}
         </option>
       </select>
@@ -77,15 +85,13 @@
               <span class="badge">AI 예측</span>
 
               <div class="result-text">
-                  <template
-                    v-if="
-                      normalizedAiStatus !== 'NORMAL' &&
-                      chargerDetail.faultProb7d !== null &&
-                      chargerDetail.faultProb7d !== undefined
-                    "
-                  >
-                    7일 내 고장 확률 {{ faultPercent }}
-                  </template>
+                <template v-if="
+                  normalizedAiStatus !== 'NORMAL' &&
+                  chargerDetail.faultProb7d !== null &&
+                  chargerDetail.faultProb7d !== undefined
+                ">
+                  7일 내 고장 확률 {{ faultPercent }}
+                </template>
               </div>
 
               <div class="result-text">{{ reasonText }}</div>
@@ -97,23 +103,11 @@
 
       <div class="summary-image-panel">
         <div class="machine-image-wrap">
-          <img
-            class="machine-image"
-            src="@/assets/ev_machine.png"
-            alt="EV 충전기"
-          />
-        
-          <div
-            v-if="screenStatusText"
-            class="machine-screen-overlay"
-            :class="screenStatusClass"
-          ></div>
-        
-          <div
-            v-if="screenStatusText"
-            class="machine-screen-text"
-            :class="screenStatusClass"
-          >
+          <img class="machine-image" src="@/assets/ev_machine.png" alt="EV 충전기" />
+
+          <div v-if="screenStatusText" class="machine-screen-overlay" :class="screenStatusClass"></div>
+
+          <div v-if="screenStatusText" class="machine-screen-text" :class="screenStatusClass">
             {{ screenStatusText }}
           </div>
         </div>
@@ -136,10 +130,25 @@ const props = defineProps({
   }
 })
 
+// 260501 임소리: 부서 확인 로직 추가
+const isFacilityTeam = computed(() => {
+  try {
+    const loginData = JSON.parse(sessionStorage.getItem('loginId')) || {}
+    
+    return loginData.adminDeptName === '시설관리팀'
+  } catch (error) {
+    console.error('부서 정보 확인 중 에러 발생:', error)
+    return false
+  }
+})
+
+// 260501 임소리: inspection-complete, power-on 추가
 const emit = defineEmits([
   'charger-change',
   'inspection-request',
-  'force-shutdown'
+  'force-shutdown',
+  'inspection-complete',
+  'power-on'
 ])
 
 const chargerDetail = computed(() => props.chargerDetail || {})
@@ -344,8 +353,9 @@ const handleForceShutdown = () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap; /* 줄바꿈 금지 */
   justify-content: flex-end;
+  height: 30px; /* 버튼 높이로 고정하여 틀어짐 방지 */
 }
 
 .action-btn {
@@ -700,5 +710,30 @@ const handleForceShutdown = () => {
 .machine-screen-overlay.risk {
   background: rgba(239, 68, 68, 0.22);
   box-shadow: inset 0 0 20px rgba(239, 68, 68, 0.35);
+}
+
+/* 260501: 가동 재개 버튼 스타일 추가 */
+.action-btn.restart.active {
+  border: 1px solid #22c55e;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.action-btn.restart.active:hover {
+  background: rgba(34, 197, 94, 0.25);
+}
+
+.action-btn.restart.disabled {
+  border: 1px solid #4b5563;
+  color: #9ca3af;
+  background: transparent;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* 260501: 기기 스크린 텍스트 '점검중' 스타일 추가 */
+.machine-screen-text.checking {
+  color: #facc15;
+  text-shadow: 0 0 10px rgba(250, 204, 21, 0.85);
 }
 </style>

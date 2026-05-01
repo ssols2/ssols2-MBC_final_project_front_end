@@ -17,25 +17,13 @@
           <span class="nav-item" @mouseenter="openMegamenu('service')">고객서비스</span>
         </nav>
 
-        <!-- <div class="combined-util">
-          <template v-if="!isLogin">
-            <span class="util-item" @click="router.push('/login')">로그인</span>
-            <span class="util-item" @click="router.push('/regi')">회원가입</span>
-          </template>
-          <template v-else>
-            <span class="user-info"><b>{{ loginName }}</b>님</span>
-            <span @click="handleLogout" class="util-item logout-txt">로그아웃</span>
-          </template>
-          <span class="util-item" @click="goPage('/mypage')">마이페이지</span>
-        </div> -->
-
         <div class="combined-util">
           <template v-if="!isLogin">
             <span class="util-item" @click="router.push('/login')">로그인</span>
             <span class="util-item" @click="router.push('/regi')">회원가입</span>
           </template>
           <template v-else>
-            <span v-if="isDashboardAdmin" class="util-item admin-btn" @click="router.push('/dashboard')">
+            <span v-if="isDashboardAdmin" class="util-item admin-btn" @click="openAdminDashboard">
               관리자 대시보드
             </span>
             <span class="user-info"><b>{{ loginName }}</b>님</span>
@@ -295,6 +283,17 @@
     </footer>
 
     <div class="floating-aside">
+      <!-- 최종프로젝트 추가 -->
+      <button class="float-btn receipt-btn" @click="isReceiptModalOpen = true" title="영수증 조회">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+        </svg>
+        <span class="btn-label">영수증</span>
+      </button>
+
       <button class="float-btn car-regi" @click="goPage('/vehiregi')" title="차량 등록">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M7 10h10M7 14h10M19 18l-14 0M19 6l-14 0" />
@@ -310,6 +309,8 @@
         <span class="btn-label">TOP</span>
       </button>
     </div>
+
+    <ReceiptModal :isOpen="isReceiptModalOpen" @close="isReceiptModalOpen = false" />
   </div>
 </template>
 
@@ -317,6 +318,10 @@
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
+
+// 최종프로젝트 추가
+import ReceiptModal from '@/components/ReceiptModal.vue'
+const isReceiptModalOpen = ref(false)
 
 import logoDark from '@/assets/txtlogo2.png'  // 어두운 로고 (txtlogo2)
 import logoLight from '@/assets/txtlogo3.png' // 밝은색 로고 (txtlogo3)
@@ -341,10 +346,14 @@ const openDepth2 = ref(false);
 // [추가] 검색어 상태 관리
 const searchKeyword = ref('');
 
+const openAdminDashboard = () => {
+  window.open('/dashboard', '_blank');
+};
+
 // [최종프로젝트] 관리자 대시보드 접근 권한 판별 (주차, 시설, 보안팀)
 const isDashboardAdmin = computed(() => {
   const dept = loginInfo.value?.deptName || '';
-  
+
   return dept.includes('주차') || dept.includes('시설') || dept.includes('보안');
 });
 
@@ -524,7 +533,7 @@ const currentMenuName = computed(() => {
 
 const checkLogin = async () => {
   const loginData = sessionStorage.getItem('loginId')
-  
+
   if (loginData) {
     // [1] 기본 로그인 정보 세팅
     let currentUserId = '';
@@ -547,7 +556,7 @@ const checkLogin = async () => {
       const res = await axios.get(`http://localhost:8080/admin/my-info?userId=${currentUserId}`, {
         withCredentials: true
       });
-      
+
       if (res.data) {
         loginInfo.value = { ...loginInfo.value, ...res.data };
       }
@@ -606,6 +615,8 @@ onUnmounted(() => { window.removeEventListener('scroll', handleScroll); })
    [1] 공통 및 레이아웃 (Layout & Global)
    ===================================================================== */
 #home-layout {
+  --site-width: 1800px;
+  --side-padding: 60px;
   width: 100%;
   font-family: 'pretendard', sans-serif !important;
 }
@@ -616,6 +627,10 @@ onUnmounted(() => { window.removeEventListener('scroll', handleScroll); })
 
 .content-body.is-main-view {
   padding-top: 0;
+}
+
+:global(html) {
+  scrollbar-gutter: stable;
 }
 
 /* =====================================================================
@@ -652,15 +667,15 @@ onUnmounted(() => { window.removeEventListener('scroll', handleScroll); })
   color: #fff;
 }
 
-/* 헤더 내부 가로 정렬 컨테이너 (공주님 기준 1800px) */
+/* 헤더 내부 가로 정렬 컨테이너 */
 .header-inner {
-  max-width: 1800px;
+  width: 100%;
+  max-width: var(--site-width);
   margin: 0 auto;
-  height: 100%;
+  padding: 0 var(--side-padding); 
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
 }
 
 /* =====================================================================
@@ -683,9 +698,10 @@ onUnmounted(() => { window.removeEventListener('scroll', handleScroll); })
 /* 내비게이션 메뉴 영역 */
 .nav-menu {
   display: flex;
-  gap: 50px;
+  gap: 30px;
   justify-content: left;
-  padding-left: 40px;
+  padding-left: 10px;
+  padding-right: 120px;
   flex: 1;
 }
 
@@ -710,7 +726,7 @@ onUnmounted(() => { window.removeEventListener('scroll', handleScroll); })
   align-items: center;
   justify-content: flex-end;
   gap: 30px;
-  padding-right: 30px;
+  padding-right: 10px;
 }
 
 .util-item {
@@ -751,10 +767,9 @@ onUnmounted(() => { window.removeEventListener('scroll', handleScroll); })
 
 /* 메가메뉴 내부 수직 정렬을 내비바에 맞춤 (1800px) */
 .megamenu-inner {
-  max-width: 1800px;
+  max-width: var(--site-width);
   margin: 0 auto;
-  padding: 0 20px;
-  /* 헤더 inner와 동일한 패딩 부여 */
+  padding: 0 var(--side-padding);
   background: #fff;
 }
 
@@ -1005,18 +1020,14 @@ onUnmounted(() => { window.removeEventListener('scroll', handleScroll); })
   background-color: #f9f9f9;
   border-bottom: 1px solid #eee;
   padding: 20px 0;
-  /* 상하 패딩만 남기고 좌측 강제 패딩 제거 */
   margin-top: 100px;
-  /* padding-left: 78px; */
-  /* 정렬을 방해하므로 주석 처리 */
 }
 
 .breadcrumb-inner {
-  max-width: 1800px;
-  /* 헤더 내비바와 동일하게 1800px로 수정 */
-  margin: 0 auto;
-  padding: 0 20px;
-  /* 헤더와 동일한 패딩 부여 */
+  width: 100%;
+  max-width: var(--site-width);
+  margin: 0 auto !important;
+  padding: 0 var(--side-padding);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1094,10 +1105,10 @@ onUnmounted(() => { window.removeEventListener('scroll', handleScroll); })
 }
 
 .footer-inner {
-  max-width: 1500px;
-  /* 푸터는 조금 좁은 것이 안정적 (원하시면 1800으로 변경 가능) */
-  margin: 0 auto;
-  padding: 0 40px;
+  width: 100%;
+  max-width: var(--site-width);
+  margin: 0 auto !important;
+  padding: 0 var(--side-padding);
   text-align: left;
 }
 

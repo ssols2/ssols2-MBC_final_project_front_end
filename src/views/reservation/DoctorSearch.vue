@@ -10,7 +10,8 @@
       <div class="filter-box">
         <select v-model="selectedDeptId" class="search-input select-icon" @change="fetchDoctors">
           <option value="">진료과 전체 보기</option>
-          <option v-for="dept in depts" :key="dept.med_dept_id" :value="dept.med_dept_id"> {{ dept.med_dept_name }}</option>
+          <option v-for="dept in depts" :key="dept.med_dept_id" :value="dept.med_dept_id"> {{ dept.med_dept_name }}
+          </option>
         </select>
         <input type="text" v-model="searchName" placeholder="의사 성함 입력" class="search-input name-input">
       </div>
@@ -18,18 +19,36 @@
       <div class="doctor-grid">
         <div v-for="doc in filteredDoctors" :key="doc.staff_id" class="doc-card">
           <div class="doc-img-area">
-            <div class="placeholder-icon"></div>
-            <span>사진 준비중</span>
+            <!-- 전문적인 의사 실루엣 SVG -->
+            <svg class="placeholder-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="8" r="5" fill="#CBD5E1" />
+              <path d="M20 21C20 16.5817 16.4183 13 12 13C7.58172 13 4 16.5817 4 21" stroke="#CBD5E1" stroke-width="2.5"
+                stroke-linecap="round" />
+              <path d="M9 13L10 16L12 17L14 16L15 13" fill="#94A3B8" />
+            </svg>
+            <!-- <span class="img-label">PREPARING</span> -->
           </div>
           <div class="doc-info">
             <div class="doc-header">
               <h4>{{ doc.staff_name }} <span class="doc-role">{{ doc.role }}</span></h4>
             </div>
             <div class="doc-details">
-              <p><span class="label">진료과</span> {{ doc.med_dept_name }}</p>
+              <p>
+                <span class="label">진료과</span>
+                <!-- 1순위: 데이터에 있는 이름 / 2순위: 내 데이터 ID로 찾기 / 3순위: 선택된 필터 ID로 찾기 -->
+                {{doc.med_dept_name ||
+                  depts.find(d => d.med_dept_id == doc.med_dept_id)?.med_dept_name ||
+                  depts.find(d => d.med_dept_id == selectedDeptId)?.med_dept_name ||
+                  '정보 없음'}}
+              </p>
               <p><span class="label">상태</span> {{ doc.status || '진료가능' }}</p>
             </div>
-            <button @click="goToReserve(doc)" class="btn-reserve">진료 예약하기</button>
+            <button v-if="!isEmergencyDept(doc)" @click="goToReserve(doc)" class="btn-reserve">
+              진료 예약하기
+            </button>
+            <div v-else class="emergency-guide">
+              응급실 현장 접수만 가능
+            </div>
           </div>
         </div>
 
@@ -69,15 +88,18 @@ const allDoctors = ref([]) // 전체(혹은 해당 과) 의사 목록
 // 화면에 보여줄 진짜 의사만 걸러내는 필터
 const filteredDoctors = computed(() => {
   return allDoctors.value.filter(doc => {
-    // 검색어가 없으면 모두 통과
-    if (!searchName.value) return (doc.role || '').toUpperCase() === '의사' || (doc.role || '').toUpperCase() === 'DOCTOR';
+    // 검색어의 앞뒤 공백을 제거하고 소문자로 변환
+    const keyword = searchName.value.trim().toLowerCase();
 
-    const keyword = searchName.value.toLowerCase();
-    
+    // 검색어가 없으면 '의사' 역할인 분들만 모두 표시
+    if (!keyword) {
+      return (doc.role || '').toUpperCase() === '의사' || (doc.role || '').toUpperCase() === 'DOCTOR';
+    }
+
     // (1) 이름 매칭 확인
-    const nameMatch = (doc.staff_name || '').includes(keyword);
+    const nameMatch = (doc.staff_name || '').toLowerCase().includes(keyword);
     // (2) 진료과 이름 매칭 확인 (추가 설명 / 참고)
-    const deptMatch = (doc.med_dept_name || '').includes(keyword);
+    const deptMatch = (doc.med_dept_name || '').toLowerCase().includes(keyword);
 
     // 직업이 의사인지 확인
     const role = (doc.role || '').toUpperCase();
@@ -87,22 +109,6 @@ const filteredDoctors = computed(() => {
     return (nameMatch || deptMatch) && isDoctor;
   })
 })
-
-// const filteredDoctors = computed(() => {
-//   return allDoctors.value.filter(doc => {
-    
-//     // (1) 이름 검색어 필터: 검색어가 없으면 무조건 통과, 있으면 포함 여부 확인
-//     const nameMatch = (doc.staff_name || '').includes(searchName.value);
-
-//     // (2) 직업 필터: '간호사' 등은 제외하고 '의사'만 통과시킴
-//     const role = (doc.role || '').toUpperCase(); // 대소문자 무시 (Doctor, doctor 다 통과)
-//     const isDoctor = role === '의사' || role === 'DOCTOR';
-
-//     // 두 조건(이름도 맞고 && 의사여야 함)을 모두 만족해야 화면에 나옴
-//     return nameMatch && isDoctor;
-//   })
-// })
-
 
 // =========================================
 // 3. 페이지 이동 함수
@@ -122,7 +128,6 @@ const goToReserve = (doc) => {
   })
 }
 
-
 // =========================================
 // 4. 서버 데이터 조회 함수
 // =========================================
@@ -141,8 +146,8 @@ const fetchData = async () => {
     } else {
       await fetchDoctors() // 전체 의사 가져옴
     }
-  } catch (err) { 
-    console.error('데이터 로드 실패') 
+  } catch (err) {
+    console.error('데이터 로드 실패')
   }
 }
 
@@ -153,7 +158,7 @@ const fetchDoctors = async () => {
     // 진료과가 선택되어 있으면 -> 그 과 의사만 조회
     if (selectedDeptId.value) {
       res = await getDoctorsReq(selectedDeptId.value)
-    } 
+    }
     // 선택 안 되어 있으면 -> 전체 의사 조회
     else {
       res = await getAllDoctorsReq()
@@ -172,6 +177,23 @@ watch(() => route.query.q, (newKeyword) => {
     searchName.value = newKeyword;
   }
 }, { immediate: true }); // immediate: true를 주면 페이지 처음 들어올 때도 바로 실행함
+
+// 최종 프로젝트 추가
+const isEmergencyDept = (doc) => {
+  // 데이터에 이름이 바로 있으면 체크
+  if (doc.med_dept_name && doc.med_dept_name.includes('응급')) return true;
+
+  // 내 데이터의 ID 혹은 현재 필터링된 부서 ID로 부서 찾기
+  const targetId = doc.med_dept_id || selectedDeptId.value;
+  const foundDept = depts.value.find(d => d.med_dept_id == targetId);
+
+  if (foundDept && foundDept.med_dept_name.includes('응급')) return true;
+
+  // (보험용) 의사 성함에 '응급'이 들어있는지도 체크
+  if (doc.staff_name && doc.staff_name.includes('응급')) return true;
+
+  return false;
+}
 
 // =========================================
 // 5. 페이지 시작 (Life Cycle)
@@ -268,20 +290,28 @@ onMounted(fetchData)
 .doc-img-area {
   width: 110px;
   height: 130px;
-  background: #f0f2f5;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #aaa;
-  font-size: 13px;
   flex-shrink: 0;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  position: relative;
 }
 
-.placeholder-icon {
-  font-size: 30px;
+.placeholder-svg {
+  width: 80px;
+  height: 80px;
   margin-bottom: 5px;
-  opacity: 0.5;
+  opacity: 0.8;
+  transition: transform 0.3s ease;
+}
+
+.doc-card:hover .placeholder-svg {
+  transform: scale(1.1);
 }
 
 .doc-info {
@@ -342,5 +372,16 @@ onMounted(fetchData)
   text-align: center;
   padding: 80px 20px;
   color: #999;
+}
+
+.emergency-guide {
+  margin-top: 10px;
+  padding: 10px;
+  background: #fff5f5;
+  color: #e03131;
+  border: 1px solid #ffc9c9;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
 }
 </style>

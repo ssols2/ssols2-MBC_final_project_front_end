@@ -163,57 +163,63 @@ const router = createRouter({
                     path: 'main', // 주소: /dashboard/main
                     name: 'dashboard-main',
                     component: MainView,
-                    // meta: { requiresAuth: true, role: 'ADMIN' } // 보안 딱지
+                    meta: { requiresAuth: true, role: 'ADMIN' } // 보안 딱지
                 },
                 // 주차 모니터링 관제 화면
                 {
                     path: 'monitoring', // 주소: /dashboard/monitoring
                     name: 'monitoring',
                     component: ParkingMonitoring,
-                    //meta: { requiresAuth: true, role: 'ADMIN' }
+                    meta: { requiresAuth: true, role: 'ADMIN' }
                 },
                 // 출입 차량 관제 화면
                 {
                     path: 'vehicle-control', // 주소: /dashboard/vehicle-control
                     name: 'vehicle-control',
                     component: VehicleControlManage,
-                    //meta: { requiresAuth: true, role: 'ADMIN' }
+                    meta: { requiresAuth: true, role: 'ADMIN' }
                 },
                 // 요금 정산 관리 화면
                 {
                     path: 'payment', // 주소: /dashboard/payment
                     name: 'payment-manage',
                     component: PaymentManage,
+                    meta: { requiresAuth: true, role: 'ADMIN' }
                 },
                 // 영상 보안 관제 화면
                 {
                     path: 'cctv', // 주소: /dashboard/cctv
                     name: 'cctv',
                     component: SecurityView,
+                    meta: { requiresAuth: true, role: 'ADMIN' }
                 },
                 // ev 인프라 관리 화면
                 {
                     path: 'ev-infra',
                     name: 'ev-infra',
                     component: EvInfraManage,
+                    meta: { requiresAuth: true, role: 'ADMIN' }
                 },
                 // 시스템 설정 - 요금 및 운영 정책 설정
                 {
                 path: 'system/policy', // 주소: /dashboard/system/policy
                 name: 'system-policy',
                 component: PolicyView,
+                meta: { requiresAuth: true, role: 'ADMIN' }
                 },
                 // 시스템 설정 - 통합 알림 및 장애 이력
                 {
                 path: 'system/history', // 주소: /dashboard/system/history
                 name: 'system-history',
                 component: HistoryView,
+                meta: { requiresAuth: true, role: 'ADMIN' }
                 },
                 // 시스템 설정 - 시스템 및 계정 관리
                 {
                 path: 'system/management', // 주소: /dashboard/system/management
                 name: 'system-management',
                 component: ManagementView,
+                meta: { requiresAuth: true, role: 'ADMIN' }
                 },
             ]
         },
@@ -254,24 +260,61 @@ const router = createRouter({
 
 // 네비게이션 가드 (로그인 안 하면 못 들어가게 막기)
 router.beforeEach((to, from, next) => {
-    // 이동하려는 페이지에 '로그인 필요(requiresAuth)' 딱지가 붙어있는지 확인
-    if (to.meta.requiresAuth) {
+    // 에러 방어: 세션 데이터 안전하게 파싱
+    const loginDataStr = sessionStorage.getItem('loginId');
+    let loginData = null;
 
-        // 세션 스토리지에서 로그인 정보 확인
-        const isLoggedIn = sessionStorage.getItem('loginId');
-
-        if (!isLoggedIn) {
-            // 로그인 안 했으면 쫓아냄
-            alert('로그인이 필요한 서비스입니다.');
-            next('/login');
-        } else {
-            // 로그인 했으면 통과
-            next();
+    if (loginDataStr) {
+        try {
+            loginData = JSON.parse(loginDataStr);
+        } catch (e) {
+            console.error("세션 파싱 에러", e);
+            sessionStorage.removeItem('loginId');
         }
-    } else {
-        // 딱지 없는 페이지는 그냥 통과
-        next();
     }
+
+    // ===================================
+    // 대시보드(/dashboard) 관련 주소 방어
+    if (to.path.startsWith('/dashboard')) {
+        
+        // [방어 1] 아예 로그인을 안 한 경우
+        if (!loginData) {
+            alert('병원 로그인이 먼저 필요합니다.');
+            // 로그인 후 여기로 다시 오도록 꼬리표(query)
+            return next({ path: '/login', query: { redirect: to.fullPath } });
+        }
+
+        // [방어 2] 대시보드 권한이 없는 부서인 경우 튕겨냄
+        const allowedDepts = ['주차관리팀', '시설관리팀', '보안팀'];
+        if (!allowedDepts.includes(loginData.adminDeptName)) {
+            alert('대시보드 접근 권한이 없는 부서입니다. (허용 부서: 주차/시설/보안팀)');
+            return next('/'); // 메인 홈페이지로
+        }
+
+        // [방어 3] 권한 부서 직원이지만 2차 인증을 안 하고 대시보드 화면 보려 할 때
+        if (to.path !== '/dashboard/admin-login' && !loginData.isAdminVerified) {
+            alert('보안을 위해 사원번호 2차 인증을 진행해 주세요.');
+            // 2차 인증 후 원래 가려던 대시보드 화면으로
+            return next({ path: '/dashboard/admin-login', query: { redirect: to.fullPath } });
+        }
+
+        // 관문 통과!
+        return next();
+    }
+
+    // ===================================
+    // 일반 병원 웹사이트의 보호된 페이지
+    if (to.meta.requiresAuth) {
+        if (!loginData) {
+            alert('로그인이 필요한 서비스입니다.');
+            return next({ path: '/login', query: { redirect: to.fullPath } });
+        }
+        return next();
+    }
+
+    // ===================================
+    // 그 외 딱지 없는 일반 페이지
+    next();
 });
 
 export default router;

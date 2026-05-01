@@ -12,31 +12,19 @@
 
         <!-- 상태 필터 -->
         <div class="status-filters">
-          <button
-            type="button"
-            class="filter-btn all"
-            :class="{ active: selectedFilter === 'ALL' }"
-            @click="selectedFilter = 'ALL'"
-          >
+          <button type="button" class="filter-btn all" :class="{ active: selectedFilter === 'ALL' }"
+            @click="selectedFilter = 'ALL'">
             전체({{ faultOnlyData.length }})
           </button>
 
-          <button
-            type="button"
-            class="filter-btn check"
-            :class="{ active: selectedFilter === 'CHECK' }"
-            @click="selectedFilter = 'CHECK'"
-          >
+          <button type="button" class="filter-btn check" :class="{ active: selectedFilter === 'CHECK' }"
+            @click="selectedFilter = 'CHECK'">
             <span class="filter-dot check"></span>
             점검
           </button>
 
-          <button
-            type="button"
-            class="filter-btn risk"
-            :class="{ active: selectedFilter === 'RISK' }"
-            @click="selectedFilter = 'RISK'"
-          >
+          <button type="button" class="filter-btn risk" :class="{ active: selectedFilter === 'RISK' }"
+            @click="selectedFilter = 'RISK'">
             <span class="filter-dot risk"></span>
             위험
           </button>
@@ -63,22 +51,14 @@
         </thead>
 
         <tbody>
-          <tr
-            v-for="item in pagedHistoryData"
-            :key="item.id"
-            :class="rowClass(item)"
-          >
+          <tr v-for="item in pagedHistoryData" :key="item.id" :class="rowClass(item)">
             <td>{{ formatOccurredAt(item.occurredAt) }}</td>
             <td>{{ item.chargerId }}</td>
             <td>{{ item.location || '-' }}</td>
 
             <td>
               <span class="status-text" :class="getStatusClass(item.status)">
-                <span
-                  v-if="showStatusDot(item)"
-                  class="status-dot"
-                  :class="getStatusClass(item.status)"
-                ></span>
+                <span v-if="showStatusDot(item)" class="status-dot" :class="getStatusClass(item.status)"></span>
                 {{ getStatusLabel(item.status) }}
               </span>
             </td>
@@ -87,53 +67,58 @@
               {{ item.detail }}
             </td>
 
+            <!-- 260501 임소리 수정: 주차관리/보안팀 <-> 시설관리팀 권한에 맞게 조건식 추가 및 화면 구현 -->
             <td>
               <div class="action-buttons">
-                <template v-if="item.inspectionStatus === 'DONE'">
-                  <span class="action-done complete">조치완료</span>
+                <!-- 시설관리팀 화면 -->
+                <template v-if="isFacilityTeam">
+                  <button v-if="item.inspectionStatus === 'REQUESTED' || item.inspectionStatus === 'IN_PROGRESS'"
+                    type="button" class="action-btn inspection" @click="$emit('inspection-complete', item)">
+                    점검완료
+                  </button>
+                  <span v-else-if="item.inspectionStatus === 'DONE'" class="action-done complete">조치 완료</span>
                 </template>
 
-                <template v-else-if="item.inspectionStatus === 'STATUS_UPDATED' && hasNewerRecord(item)">
-                  <span class="action-done status-updated">상태업데이트</span>
-                  <span
-                    v-if="item.shutdownDone || powerOffChargerIds.has(item.chargerId)"
-                    class="action-done shutdown-done"
-                  >전원꺼짐</span>
-                </template>
-
+                <!-- 주차관리팀 / 보안팀 화면 -->
                 <template v-else>
-                  <template
-                    v-if="
-                      item.inspectionStatus === 'REQUESTED' ||
-                      item.inspectionStatus === 'IN_PROGRESS'
-                    "
-                  >
-                    <span class="action-done inspection-done">요청됨</span>
+                  <template v-if="item.inspectionStatus === 'DONE'">
+                    <button v-if="item.shutdownDone || powerOffChargerIds.has(item.chargerId)" type="button"
+                      class="action-btn restart active" @click="$emit('power-on', item)">
+                      가동 재개
+                    </button>
+                    <span v-else class="action-done complete">조치 완료</span>
                   </template>
-                  <button
-                    v-else
-                    type="button"
-                    class="action-btn inspection"
-                    @click="handleInspection(item)"
-                  >
-                    점검요청
-                  </button>
 
-                  <template v-if="item.shutdownDone || powerOffChargerIds.has(item.chargerId)">
-                    <span class="action-done shutdown-done">전원꺼짐</span>
+                  <template v-else-if="item.inspectionStatus === 'STATUS_UPDATED' && hasNewerRecord(item)">
+                    <span class="action-done status-updated">상태업데이트</span>
                   </template>
-                  <button
-                    v-else
-                    type="button"
-                    class="action-btn shutdown"
-                    @click="handleShutdown(item)"
-                  >
-                    강제종료
-                  </button>
+
+                  <template v-else>
+                    <!-- 점검 요청 상태 표시 -->
+                    <template v-if="item.inspectionStatus === 'REQUESTED'">
+                      <span class="action-done inspection-done">요청됨</span>
+                    </template>
+                    <template v-else-if="item.inspectionStatus === 'IN_PROGRESS'">
+                      <span class="action-done inspection-done" style="color:#facc15; border-color:#facc15;">점검
+                        대기중</span>
+                    </template>
+                    <button v-else type="button" class="action-btn inspection" @click="handleInspection(item)">
+                      점검요청
+                    </button>
+
+                    <!-- 강제 종료 상태 표시 -->
+                    <template v-if="item.shutdownDone || powerOffChargerIds.has(item.chargerId)">
+                      <span class="action-done shutdown-done">전원차단</span>
+                    </template>
+                    <button v-else type="button" class="action-btn shutdown" @click="handleShutdown(item)">
+                      강제종료
+                    </button>
+                  </template>
                 </template>
               </div>
             </td>
           </tr>
+          <!-- 임소리 수정 부분 여기까지 끝 -->
 
           <tr v-if="pagedHistoryData.length === 0">
             <td colspan="6" class="empty-row">
@@ -145,34 +130,19 @@
     </div>
 
     <div class="pagination" v-if="totalPages > 1">
-      <button
-        class="page-nav"
-        type="button"
-        :disabled="currentPage === 1"
-        @click="goPrevPage"
-      >
+      <button class="page-nav" type="button" :disabled="currentPage === 1" @click="goPrevPage">
         ‹
       </button>
 
       <template v-for="p in visiblePages" :key="p">
         <span v-if="p === '...'" class="page-ellipsis">…</span>
-        <button
-          v-else
-          type="button"
-          class="page-number"
-          :class="{ active: currentPage === p }"
-          @click="currentPage = p"
-        >
+        <button v-else type="button" class="page-number" :class="{ active: currentPage === p }"
+          @click="currentPage = p">
           {{ p }}
         </button>
       </template>
 
-      <button
-        class="page-nav"
-        type="button"
-        :disabled="currentPage === totalPages"
-        @click="goNextPage"
-      >
+      <button class="page-nav" type="button" :disabled="currentPage === totalPages" @click="goNextPage">
         ›
       </button>
     </div>
@@ -205,7 +175,26 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['inspection-request', 'force-shutdown', 'charger-select'])
+// 260501 임소리: inspection-complete, power-on 추가
+const emit = defineEmits([
+  'inspection-request', 
+  'force-shutdown', 
+  'charger-select',
+  'inspection-complete', // 시설팀 점검 완료 이벤트 추가
+  'power-on'             // 주차/보안팀 가동 재개 이벤트 추가
+])
+
+// 260501 임소리: 부서 확인 로직
+const isFacilityTeam = computed(() => {
+  try {
+    const loginData = JSON.parse(sessionStorage.getItem('loginId')) || {}
+    
+    return loginData.adminDeptName === '시설관리팀'
+  } catch (error) {
+    console.error('부서 정보 확인 중 에러 발생:', error)
+    return false
+  }
+})
 
 const sortOrder = ref('desc')
 const selectedFilter = ref('ALL')
@@ -610,8 +599,13 @@ const formatOccurredAt = (value) => {
   display: inline-block;
 }
 
-.filter-dot.check { background: #ffcc00; }
-.filter-dot.risk  { background: #ff2b2b; }
+.filter-dot.check {
+  background: #ffcc00;
+}
+
+.filter-dot.risk {
+  background: #ff2b2b;
+}
 
 .sort-button {
   border: none;
@@ -682,21 +676,40 @@ const formatOccurredAt = (value) => {
   border-radius: 50%;
 }
 
-.status-text.check  { color: #ffcc00; }
-.status-text.risk   { color: #ff2b2b; }
-.status-dot.check   { background: #ffcc00; }
-.status-dot.risk    { background: #ff2b2b; }
+.status-text.check {
+  color: #ffcc00;
+}
 
-.detail-cell { font-weight: 600; }
-.detail-cell.check { color: #d3b100; }
-.detail-cell.risk  { color: #ff2b2b; }
+.status-text.risk {
+  color: #ff2b2b;
+}
+
+.status-dot.check {
+  background: #ffcc00;
+}
+
+.status-dot.risk {
+  background: #ff2b2b;
+}
+
+.detail-cell {
+  font-weight: 600;
+}
+
+.detail-cell.check {
+  color: #d3b100;
+}
+
+.detail-cell.risk {
+  color: #ff2b2b;
+}
 
 .action-buttons {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .action-btn,
@@ -718,13 +731,31 @@ const formatOccurredAt = (value) => {
   background: transparent;
 }
 
-.action-btn.inspection { border: 1px solid #d3a600; color: #d3a600; }
-.action-btn.shutdown   { border: 1px solid #ff2b2b; color: #ff2b2b; }
+.action-btn.inspection {
+  border: 1px solid #d3a600;
+  color: #d3a600;
+}
 
-.action-done.inspection-done { color: #d3a600; }
-.action-done.shutdown-done   { color: #ff6a6a; }
-.action-done.complete        { color: #d9e1ea; }
-.action-done.status-updated  { color: #94a3b8; }
+.action-btn.shutdown {
+  border: 1px solid #ff2b2b;
+  color: #ff2b2b;
+}
+
+.action-done.inspection-done {
+  color: #d3a600;
+}
+
+.action-done.shutdown-done {
+  color: #ff6a6a;
+}
+
+.action-done.complete {
+  color: #d9e1ea;
+}
+
+.action-done.status-updated {
+  color: #94a3b8;
+}
 
 .empty-row {
   padding: 26px 12px !important;
@@ -794,8 +825,18 @@ const formatOccurredAt = (value) => {
     flex-direction: column;
     align-items: flex-start;
   }
+
   .header-controls {
     width: 100%;
   }
+}
+
+/* 260501: 테이블 내 가동 재개 버튼 스타일 */
+.action-btn.restart.active {
+  border: 1px solid #22c55e;
+  color: #22c55e;
+}
+.action-btn.restart.active:hover {
+  background: rgba(34, 197, 94, 0.15);
 }
 </style>

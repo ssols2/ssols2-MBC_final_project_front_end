@@ -53,7 +53,10 @@
                 <div v-if="upcomingResList.length > 0">
                     <div class="res-highlight main-res">
                         <span class="d-day">D-{{ calculateDday(upcomingRes.reservation_date) }}</span>
-                        <p class="res-time-txt">{{ formatDate(upcomingRes.reservation_time) }}</p>
+                        <p class="res-time-txt">
+                            {{ formatDate(upcomingRes.reservation_date) }}
+                            {{ String(upcomingRes.reservation_time || '').substring(0, 5) }}
+                        </p>
                         <p class="res-doc-txt">{{ upcomingRes.med_dept_name }} | {{ upcomingRes.doctor_name }} 의사</p>
                     </div>
 
@@ -163,7 +166,8 @@
                 <div v-else>
                     <div class="filter-tabs">
                         <button v-for="st in ['전체', '예약', '완료', '취소', '미방문']" :key="st"
-                            :class="['filter-btn', { active: docFilter === st }]" @click="docFilter = st">{{ st }}</button>
+                            :class="['filter-btn', { active: docFilter === st }]" @click="docFilter = st">{{ st
+                            }}</button>
                     </div>
                     <table class="hospital-tbl">
                         <thead>
@@ -222,11 +226,12 @@
                         <tr v-for="res in filteredMyReservations" :key="res.reservation_id">
                             <td class="bold-blue">{{ res.med_dept_name }}</td>
                             <td class="bold-blue">{{ res.doctor_name }}</td>
-                            <td>{{ formatDate(res.reservation_date) }}</td>
+                            <td>{{ formatDate(upcomingRes.reservation_date) }}
+                            {{ String(upcomingRes.reservation_time || '').substring(0, 5) }}</td>
                             <td><span :class="['status-badge',
-                                    res.reservation_status === '예약' ? 'active' :
-                                        res.reservation_status === '완료' ? 'done' :
-                                            res.reservation_status === '취소' ? 'cancel' : 'noshow']">
+                                res.reservation_status === '예약' ? 'active' :
+                                    res.reservation_status === '완료' ? 'done' :
+                                        res.reservation_status === '취소' ? 'cancel' : 'noshow']">
                                     {{ res.reservation_status }}
                                 </span></td>
                             <td class="txt-center">
@@ -250,227 +255,226 @@ import { ref, onMounted, computed, defineEmits } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { getMyResReq, cancelResReq, getAllDoctorsReq, getDocSchedReq, completeResByDocReq, forceCancelResByDocReq } from '@/api/reservation'
 
-    const props = defineProps({
-        userInfo: Object,
-        currentView: String
+const props = defineProps({
+    userInfo: Object,
+    currentView: String
+})
+
+// 부모(MyPage.vue)의 탭 상태를 바꾸기 위한 통로 .개설
+const emit = defineEmits(['changeView'])
+
+const router = useRouter()
+const route = useRoute()
+
+// [데이터 주머니] 
+const myReservations = ref([])   // [개인용] 의사 본인이 환자로서 예약한 내역
+const doctorSchedules = ref([])  // [업무용] 의사가 오늘 진료해야 할 환자 리스트
+
+// [업무용 상태 변수]
+const docViewMode = ref('calendar') // 달력 보기 / 리스트 보기 전환
+const docFilter = ref('예약')       // 진료 상태 필터 (전체, 예약, 완료 등)
+const calYear = ref(new Date().getFullYear())
+const calMonth = ref(new Date().getMonth() + 1)
+const selectedDate = ref(null)     // 달력에서 클릭한 날짜 저장
+
+// [개인용 상태 변수]
+const resFilter = ref('전체')       // 내 예약 내역 필터링 상태
+
+// ======================================= 가공 데이터 =======================================
+// [업무용] 전체 진료 스케줄 중 사용자가 선택한 상태(docFilter)만 필터링
+const filteredDoctorSchedules = computed(() => {
+    if (docFilter.value === '전체') return doctorSchedules.value
+    return doctorSchedules.value.filter(s => s.reservation_status === docFilter.value)
+})
+
+// [업무용/달력] 달력에서 특정 날짜를 클릭했을 때, 그 날의 예약만 하단에 노출
+const selectedDateSchedules = computed(() => {
+    if (!selectedDate.value) return []
+    const cleanSelected = selectedDate.value.replace(/-/g, '').substring(0, 8)
+    return doctorSchedules.value.filter(s => {
+        const rDate = s.reservation_date || s.reservationDate
+        if (!rDate) return false
+        return String(rDate).replace(/-/g, '').substring(0, 8) === cleanSelected
     })
+})
 
-    // 부모(MyPage.vue)의 탭 상태를 바꾸기 위한 통로 .개설
-    const emit = defineEmits(['changeView'])
-
-    const router = useRouter()
-    const route = useRoute()
-
-    // [데이터 주머니] 
-    const myReservations = ref([])   // [개인용] 의사 본인이 환자로서 예약한 내역
-    const doctorSchedules = ref([])  // [업무용] 의사가 오늘 진료해야 할 환자 리스트
-
-    // [업무용 상태 변수]
-    const docViewMode = ref('calendar') // 달력 보기 / 리스트 보기 전환
-    const docFilter = ref('예약')       // 진료 상태 필터 (전체, 예약, 완료 등)
-    const calYear = ref(new Date().getFullYear())
-    const calMonth = ref(new Date().getMonth() + 1)
-    const selectedDate = ref(null)     // 달력에서 클릭한 날짜 저장
-
-    // [개인용 상태 변수]
-    const resFilter = ref('전체')       // 내 예약 내역 필터링 상태
-
-    // ======================================= 가공 데이터 =======================================
-    // [업무용] 전체 진료 스케줄 중 사용자가 선택한 상태(docFilter)만 필터링
-    const filteredDoctorSchedules = computed(() => {
-        if (docFilter.value === '전체') return doctorSchedules.value
-        return doctorSchedules.value.filter(s => s.reservation_status === docFilter.value)
-    })
-
-    // [업무용/달력] 달력에서 특정 날짜를 클릭했을 때, 그 날의 예약만 하단에 노출
-    const selectedDateSchedules = computed(() => {
-        if (!selectedDate.value) return []
-        const cleanSelected = selectedDate.value.replace(/-/g, '').substring(0, 8)
-        return doctorSchedules.value.filter(s => {
-            const rDate = s.reservation_date || s.reservationDate
-            if (!rDate) return false
-            return String(rDate).replace(/-/g, '').substring(0, 8) === cleanSelected
+// 추가
+// 예약 리스트를 '진짜 빠른 시간순'으로 정렬하고 최대 3개까지 추출
+const upcomingResList = computed(() => {
+    return [...myReservations.value] // 원본 복사
+        .filter(r => r.reservation_status === '예약')
+        .sort((a, b) => {
+            // 날짜(YYYYMMDD)와 시간(HH:mm)을 합쳐서 비교 (예: "202602230900" < "202602231000")
+            const timeA = String(a.reservation_date) + String(a.reservation_time || '00:00').replace(':', '')
+            const timeB = String(b.reservation_date) + String(b.reservation_time || '00:00').replace(':', '')
+            return timeA.localeCompare(timeB) // 오름차순 정렬 (빠른 시간 우선) 
         })
-    })
+        .slice(0, 3) // 상위 3개만 자르기
+})
 
-    // 추가
-    // 예약 리스트를 '진짜 빠른 시간순'으로 정렬하고 최대 3개까지 추출
-    const upcomingResList = computed(() => {
-        return [...myReservations.value] // 원본 복사
-            .filter(r => r.reservation_status === '예약')
-            .sort((a, b) => {
-                // 날짜(YYYYMMDD)와 시간(HH:mm)을 합쳐서 비교 (예: "202602230900" < "202602231000")
-                const timeA = String(a.reservation_date) + String(a.reservation_time || '00:00').replace(':', '')
-                const timeB = String(b.reservation_date) + String(b.reservation_time || '00:00').replace(':', '')
-                return timeA.localeCompare(timeB) // 오름차순 정렬 (빠른 시간 우선) 
-            })
-            .slice(0, 3) // 상위 3개만 자르기
-    })
+// D-Day 계산용 (정렬된 리스트의 0번이 무조건 가장 빠른 예약!)
+const upcomingRes = computed(() => upcomingResList.value[0])
 
-    // D-Day 계산용 (정렬된 리스트의 0번이 무조건 가장 빠른 예약!)
-    const upcomingRes = computed(() => upcomingResList.value[0])
+// 탭 이동 함수
+const goToList = () => emit('changeView', 'res');  // 목록으로 가기
+const goToResList = () => emit('changeView', 'doc_res');
 
-    // 탭 이동 함수
-    const goToList = () => emit('changeView', 'res');  // 목록으로 가기
-    const goToResList = () => emit('changeView', 'doc_res');
+// [개인용] 내 전체 예약 리스트 중 선택한 필터에 맞는 것만 노출
+const filteredMyReservations = computed(() => {
+    if (resFilter.value === '전체') return myReservations.value
+    return myReservations.value.filter(r => r.reservation_status === resFilter.value)
+})
 
+// [달력] 현재 연/월에 맞는 날짜 그리드(1일~말일)를 생성하는 로직
+const calendarDays = computed(() => {
+    const year = calYear.value
+    const month = calMonth.value - 1
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0)
+    const days = []
 
-    // [개인용] 내가 환자일 때 가장 가까운 예약 하나 찾기 (대시보드 요약용)
-    // const upcomingRes = computed(() =>
-    //     myReservations.value.find(r => r.reservation_status === '예약')
-    // )
+    for (let i = 0; i < firstDay.getDay(); i++) days.push({ day: '', isCurrentMonth: false })
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+        const mm = month + 1 < 10 ? '0' + (month + 1) : (month + 1)
+        const dd = d < 10 ? '0' + d : d
+        days.push({ day: d, isCurrentMonth: true, fullDate: `${year}-${mm}-${dd}` })
+    }
+    return days
+})
 
-    // [개인용] 내 전체 예약 리스트 중 선택한 필터에 맞는 것만 노출
-    const filteredMyReservations = computed(() => {
-        if (resFilter.value === '전체') return myReservations.value
-        return myReservations.value.filter(r => r.reservation_status === resFilter.value)
-    })
-
-    // [달력] 현재 연/월에 맞는 날짜 그리드(1일~말일)를 생성하는 로직
-    const calendarDays = computed(() => {
-        const year = calYear.value
-        const month = calMonth.value - 1
-        const firstDay = new Date(year, month, 1)
-        const lastDay = new Date(year, month + 1, 0)
-        const days = []
-
-        for (let i = 0; i < firstDay.getDay(); i++) days.push({ day: '', isCurrentMonth: false })
-        for (let d = 1; d <= lastDay.getDate(); d++) {
-            const mm = month + 1 < 10 ? '0' + (month + 1) : (month + 1)
-            const dd = d < 10 ? '0' + d : d
-            days.push({ day: d, isCurrentMonth: true, fullDate: `${year}-${mm}-${dd}` })
+// ======================================= 서버 통신 로직 =======================================
+// [업무 조회] 의사 본인의 환자 진료 스케줄을 서버에서 가져옴
+const fetchDoctorSchedules = async () => {
+    if (!props.userInfo.id) return
+    try {
+        const docListRes = await getAllDoctorsReq()
+        const allStaff = docListRes.data || []
+        // 전체 직원 목록 중 현재 로그인한 userInfo.id와 매칭되는 staff_id를 찾음
+        const myInfo = allStaff.find(s => String(s.user_id) === String(props.userInfo.id))
+        if (myInfo) {
+            const schedRes = await getDocSchedReq(myInfo.staff_id)
+            doctorSchedules.value = schedRes.data || []
         }
-        return days
-    })
+    } catch (e) { console.error("업무 스케줄 로드 실패", e) }
+}
 
-    // ======================================= 서버 통신 로직 =======================================
-    // [업무 조회] 의사 본인의 환자 진료 스케줄을 서버에서 가져옴
-    const fetchDoctorSchedules = async () => {
-        if (!props.userInfo.id) return
+// [개인 조회] 의사 본인이 환자로서 예약한 내역을 서버에서 가져옴
+const fetchReservations = async () => {
+    try {
+        const res = await getMyResReq()
+        myReservations.value = res.data
+    } catch (e) {
+        console.error("예약 조회 실패", e)
+    }
+}
+
+// ======================================= 기능 + 유틸리티 =======================================
+// [업무] 진료 완료 처리 (예약 시간이 지나야만 가능)
+const completeTreatment = async (scheduleItem) => {
+    if (isFutureTime(scheduleItem)) {
+        alert("아직 예약 시간이 되지 않았습니다.\n진료 시간이 지난 후에 처리해 주세요.")
+        return
+    }
+
+    if (confirm(`${scheduleItem.patient_name} 님 진료를 완료하시겠습니까?`)) {
         try {
-            const docListRes = await getAllDoctorsReq()
-            const allStaff = docListRes.data || []
-            // 전체 직원 목록 중 현재 로그인한 userInfo.id와 매칭되는 staff_id를 찾음
-            const myInfo = allStaff.find(s => String(s.user_id) === String(props.userInfo.id))
-            if (myInfo) {
-                const schedRes = await getDocSchedReq(myInfo.staff_id)
-                doctorSchedules.value = schedRes.data || []
+            const res = await completeResByDocReq(scheduleItem.reservation_id)
+
+            if (res.data === 'success') {
+                alert("진료가 완료되었습니다.")
+                await fetchDoctorSchedules()
+            } else {
+                alert("처리에 실패했습니다. 권한이 없거나 이미 처리된 예약입니다.")
             }
-        } catch (e) { console.error("업무 스케줄 로드 실패", e) }
-    }
-
-    // [개인 조회] 의사 본인이 환자로서 예약한 내역을 서버에서 가져옴
-    const fetchReservations = async () => {
-        try {
-            const res = await getMyResReq()
-            myReservations.value = res.data
         } catch (e) {
-            console.error("예약 조회 실패", e)
+            console.error("완료 처리 오류:", e)
+            alert("서버와 통신 중 오류가 발생했습니다.")
         }
     }
+}
 
-    // ======================================= 기능 + 유틸리티 =======================================
-    // [업무] 진료 완료 처리 (예약 시간이 지나야만 가능)
-    const completeTreatment = async (scheduleItem) => {
-        if (isFutureTime(scheduleItem)) {
-            alert("아직 예약 시간이 되지 않았습니다.\n진료 시간이 지난 후에 처리해 주세요.")
-            return
-        }
+// [업무] 예약 강제 취소 (의사 권한으로 환자 예약 취소)
+const handleForceCancel = async (scheduleItem) => {
+    if (confirm("예약을 강제 취소(삭제)하시겠습니까?")) {
+        try {
+            const res = await forceCancelResByDocReq(scheduleItem.reservation_id)
 
-        if (confirm(`${scheduleItem.patient_name} 님 진료를 완료하시겠습니까?`)) {
-            try {
-                const res = await completeResByDocReq(scheduleItem.reservation_id)
-
-                if (res.data === 'success') {
-                    alert("진료가 완료되었습니다.")
-                    await fetchDoctorSchedules()
-                } else {
-                    alert("처리에 실패했습니다. 권한이 없거나 이미 처리된 예약입니다.")
-                }
-            } catch (e) {
-                console.error("완료 처리 오류:", e)
-                alert("서버와 통신 중 오류가 발생했습니다.")
+            if (res.data === 'success') {
+                alert("정상적으로 취소되었습니다.")
+                await fetchDoctorSchedules()
+            } else {
+                alert("취소에 실패했습니다. 권한을 확인해 주세요.")
             }
-        }
-    }
-
-    // [업무] 예약 강제 취소 (의사 권한으로 환자 예약 취소)
-    const handleForceCancel = async (scheduleItem) => {
-        if (confirm("예약을 강제 취소(삭제)하시겠습니까?")) {
-            try {
-                const res = await forceCancelResByDocReq(scheduleItem.reservation_id)
-
-                if (res.data === 'success') {
-                    alert("정상적으로 취소되었습니다.")
-                    await fetchDoctorSchedules()
-                } else {
-                    alert("취소에 실패했습니다. 권한을 확인해 주세요.")
-                }
-            } catch (e) {
-                console.error("취소 처리 오류:", e)
-                alert("서버와 통신 중 오류가 발생했습니다.")
-            }
-        }
-    }
-
-    // [개인] 내 진료 예약 취소
-    const cancelRes = async (id) => {
-        if (!confirm("정말 예약을 취소하시겠습니까?")) return
-        try {
-            await cancelResReq(id)
-            fetchReservations() // 취소 후 목록 새로고침
-            alert("예약 취소가 완료되었습니다")
         } catch (e) {
-            alert("오류가 발생했습니다")
+            console.error("취소 처리 오류:", e)
+            alert("서버와 통신 중 오류가 발생했습니다.")
         }
     }
+}
 
-    // [가공] 전화번호 포맷 (01012345678 -> 010-1234-5678)
-    const formatPhone = (phone) => {
-        if (!phone) return '-';
-        const clean = String(phone).replace(/[^0-9]/g, '');
-        if (clean.length === 11) {
-            return clean.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
-        } else if (clean.length === 10) {
-            return clean.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
-        }
-    };
+// [개인] 내 진료 예약 취소
+const cancelRes = async (id) => {
+    if (!confirm("정말 예약을 취소하시겠습니까?")) return
+    try {
+        await cancelResReq(id)
+        fetchReservations() // 취소 후 목록 새로고침
+        alert("예약 취소가 완료되었습니다")
+    } catch (e) {
+        alert("오류가 발생했습니다")
+    }
+}
 
-    // [가공] 날짜 포맷 (20260222 -> 2026년 02월 22일)
-    const formatDate = (date) => {
-        if (!date) return '-'
-        const s = String(date)
+// [가공] 전화번호 포맷 (01012345678 -> 010-1234-5678)
+const formatPhone = (phone) => {
+    if (!phone) return '-';
+    const clean = String(phone).replace(/[^0-9]/g, '');
+    if (clean.length === 11) {
+        return clean.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+    } else if (clean.length === 10) {
+        return clean.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+    }
+};
 
-        // 1. YYYYMMDD 형태인 경우 (예: 20260208)
-        if (s.length === 8) {
-            return `${s.substring(0, 4)}년 ${s.substring(4, 6)}월 ${s.substring(6, 8)}일`
-        }
+// [가공] 날짜 포맷 (20260222 -> 2026년 02월 22일)
+const formatDate = (dateVal) => {
+    if (!dateVal) return '-'
+    let s = String(dateVal).trim()
 
-        // 2. 날짜 객체나 ISO 스트링인 경우 (예: 2026-02-08T...)
-        try {
-            const d = new Date(date)
-            const year = d.getFullYear()
-            const month = d.getMonth() + 1
-            const day = d.getDate()
+    // ISO 형식(T 포함)인 경우 날짜만 추출
+    if (s.includes('T')) s = s.split('T')[0]
 
-            // 월/일이 10보다 작을 때 앞에 0을 붙이기 위함
-            const mm = month < 10 ? `0${month}` : month
-            const dd = day < 10 ? `0${day}` : day
-
-            return `${year}년 ${mm}월 ${dd}일`
-        } catch (e) {
-            return s
-        }
+    // YYYY-MM-DD 형식 처리[cite: 15]
+    const parts = s.split('-')
+    if (parts.length >= 3) {
+        let year = parts[0].replace(/[^0-9]/g, '')
+        if (year.length > 4) year = '2026' // 연도 오류 방어
+        return `${year}년 ${parts[1]}월 ${parts[2]}일`
     }
 
-    // [가공] 시간 포맷 (문자열에서 시간 부분만 00:00 형태로 추출)
-    const formatTime = (time) => {
-        const t = String(time)
-        return t.includes(' ') ? t.substring(11, 16) : t.substring(0, 5)
+    // 8자리 숫자(YYYYMMDD) 처리[cite: 15]
+    if (/^\d{8}$/.test(s)) {
+        return `${s.substring(0, 4)}년 ${s.substring(4, 6)}월 ${s.substring(6, 8)}일`
     }
 
-    // [계산] 디데이 계산
-    const calculateDday = (dateStr) => {
+    // 타임스탬프 등 기타 형식[cite: 15]
+    const d = new Date(dateVal)
+    if (!isNaN(d.getTime())) {
+        const y = d.getFullYear()
+        const m = String(d.getMonth() + 1).padStart(2, '0')
+        const dd = String(d.getDate()).padStart(2, '0')
+        return `${y}년 ${m}월 ${dd}일`
+    }
+    return s
+}
+
+// [가공] 시간 포맷 (문자열에서 시간 부분만 00:00 형태로 추출)
+const formatTime = (time) => {
+    const t = String(time)
+    return t.includes(' ') ? t.substring(11, 16) : t.substring(0, 5)
+}
+
+// [계산] 디데이 계산
+const calculateDday = (dateStr) => {
         // 예: dateStr = "20260206" (YYYYMMDD)
         if (!dateStr) return 0;
 
@@ -490,83 +494,83 @@ import { getMyResReq, cancelResReq, getAllDoctorsReq, getDocSchedReq, completeRe
         return Math.ceil(diff / (1000 * 3600 * 24));
     };
 
-    // [달력] 월 이동 함수
-    const changeMonth = (delta) => {
-        let newMonth = calMonth.value + delta
-        if (newMonth > 12) { calYear.value++; newMonth = 1 }
-        else if (newMonth < 1) { calYear.value--; newMonth = 12 }
-        calMonth.value = newMonth
+// [달력] 월 이동 함수
+const changeMonth = (delta) => {
+    let newMonth = calMonth.value + delta
+    if (newMonth > 12) { calYear.value++; newMonth = 1 }
+    else if (newMonth < 1) { calYear.value--; newMonth = 12 }
+    calMonth.value = newMonth
+}
+
+// [달력] 날짜 클릭 시 선택 날짜 저장
+const handleCalDateClick = (dateStr) => {
+    selectedDate.value = dateStr; // 의사: 해당 날짜 예약 조회
+};
+
+// [달력] 특정 날짜에 진료 예약이 있는지 확인 (점 표시용)
+const getEventsForDate = (str) => {
+    if (!str) return [];
+    // 달력 날짜: "2026-02-21" -> "20260221"
+    const cleanTarget = str.replace(/-/g, '').substring(0, 8);
+
+    return doctorSchedules.value.filter(s => {
+        const rDate = s.reservation_date || s.reservationDate; // 스네이크/카멜 케이스 둘 다 대응
+        if (!rDate) return false;
+
+        // 서버 날짜에서도 숫자 8자리만 뽑아서 비교
+        const cleanDate = String(rDate).replace(/-/g, '').substring(0, 8);
+        return cleanDate === cleanTarget;
+    });
+};
+
+// [달력] 오늘 날짜 하이라이트 여부 확인
+const isToday = (str) => {
+    const t = new Date()
+    const d = new Date(str)
+    return t.toDateString() === d.toDateString()
+}
+
+// [가공] 상태에 따른 배지 클래스 반환
+const getBadgeClass = (s) => {
+    if (s === '예약') return 'active'
+    if (s === '완료') return 'done'
+    if (s === '미방문') return 'noshow-badge'
+    return 'cancel'
+}
+
+// [업무] 예약 시간이 지났는지 체크 (미래 시간 진료 완료 방지용)
+const isFutureTime = (item) => {
+    if (!item) return false;
+    try {
+        const now = new Date();
+        // 숫자만 추출 (예: 2026-02-06 -> 20260206)
+        let d = String(item.reservation_date).replace(/[^0-9]/g, '');
+        let t = String(item.reservation_time).replace(/[^0-9]/g, '');
+
+        // 시간 문자열이 길면(날짜포함) 뒤에서 6자리만 자름
+        if (t.length > 6) t = t.slice(-6);
+        t = t.padEnd(6, '0'); // 혹시 짧으면 0으로 채움
+
+        const year = parseInt(d.substring(0, 4));
+        const month = parseInt(d.substring(4, 6)) - 1; // 월은 0부터
+        const day = parseInt(d.substring(6, 8));
+        const hour = parseInt(t.substring(0, 2));
+        const min = parseInt(t.substring(2, 4));
+
+        const targetDate = new Date(year, month, day, hour, min);
+
+        // 예약시간이 현재보다 미래면 true
+        return targetDate > now;
+    } catch (e) {
+        return false; // 에러나면 일단 통과 (사용자 경험 방해 X)
     }
+};
 
-    // [달력] 날짜 클릭 시 선택 날짜 저장
-    const handleCalDateClick = (dateStr) => {
-        selectedDate.value = dateStr; // 의사: 해당 날짜 예약 조회
-    };
-
-    // [달력] 특정 날짜에 진료 예약이 있는지 확인 (점 표시용)
-    const getEventsForDate = (str) => {
-        if (!str) return [];
-        // 달력 날짜: "2026-02-21" -> "20260221"
-        const cleanTarget = str.replace(/-/g, '').substring(0, 8);
-
-        return doctorSchedules.value.filter(s => {
-            const rDate = s.reservation_date || s.reservationDate; // 스네이크/카멜 케이스 둘 다 대응
-            if (!rDate) return false;
-
-            // 서버 날짜에서도 숫자 8자리만 뽑아서 비교
-            const cleanDate = String(rDate).replace(/-/g, '').substring(0, 8);
-            return cleanDate === cleanTarget;
-        });
-    };
-
-    // [달력] 오늘 날짜 하이라이트 여부 확인
-    const isToday = (str) => {
-        const t = new Date()
-        const d = new Date(str)
-        return t.toDateString() === d.toDateString()
-    }
-
-    // [가공] 상태에 따른 배지 클래스 반환
-    const getBadgeClass = (s) => {
-        if (s === '예약') return 'active'
-        if (s === '완료') return 'done'
-        if (s === '미방문') return 'noshow-badge'
-        return 'cancel'
-    }
-
-    // [업무] 예약 시간이 지났는지 체크 (미래 시간 진료 완료 방지용)
-    const isFutureTime = (item) => {
-        if (!item) return false;
-        try {
-            const now = new Date();
-            // 숫자만 추출 (예: 2026-02-06 -> 20260206)
-            let d = String(item.reservation_date).replace(/[^0-9]/g, '');
-            let t = String(item.reservation_time).replace(/[^0-9]/g, '');
-
-            // 시간 문자열이 길면(날짜포함) 뒤에서 6자리만 자름
-            if (t.length > 6) t = t.slice(-6);
-            t = t.padEnd(6, '0'); // 혹시 짧으면 0으로 채움
-
-            const year = parseInt(d.substring(0, 4));
-            const month = parseInt(d.substring(4, 6)) - 1; // 월은 0부터
-            const day = parseInt(d.substring(6, 8));
-            const hour = parseInt(t.substring(0, 2));
-            const min = parseInt(t.substring(2, 4));
-
-            const targetDate = new Date(year, month, day, hour, min);
-
-            // 예약시간이 현재보다 미래면 true
-            return targetDate > now;
-        } catch (e) {
-            return false; // 에러나면 일단 통과 (사용자 경험 방해 X)
-        }
-    };
-
-    // 초기화 (Lifecycle)
-    onMounted(() => {
-        fetchDoctorSchedules() // 의사 업무 로드
-        fetchReservations()    // 개인 예약 로드
-    })
+// 초기화 (Lifecycle)
+onMounted(() => {
+    fetchDoctorSchedules() // 의사 업무 로드
+    fetchReservations()    // 개인 예약 로드
+})
 </script>
 
 <style scoped>
@@ -588,6 +592,48 @@ import { getMyResReq, cancelResReq, getAllDoctorsReq, getDocSchedReq, completeRe
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
 }
 
+.profile-card {
+    display: block !important;
+}
+
+.profile-card .card-head {
+    display: block !important;
+    text-align: left;
+    margin-bottom: 25px;
+}
+
+.info-list {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.info-list .info-item {
+    display: flex;
+    flex-direction: column;
+    /* 텍스트 수직 정렬 */
+    align-items: flex-start;
+    margin-bottom: 17px;
+}
+
+.info-item .label {
+    width: 100% !important;
+    font-size: 18px;
+    color: #888;
+    font-weight: 700;
+    padding: 0 0 20px 0;
+}
+
+.info-item .val {
+    width: 100%;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    padding: 0 0 12px 0;
+    margin: 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
 .card-head {
     display: flex;
     justify-content: space-between;
@@ -596,34 +642,10 @@ import { getMyResReq, cancelResReq, getAllDoctorsReq, getDocSchedReq, completeRe
 }
 
 .card-head h3 {
-    padding: 8px;
     font-size: 1.7rem;
     font-weight: 800;
     color: #005baa;
-}
-
-.label {
-    padding: 8px;
-    font-size: 20px;
-}
-
-.val {
-    padding: 8px 8px 16px;
-    font-size: 18px;
-    margin-bottom: 18px;
-    border-bottom: 1px solid #f5f5f5;
-}
-
-/*  정보 요약 및 기타 유틸리티 */
-.info-list .info-item {
-    font-size: 17px;
-    margin-bottom: 12px;
-}
-
-.info-item .label {
-    width: 100px;
-    color: #888;
-    font-weight: 700;
+    margin-bottom: 10px;
 }
 
 /*  오늘 진료 현황 (의사 전용 통계 박스) */
@@ -692,7 +714,7 @@ import { getMyResReq, cancelResReq, getAllDoctorsReq, getDocSchedReq, completeRe
 .hospital-tbl th {
     background-color: #f8f9fa;
     padding: 30px;
-    text-align: left;
+    text-align: center;
     font-weight: 600;
     color: #555;
     border-bottom: 2px solid #eee;
@@ -704,6 +726,7 @@ import { getMyResReq, cancelResReq, getAllDoctorsReq, getDocSchedReq, completeRe
     border-bottom: 1px solid #f0f0f0;
     color: #444;
     font-size: 18px;
+    text-align: center;
     vertical-align: middle;
 }
 
@@ -711,7 +734,7 @@ import { getMyResReq, cancelResReq, getAllDoctorsReq, getDocSchedReq, completeRe
 .btn-group {
     display: flex;
     gap: 8px;
-    justify-content: flex-start;
+    justify-content: center;
 }
 
 .btn-action {
@@ -830,43 +853,43 @@ import { getMyResReq, cancelResReq, getAllDoctorsReq, getDocSchedReq, completeRe
 .month-selector {
     display: flex;
     align-items: center;
-    gap: 40px;             
+    gap: 40px;
 }
 
 .month-selector button {
     background: #ffffff;
     border: 1px solid #eeeeee;
-    border-radius: 4px;   
+    border-radius: 4px;
     padding: 10px;
     cursor: pointer;
-    transition: all 0.2s ease; 
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #555;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
 }
 
 .month-selector button:hover {
     background-color: #f8f9fa;
     border-color: #005baa;
     color: #005baa;
-    transform: translateY(-2px); 
+    transform: translateY(-2px);
     box-shadow: 0 4px 10px rgba(0, 91, 170, 0.1);
 }
 
 .month-selector h4 {
-    font-size: 30px;        
+    font-size: 30px;
     font-weight: 800;
     color: #333;
-    letter-spacing: -1px;  
+    letter-spacing: -1px;
     margin: 0;
 }
 
 .cal-legend {
     display: flex;
     gap: 20px;
-    align-self: flex-end;  
+    align-self: flex-end;
     background: transparent;
     padding-right: 10px;
 }
@@ -960,6 +983,7 @@ import { getMyResReq, cancelResReq, getAllDoctorsReq, getDocSchedReq, completeRe
     font-weight: 500;
     color: #666;
 }
+
 /* 내 진료 예약 버튼 css */
 /* 취소 버튼: 깔끔한 레드 아웃라인 */
 .btn-cancel-table {
@@ -1025,7 +1049,7 @@ import { getMyResReq, cancelResReq, getAllDoctorsReq, getDocSchedReq, completeRe
 }
 
 .txt-center {
-    text-align: left;
+    text-align: center;
 }
 
 /* 해당하는 내역이 없습니다 메세지 */
@@ -1050,6 +1074,7 @@ import { getMyResReq, cancelResReq, getAllDoctorsReq, getDocSchedReq, completeRe
     cursor: pointer;
     transition: all 0.2s ease-in-out;
 }
+
 .clickable-card:hover {
     border-color: #005baa;
     transform: translateY(-5px);
@@ -1079,6 +1104,11 @@ import { getMyResReq, cancelResReq, getAllDoctorsReq, getDocSchedReq, completeRe
     font-weight: 600;
 }
 
-.sub-time { color: #005baa; }
-.sub-info { color: #555; }
+.sub-time {
+    color: #005baa;
+}
+
+.sub-info {
+    color: #555;
+}
 </style>

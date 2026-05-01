@@ -91,12 +91,12 @@
                     </div>
 
                     <ul v-show="isSystemMenuOpen" class="sub-menu-list">
-                        <li class="sub-item" :class="{ active: isActiveMenu('/dashboard/system/policy') }"
-                            @click="goToPage('/dashboard/system/policy')"> • 요금 및 운영 정책 설정
-                        </li>
                         <li class="sub-item" :class="{ active: isActiveMenu('/dashboard/system/history') }"
                             @click="goToPage('/dashboard/system/history')">
                             • 통합 알림 및 장애 이력
+                        </li>
+                        <li class="sub-item" :class="{ active: isActiveMenu('/dashboard/system/policy') }"
+                            @click="goToPage('/dashboard/system/policy')"> • 요금 및 운영 정책
                         </li>
                         <li class="sub-item" :class="{ active: isActiveMenu('/dashboard/system/management') }"
                             @click="goToPage('/dashboard/system/management')">
@@ -119,9 +119,9 @@
 
                     <div class="weather-details">
                         <div class="weather-item"><span class="label">강수</span><span class="value">{{ weather.rainfallMm
-                                }}mm</span></div>
+                        }}mm</span></div>
                         <div class="weather-item"><span class="label">습도</span><span class="value">{{ weather.humidity
-                                }}%</span></div>
+                        }}%</span></div>
                         <div class="weather-item wide">
                             <span class="label">미세먼지</span>
                             <span class="value" :class="pm10Class">{{ weather.pm10 }}㎍ ({{ pm10Label }})</span>
@@ -152,7 +152,14 @@
 
             <header class="main-header">
                 <div class="header-left">
-                    <span class="header-time">{{ currentFullTime }}</span>
+                    <span class="header-time">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            style="margin-right: 6px; vertical-align: -3px;">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        {{ currentFullTime }}</span>
                 </div>
 
                 <div class="header-right">
@@ -175,7 +182,7 @@
                             </svg>
                         </button>
 
-                        <div class="dropdown-wrapper">
+                        <div class="dropdown-wrapper" ref="notifyWrapper">
                             <button class="icon-btn notify-btn" :class="{ 'active': isNotifyOpen }" title="알림"
                                 @click="toggleNotify">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -188,15 +195,22 @@
 
                             <div class="notify-dropdown glass-panel" v-if="isNotifyOpen">
                                 <div class="dropdown-header">알림 (미확인 {{ unreadCount }}건)</div>
+                                <!-- 필터 탭 영역 추가 -->
                                 <div class="notify-filters">
-                                    <span class="active">전체({{ unreadCount }})</span>
-                                    <span>EV({{ notifyCounts.ev }})</span>
-                                    <span>OCR({{ notifyCounts.ocr }})</span>
+                                    <span :class="{ active: currentFilter === 'all' }" @click="currentFilter = 'all'">
+                                        전체({{ notifyCounts.all }})
+                                    </span>
+                                    <span :class="{ active: currentFilter === 'ev' }" @click="currentFilter = 'ev'">
+                                        EV({{ notifyCounts.ev }})
+                                    </span>
+                                    <span :class="{ active: currentFilter === 'ocr' }" @click="currentFilter = 'ocr'">
+                                        OCR({{ notifyCounts.ocr }})
+                                    </span>
                                 </div>
                                 <ul class="notify-list">
-                                    <li v-for="item in notifyList" :key="item.id" class="notify-item"
+                                    <li v-for="item in filteredNotifyList" :key="item.id" class="notify-item"
                                         :class="item.alertClass">
-                                        <div class="notify-icon">{{ item.icon }}</div>
+                                        <div class="notify-icon" v-html="item.icon"></div>
                                         <div class="notify-text">
                                             <strong>{{ item.title }}</strong>
                                             <span class="time-log" v-if="item.subText">{{ item.subText }}</span>
@@ -215,17 +229,9 @@
                                 </div>
                             </div>
                         </div>
-
-                        <!-- <button class="icon-btn" title="즐겨찾기">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <polygon
-                                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                            </svg>
-                        </button> -->
                     </div>
 
-                    <div class="dropdown-wrapper">
+                    <div class="dropdown-wrapper" ref="profileWrapper">
                         <div class="user-profile" :class="{ 'active': isProfileOpen }" @click="toggleProfile">
                             <div class="avatar-circle">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff"
@@ -244,7 +250,13 @@
 
                         <div class="profile-dropdown glass-panel" v-if="isProfileOpen">
                             <div class="profile-card">
-                                <div class="profile-avatar-large"></div>
+                                <div class="profile-avatar-large">
+                                    <svg viewBox="0 0 24 24" fill="#cbd5e1"
+                                        style="width: 100%; height: 100%; padding: 6px; box-sizing: border-box;">
+                                        <path
+                                            d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                                    </svg>
+                                </div>
                                 <div class="profile-info-text">
                                     <span class="p-name">{{ adminName }}(관리자)</span>
                                     <span class="p-id">사번: {{ adminId }}</span>
@@ -252,8 +264,26 @@
                                 </div>
                             </div>
                             <ul class="profile-menu-list">
-                                <li @click="goToMyPage">마이페이지</li>
-                                <li @click="goToPage('/dashboard/system/management')">환경설정</li>
+                                <li @click="goToMyPage">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                        style="margin-right: 8px; vertical-align: -2px;">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                    마이페이지
+                                </li>
+                                <li @click="goToPage('/dashboard/system/management')">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                        style="margin-right: 8px; vertical-align: -2px;">
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                        <path
+                                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                                        </path>
+                                    </svg>
+                                    환경설정
+                                </li>
                             </ul>
                             <button class="logout-btn" @click="handleLogout">로그아웃
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -288,18 +318,41 @@
                 <router-view />
             </main>
 
+            <!-- [추가] 시설관리팀 전용 플로팅 버튼 -->
+            <div v-if="isFacilityTeam" class="floating-btn-container">
+                <button class="fab-btn" @click="openFacilityPopup">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <path
+                            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <!-- 대기 중인 요청이 있을 때만 숫자 뱃지 표시 -->
+                    <span v-if="pendingCount > 0" class="fab-badge">{{ pendingCount }}</span>
+                </button>
+            </div>
+
+            <!-- [추가] 시설관리팀 목록 모달 -->
+            <FacilityInspectionPopup :visible="facilityPopupVisible" :pending-list="pendingInspectionList"
+                @close="facilityPopupVisible = false" @confirm="handleFacilityPopupConfirm" />
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, provide } from 'vue'
 import axios from 'axios'
 import { useRouter, useRoute } from 'vue-router'
+import FacilityInspectionPopup from '@/components/ev_infra/predictive/FacilityInspectionPopup.vue'
 
 // ==========================================
 // 1. 상태 관리 변수 모음
 // ==========================================
+// 페이지 라우터
+const router = useRouter()
+const route = useRoute()
+
 // 관리자 정보
 const adminName = ref('주임')
 const adminDept = ref('주차관리팀')
@@ -318,20 +371,33 @@ const isSystemMenuOpen = ref(false)
 const isProfileOpen = ref(false) // 프로필 팝업
 const isNotifyOpen = ref(false)  // 알림 팝업
 
-// 알림 데이터 리스트
-const notifyList = ref([])       // 실시간 알림 배열
+// 추가: 주소창(route.path)이 바뀔 때마다 실행되는 감시자 로직
+watch(() => route.path, () => {
+    isNotifyOpen.value = false
+    isProfileOpen.value = false
+})
 
 // 타이머 변수
 let clockTimer = null
 let weatherTimer = null
 let reservationTimer = null
 
-// 페이지 라우터
-const router = useRouter()
-const route = useRoute()
-
 // 검색
 const searchKeyword = ref('')
+
+const notifyWrapper = ref(null)
+const profileWrapper = ref(null)
+
+const handleClickOutside = (event) => {
+    // 알림창이 열려있고, 클릭한 타겟이 notifyWrapper 영역 바깥일 때 닫기
+    if (isNotifyOpen.value && notifyWrapper.value && !notifyWrapper.value.contains(event.target)) {
+        isNotifyOpen.value = false
+    }
+    // 프로필창이 열려있고, 클릭한 타겟이 profileWrapper 영역 바깥일 때 닫기
+    if (isProfileOpen.value && profileWrapper.value && !profileWrapper.value.contains(event.target)) {
+        isProfileOpen.value = false
+    }
+}
 
 // ==========================================
 // 2. 관리자 정보 및 메뉴 라우팅 로직
@@ -406,7 +472,7 @@ const handleSearch = () => {
         alert('검색할 메뉴명이나 키워드를 입력해 주세요!')
         return
     }
-    
+
     // 키워드에 따라 대시보드 내부 라우터로 즉시 이동
     if (kw.includes('모니터링') || kw.includes('주차')) {
         router.push('/dashboard/monitoring')
@@ -422,7 +488,7 @@ const handleSearch = () => {
     } else {
         alert('일치하는 메뉴가 없습니다. 키워드를 다시 확인해 주세요!')
     }
-    
+
     searchKeyword.value = '' // 검색 완료 후 입력창 비우기
 }
 
@@ -447,33 +513,122 @@ const handleLogout = () => {
 // ==========================
 // 5. 알림 데이터 동적 연동
 // ==========================
-const unreadCount = computed(() => notifyList.value.length)
+const notifyList = ref([])
+const currentFilter = ref('all') // 현재 선택된 탭 (all, ev, ocr)
+
+// 브라우저 저장소(localStorage)에서 읽은 OCR 알림 목록을 불러오기
+const savedOcrAlerts = JSON.parse(localStorage.getItem('readOcrAlerts') || '[]')
+const readOcrAlerts = ref(new Set(savedOcrAlerts))
+
+// 필터링된 알림 리스트 (화면에 보여줄 리스트)
+const filteredNotifyList = computed(() => {
+    if (currentFilter.value === 'all') return notifyList.value
+    return notifyList.value.filter(item => item.type === currentFilter.value)
+})
+
+// 알림 데이터 리스트
 const notifyCounts = computed(() => {
     return {
-        ev: notifyList.value.filter(n => n.type === 'EV').length,
-        ocr: notifyList.value.filter(n => n.type === 'OCR').length
+        all: notifyList.value.length,
+        ev: notifyList.value.filter(n => n.type === 'ev').length,
+        ocr: notifyList.value.filter(n => n.type === 'ocr').length
     }
 })
 
-// 백엔드에서 실시간 알림 가져오기
-const fetchHeaderNotifications = async () => {
-    try {
-        // [백엔드 연결 시 활성화]
-        // const res = await axios.get('http://localhost:8080/api/system/active-alerts')
+const unreadCount = computed(() => notifyList.value.length)
 
-        // 시연용 더미 데이터 세팅
-        notifyList.value = [
-            { id: 1, type: 'EV', alertClass: 'alert-red', icon: '🔌', title: '[심각] B4 A-2 고온 이상', subText: '95°C', btnClass: 'red', btnText: '원격 종료', actionType: 'POWER_OFF' },
-            { id: 2, type: 'EV', alertClass: 'alert-red', icon: '🔌', title: '[장애] B5 C-1 통신 단절', subText: '', btnClass: '', btnText: '점검 요청', actionType: 'CHECK_REQ' },
-            { id: 3, type: 'OCR', alertClass: 'alert-orange', icon: '📷', title: '[오류] 번호판 인식 실패', subText: '정확도 72%', btnClass: '', btnText: '수동 확인', actionType: 'MANUAL_CHECK' }
-        ]
+// 실시간 알림 가져오기
+const fetchEvNotifications = async () => {
+    try {
+        // EV 충전기 데이터 가져오기
+        const evRes = await axios.get('http://localhost:8080/api/ev/chargers')
+        let evMapped = []
+
+        if (Array.isArray(evRes.data)) {
+            const evIssues = evRes.data.filter(c => ['CHECK', 'RISK', 'FAULT', 'POWER_OFF'].includes(c.chargerStatus))
+            evMapped = evIssues.map(c => {
+                const isFault = c.chargerStatus === 'FAULT'
+                const floor = c.evChargerId.split('-')[0].replace('F', '')
+                return {
+                    id: c.evChargerId,
+                    type: 'ev',
+                    icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fbb900" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>`,
+                    title: `[EV] B${floor}층 | ${c.evChargerId}`,
+                    subText: isFault ? '즉시 장비 점검이 필요' : '데이터 이상 감지',
+                    alertClass: 'warn-alert',
+                    btnClass: 'yellow',
+                    btnText: '이동',
+                    chargerId: c.evChargerId
+                }
+            })
+            notifyCounts.value.ev = evIssues.length
+        }
+
+        // 주차 로그 데이터 가져오기 및 85% 미만 필터링
+        const ocrRes = await axios.get('http://localhost:8080/parking-log/logs')
+        let ocrMapped = []
+
+        if (Array.isArray(ocrRes.data)) {
+            const now = new Date().getTime()
+            const ONE_DAY_MS = 24 * 60 * 60 * 1000 // 24시간을 밀리초로 계산
+
+            // 1. 정확도 85 미만 2. 로컬 스토리지에 없는 것 3. 24시간 안 지난 것만 필터링
+            const ocrIssues = ocrRes.data.filter(log => {
+                // 정확도 조건
+                if (log.ocrAccuracy <= 0 || log.ocrAccuracy >= 85) return false
+                // 이미 클릭해서 이동한 기록이 있는지 조건
+                if (readOcrAlerts.value.has(`ocr-${log.parkingLogId}`)) return false
+                
+                // 시간 조건 (하루 지나면 자동 삭제)
+                const logTime = log.entryTime ? new Date(log.entryTime).getTime() : now
+                if (now - logTime > ONE_DAY_MS) return false
+
+                return true
+            })
+
+            ocrMapped = ocrIssues.map(log => ({
+                id: `ocr-${log.parkingLogId}`,
+                type: 'ocr',
+                icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fbb900" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>`,
+                title: `[OCR] 저정확도 차량: ${log.vehicleNum}`,
+                subText: `정확도: ${Math.round(log.ocrAccuracy)}% | 확인 요망`,
+                alertClass: 'warn-alert',
+                btnClass: 'yellow',
+                btnText: '이동',
+                vehicleNum: log.vehicleNum
+            }))
+            notifyCounts.value.ocr = ocrIssues.length
+        }
+
+        notifyList.value = [...evMapped, ...ocrMapped]
+        unreadCount.value = notifyList.value.length
+
     } catch (error) {
-        console.error('알림 로드 실패', error)
+        console.error('통합 알림 로드 실패:', error)
     }
 }
 
+// 버튼 클릭 시 해당 기기의 예지보전 탭으로 이동
 const handleAlertAction = (item) => {
-    console.log(`${item.id}번 알림에 대해 [${item.actionType}] 실행!!`)
+    if (item.type === 'ev') {
+        isNotifyOpen.value = false // 팝업 닫기
+        router.push({
+            path: '/dashboard/ev-infra',
+            query: { tab: 'predictive', chargerId: item.chargerId }
+        })
+    } else if (item.type === 'ocr') {
+        // [추가] OCR 알림 읽음 처리 후 로컬 스토리지에 영구 저장
+        readOcrAlerts.value.add(item.id)
+        localStorage.setItem('readOcrAlerts', JSON.stringify([...readOcrAlerts.value]))
+        
+        fetchEvNotifications() // 알림 목록 바로 새로고침
+        
+        // [추가] 출입 차량 관제 페이지로 쿼리 담아서 이동
+        router.push({
+            path: '/dashboard/vehicle-control',
+            query: { search: item.vehicleNum }
+        })
+    }
 }
 
 // =====================================
@@ -503,12 +658,24 @@ const fetchWeather = async () => {
 }
 
 // 예약 건수 API 호출
+// DashboardLayout.vue 내 해당 함수 수정 🪄
 const fetchReservationCount = async () => {
     try {
-        const res = await axios.get('http://localhost:8080/admin/reservation/today-count')
-        reservationCount.value = res.data.count || 0
+        const res = await axios.get('http://localhost:8080/admin/reservation/today-count', {
+            withCredentials: true
+        })
+
+        console.log('[디버깅] 예약 수 응답 데이터:', res.data)
+
+        // 만약 res.data 자체가 숫자라면 그대로 넣고, 객체라면 res.data.count를 사용
+        if (typeof res.data === 'object' && res.data !== null) {
+            reservationCount.value = res.data.count || 0
+        } else {
+            reservationCount.value = res.data || 0
+        }
+
     } catch (e) {
-        console.error('[DashBoard] 예약 건수 로드 실패', e)
+        console.error('[DashBoard] 예약 건수 로드 실패:', e)
         reservationCount.value = 0
     }
 }
@@ -543,6 +710,49 @@ const pm25Class = computed(() => {
     if (v <= 15) return 'good'; if (v <= 35) return 'normal'; return 'bad'
 })
 
+
+// ===========================
+// 시설관리팀 전용 알림 로직
+// ===========================
+const isFacilityTeam = computed(() => {
+  try {
+    const loginData = JSON.parse(sessionStorage.getItem('loginId')) || {}
+    return loginData.adminDeptName === '시설관리팀'
+  } catch(e) { return false }
+})
+
+const facilityPopupVisible = ref(false)
+const pendingInspectionList = ref([])
+const pendingCount = computed(() => pendingInspectionList.value.length)
+
+const fetchPendingInspections = async () => {
+  if (!isFacilityTeam.value) return
+  try {
+    const res = await axios.get('http://localhost:8003/inspection/pending')
+    pendingInspectionList.value = res.data || []
+
+    fetchEvNotifications()
+  } catch(e) { console.error('점검 목록 로드 실패', e) }
+}
+
+// 자식 페이지(EvInfraManage 등)에서 이 새로고침 함수를 쓸 수 있도록 제공
+provide('refreshPendingCount', fetchPendingInspections)
+
+// 플로팅 버튼 클릭 시
+const openFacilityPopup = async () => {
+  await fetchPendingInspections()
+  facilityPopupVisible.value = true
+}
+
+// 모달에서 특정 기기의 '점검하기' 버튼 클릭 시
+const handleFacilityPopupConfirm = (item) => {
+  facilityPopupVisible.value = false
+  router.push({
+    path: '/dashboard/ev-infra',
+    query: { tab: 'predictive', chargerId: item.ev_charger_id }
+  })
+}
+
 // ==========================================
 // 7. 라이프사이클 (Mount / Unmount)
 // ==========================================
@@ -551,6 +761,8 @@ onMounted(() => {
     if (!isDarkMode.value) {
         document.documentElement.setAttribute('data-theme', 'light')
     }
+
+    document.addEventListener('click', handleClickOutside)
 
     // 1. 관리자 정보 로드
     loadAdminInfo()
@@ -574,6 +786,13 @@ onMounted(() => {
     fetchReservationCount()
     weatherTimer = setInterval(fetchWeather, 10 * 60 * 1000)
     reservationTimer = setInterval(fetchReservationCount, 10 * 60 * 1000)
+
+    fetchEvNotifications()
+
+    if(isFacilityTeam.value) {
+       fetchPendingInspections() // 처음 화면 켤 때 숫자 가져오기
+    //    facilityTimer = setInterval(fetchPendingInspections, 15000) // 15초마다 뱃지 갱신
+   }
 })
 
 onUnmounted(() => {
@@ -581,12 +800,14 @@ onUnmounted(() => {
     clearInterval(clockTimer)
     clearInterval(weatherTimer)
     clearInterval(reservationTimer)
+    // 컴포넌트가 파괴될 때 이벤트 리스너도 같이 삭제 (메모리 누수 방지)
+    document.removeEventListener('click', handleClickOutside)
 })
 </script>
 
-<style scoped>
+<style>
 /* ==========================================
-   [1] 전체 레이아웃 (Base)
+   [1] 전역 레이아웃 및 테마 (Global)
    ========================================== */
 .dashboard-wrapper {
     display: flex;
@@ -595,7 +816,7 @@ onUnmounted(() => {
     color: var(--text-primary);
     font-family: 'Pretendard', sans-serif;
     overflow: hidden;
-    transition: background 0.3s, color 0.3s; /* 테마 변경 시 부드럽게 */
+    transition: background 0.3s, color 0.3s;
 }
 
 .main-area {
@@ -613,32 +834,30 @@ onUnmounted(() => {
     padding: 17px;
 }
 
-/* 스크롤바 전체 너비 */
+/* 스크롤바 커스텀 */
 .content-container::-webkit-scrollbar {
     width: 10px;
 }
 
-/* 스크롤바 배경 */
 .content-container::-webkit-scrollbar-track {
     background: transparent;
 }
 
-/* 스크롤바 막대기 */
 .content-container::-webkit-scrollbar-thumb {
     background: #444D56;
     border-radius: 4px;
 }
 
-/* 마우스 올렸을 때 살짝 밝아지는 디테일 추가 */
 .content-container::-webkit-scrollbar-thumb:hover {
     background: #5a6570;
 }
 
+
 /* ==========================================
-   [2] 사이드바 영역 (Sidebar)
+   [2] 좌측 사이드바 및 탭 메뉴 (Sidebar)
    ========================================== */
 .side-main-tab-area {
-    width: 230px;
+    width: 240px;
     background: var(--bg-sidebar);
     border-right: 1px solid var(--border-color);
     display: flex;
@@ -646,21 +865,21 @@ onUnmounted(() => {
     transition: background 0.3s;
 }
 
-/* 사이드바 로고 영역 */
+/* 로고 영역 */
 .logo-area {
     height: 90px;
     display: flex;
     align-items: center;
     justify-content: center;
-    ;
     box-sizing: border-box;
 }
 
 .main-logo {
-    max-height: 54px;
+    max-height: 58px;
     width: auto;
 }
 
+/* 메인 탭 리스트 */
 .main-tab-menu {
     flex: 1;
     padding: 10px 0;
@@ -675,17 +894,16 @@ onUnmounted(() => {
     cursor: pointer;
     transition: 0.2s;
     letter-spacing: 0.5px;
-    font-size: 18px;
+    font-size: 20px;
 }
 
-/* 활성화(Active)된 메뉴 스타일  */
 .tab-item.active,
 .tab-item-group.active-group .tab-item.parent {
     color: #82c2e3 !important;
     background: rgba(130, 195, 227, 0.249) !important;
     margin: 2px 10px;
     border-radius: 12px;
-    font-size: 19px;
+    font-size: 20px;
     font-weight: bold;
     text-shadow: 0 0 20px #f5f5f58c;
 }
@@ -695,7 +913,7 @@ onUnmounted(() => {
     height: 20px;
 }
 
-/* ── [System Menu] 아코디언 스타일 ── */
+/* 아코디언 메뉴 (시스템 설정) */
 .tab-item-group {
     transition: all 0.3s ease;
     margin: 2px 10px;
@@ -708,19 +926,16 @@ onUnmounted(() => {
     box-sizing: border-box;
 }
 
-/*  메뉴가 열렸을 때 배경색 변화 */
 .tab-item-group.is-open:not(.active-group) {
     background: rgba(255, 255, 255, 0.11);
 }
 
 .tab-item-group.is-open:not(.active-group) .tab-item.parent {
     color: #f5f5f5a7;
-    /* 기본 회색조 유지 */
     font-weight: normal;
     text-shadow: none;
 }
 
-/* 화살표 아이콘 위치 및 회전 */
 .arrow-icon {
     width: 14px;
     height: 14px;
@@ -730,52 +945,48 @@ onUnmounted(() => {
 
 .arrow-icon.rotate {
     transform: rotate(180deg);
-    /* 열리면 위로 향하게 */
 }
 
-/* 하위 메뉴 리스트 정렬 */
+/* 서브 메뉴 리스트 */
 .sub-menu-list {
     list-style: none;
     padding: 0 0 10px 20px;
-    /* 아이콘 위치 맞춰 들여쓰기 */
 }
 
 .sub-item {
-    font-size: 14px;
+    font-size: 16px;
     color: #a1a1aa;
     padding: 8px 0;
     cursor: pointer;
     transition: 0.2s;
 }
 
-/* 하위 메뉴가 클릭되어 활성화되었을 때의 색상!! */
 .sub-item.active {
     color: #82c2e3;
     font-weight: 600;
 }
 
-/* 하위 메뉴 텍스트 호버 시 가이드 블루 컬러 강조 */
 .sub-item:hover {
     color: #82c2e3;
     text-decoration: underline;
 }
-s
+
+
 /* ==========================================
-   [3] 사이드바 하단 위젯 (Weather)
+   [3] 사이드바 하단 위젯 (Weather & Reservation)
    ========================================== */
 .bottom-widget {
-    padding: 17px 17px;
     margin-top: auto;
     margin-bottom: 17px;
 }
 
-/* 날씨 카드 고도화 */
+/* 날씨 카드 */
 .weather-card {
     background: rgba(68, 77, 86, 0.3);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    padding: 20px;
+    border-radius: 10px;
+    padding: 17px;
     margin-bottom: 17px;
     margin-left: 17px;
     margin-right: 17px;
@@ -810,14 +1021,12 @@ s
     line-height: 1;
 }
 
-/* 마지막 갱신 정보 */
 .weather-refresh-info {
     font-size: 14px;
     color: #f5f5f5c3;
     margin-bottom: 10px;
     padding-bottom: 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    /* 구분선 더 연하게 */
 }
 
 .weather-details {
@@ -839,6 +1048,7 @@ s
     grid-column: span 2;
 }
 
+/* 미세먼지 수치 색상 */
 .label {
     color: #f5f5f5a6;
 }
@@ -867,12 +1077,11 @@ s
     background: rgba(68, 77, 86, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
-    padding: 20px;
+    padding: 17px;
     cursor: pointer;
     transition: 0.3s;
     margin-left: 17px;
     margin-right: 17px;
-    margin-bottom: 17px;
 }
 
 .reservation-box:hover {
@@ -910,7 +1119,7 @@ s
     color: #f5f5f5d7;
 }
 
-/* 실시간 라이브 점 애니메이션 */
+/* 라이브 깜빡임 효과 */
 .live-dot {
     width: 6px;
     height: 6px;
@@ -937,8 +1146,9 @@ s
     }
 }
 
+
 /* ==========================================
-   [4] 상단 헤더 영역
+   [4] 상단 헤더 영역 (Header & Icons)
    ========================================== */
 .main-header {
     height: 70px;
@@ -948,13 +1158,16 @@ s
     align-items: center;
     background: var(--bg-header);
     border-bottom: 1px solid var(--border-color);
-    transition: background 0.3s;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
 }
 
 .header-time {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 500;
-    color: var(--text-primary);
+    color: #f5f5f5aa;
+    letter-spacing: -0.2px;
 }
 
 .header-right {
@@ -963,11 +1176,10 @@ s
     gap: 15px;
 }
 
-
-/* ── 헤더 내 기능 (Search, Icon, Profile) ── */
+/* 검색 바 */
 .search-bar {
     display: flex;
-    background: rgba(128, 128, 128, 0.1);
+    background: #444d5647;
     padding: 8px 15px;
     border-radius: 20px;
     align-items: center;
@@ -979,7 +1191,7 @@ s
     background: none;
     border: none;
     outline: none;
-    font-size: 14px;
+    font-size: 15px;
     color: var(--text-primary);
     width: 100%;
 }
@@ -989,10 +1201,11 @@ s
     cursor: pointer;
 }
 
+/* 헤더 아이콘 버튼 그룹 */
 .util-actions {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 5px;
 }
 
 .icon-btn {
@@ -1004,17 +1217,18 @@ s
     align-items: center;
     justify-content: center;
     padding: 6px;
-    border-radius: 50%;
+    border-radius: 8px;
     transition: 0.2s;
-    position: relative; /* 뱃지 기준점 */
+    position: relative;
 }
 
-.icon-btn:hover {
+.icon-btn:hover,
+.icon-btn.active {
     color: var(--text-primary);
-    background: var(--hover-bg);
+    background: rgba(255, 255, 255, 0.15);
 }
 
-/* 알림 빨간 점 뱃지 */
+/* 알림 뱃지 */
 .notification-badge {
     position: absolute;
     top: 4px;
@@ -1026,12 +1240,12 @@ s
     box-shadow: 0 0 0 2px var(--bg-header);
 }
 
-/* 프로필 버튼 */
+/* 유저 프로필 영역 */
 .user-profile {
     display: flex;
     align-items: center;
     gap: 10px;
-    background: rgba(128, 128, 128, 0.1);
+    background: #444d5678;
     padding: 6px 14px;
     border-radius: 30px;
     border: 1px solid var(--border-color);
@@ -1039,7 +1253,8 @@ s
     transition: 0.2s;
 }
 
-.user-profile:hover, .user-profile.active {
+.user-profile:hover,
+.user-profile.active {
     background: var(--hover-bg);
 }
 
@@ -1059,28 +1274,78 @@ s
     font-weight: 500;
 }
 
-/* ==========================================
-   [5] 글래스모피즘 드롭다운(알림 & 프로필)
-   ========================================== */
-.dropdown-wrapper {
-    position: relative; /* 팝업창 기준점! 절대 지우면 안 됨! */
+/* 다크모드 스위치 */
+.mode-toggle {
+    display: flex;
+    align-items: center;
 }
 
+.toggle-track {
+    width: 48px;
+    height: 24px;
+    background: rgba(128, 128, 128, 0.1);
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    position: relative;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.toggle-thumb svg {
+    color: #82c2e3;
+    width: 14px;
+    height: 14px;
+}
+
+[data-theme="light"] .toggle-thumb {
+    transform: translateX(24px);
+    background: var(--text-primary);
+}
+
+[data-theme="light"] .toggle-thumb svg {
+    color: #fff;
+}
+
+
+/* ==========================================
+   [5] 드롭다운 팝업 (Glassmorphism Effects)
+   ========================================== */
+.dropdown-wrapper {
+    position: relative;
+}
+
+/* 알림 & 프로필 공통 글래스 효과 */
 .glass-panel {
     position: absolute;
-    top: 55px; /* 헤더 버튼들 살짝 아래에 위치 */
+    top: 40px;
     right: 0;
-    background: var(--glass-bg);
-    backdrop-filter: blur(15px);
-    border: 1px solid var(--glass-border);
-    border-radius: 12px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-    z-index: 1000;
+    background: #444d5571 !important;
+    backdrop-filter: blur(15px) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.437);
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 10px;
+    z-index: 9999 !important;
     color: var(--text-primary);
     overflow: hidden;
 }
 
-/* ── 프로필 드롭다운 ── */
+/* ── 프로필 드롭다운 내부 ── */
 .profile-dropdown {
     width: 240px;
     padding: 20px;
@@ -1098,7 +1363,7 @@ s
 .profile-avatar-large {
     width: 46px;
     height: 46px;
-    background: #e2e8f0; /* 밝은 회색 아바타 배경 */
+    background: #e2e8f0;
     border-radius: 50%;
 }
 
@@ -1109,12 +1374,14 @@ s
 }
 
 .p-name {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 700;
+    margin-bottom: 8px;
 }
 
-.p-id, .p-dept {
-    font-size: 12px;
+.p-id,
+.p-dept {
+    font-size: 14px;
     color: var(--text-secondary);
 }
 
@@ -1129,7 +1396,7 @@ s
 
 .profile-menu-list li {
     padding: 10px 12px;
-    font-size: 14px;
+    font-size: 16px;
     color: var(--text-primary);
     border-radius: 6px;
     cursor: pointer;
@@ -1143,7 +1410,7 @@ s
 .logout-btn {
     width: 100%;
     display: flex;
-    justify-content: space-between; /* 양쪽 끝 배치 */
+    justify-content: space-between;
     align-items: center;
     padding: 12px;
     background: rgba(255, 255, 255, 0.05);
@@ -1159,45 +1426,16 @@ s
     background: rgba(130, 194, 227, 0.15);
 }
 
-/* ── 알림 드롭다운 ── */
+/* ── 알림 드롭다운 내부 ── */
 .notify-dropdown {
     width: 380px;
 }
 
 .dropdown-header {
-    padding: 15px 20px 10px;
-    font-size: 15px;
+    padding: 17px 20px 10px;
+    font-size: 18px;
     font-weight: 700;
     border-bottom: 1px solid var(--glass-border);
-}
-
-.notify-filters {
-    display: flex;
-    gap: 15px;
-    padding: 12px 20px;
-    font-size: 12px;
-    color: var(--text-secondary);
-    border-bottom: 1px solid var(--glass-border);
-}
-
-.notify-filters span {
-    cursor: pointer;
-    position: relative;
-}
-
-.notify-filters span.active {
-    color: var(--text-primary);
-    font-weight: 700;
-}
-
-.notify-filters span.active::after {
-    content: '';
-    position: absolute;
-    bottom: -13px;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background: var(--text-primary);
 }
 
 .notify-list {
@@ -1221,7 +1459,14 @@ s
     background: rgba(255, 255, 255, 0.05);
 }
 
-/* 알림 아이콘 색상 및 뱃지 */
+.notify-item.empty {
+    justify-content: center;
+    color: var(--text-secondary);
+    padding: 30px;
+    font-size: 14px;
+}
+
+/* 알림 아이콘 & 텍스트 */
 .notify-icon {
     font-size: 20px;
     display: flex;
@@ -1232,9 +1477,6 @@ s
     border-radius: 8px;
 }
 
-.alert-red .notify-icon { background: rgba(255, 77, 79, 0.15); color: #ff4d4f; }
-.alert-orange .notify-icon { background: rgba(250, 140, 22, 0.15); color: #fa8c16; }
-
 .notify-text {
     flex: 1;
     display: flex;
@@ -1243,13 +1485,51 @@ s
 }
 
 .notify-text strong {
-    font-size: 14px;
+    font-size: 16px;
     color: var(--text-primary);
 }
 
 .time-log {
-    font-size: 12px;
-    color: #ff4d4f; /* 온도 등 강조 서브텍스트 */
+    font-size: 15px;
+    color: #ff4d4f;
+}
+
+.notify-filters {
+    display: flex;
+    gap: 15px;
+    padding: 10px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.notify-filters span {
+    font-size: 13px;
+    color: #a1a1aa;
+    cursor: pointer;
+    transition: 0.2s;
+    padding-bottom: 2px;
+}
+
+.notify-filters span.active {
+    color: #82c2e3;
+    font-weight: 700;
+    border-bottom: 2px solid #82c2e3;
+    /* 선택된 탭 강조[cite: 16] */
+}
+
+.notify-filters span:hover {
+    color: #fff;
+}
+
+/* 경고 강조 색상 */
+
+/* 알림 상태별 동적 CSS 클래스 바인딩 속성 */
+.fault-alert .notify-icon {
+    background: rgba(239, 68, 68, 0.15);
+}
+
+.warn-alert .notify-icon {
+    background: rgba(245, 158, 11, 0.15);
 }
 
 /* 액션 버튼들 */
@@ -1264,21 +1544,31 @@ s
 }
 
 .action-btn.red {
-    border: 1px solid #ff4d4f;
-    color: #ff4d4f;
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
 }
-.action-btn.red:hover { background: #ff4d4f; color: #fff; }
 
-.action-btn:not(.red) {
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
+.action-btn.red:hover {
+    background: #ef4444;
+    color: #fff;
 }
-.action-btn:not(.red):hover { background: rgba(255, 255, 255, 0.1); }
+
+.action-btn.yellow {
+    border: 1px solid rgba(245, 158, 11, 0.5);
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.action-btn.yellow:hover {
+    background: #f59e0b;
+    color: #fff;
+}
 
 .dropdown-footer {
     padding: 15px;
     text-align: center;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--text-secondary);
     cursor: pointer;
     background: rgba(0, 0, 0, 0.2);
@@ -1289,52 +1579,45 @@ s
     color: var(--text-primary);
 }
 
-/* ==========================================
-   [6] 다크모드 스위치 (Toggle)
-   ========================================== */
-.mode-toggle {
+/* 시설관리팀 알림 플로팅 버튼 */
+.floating-btn-container {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    z-index: 9999;
+}
+.fab-btn {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    border: none;
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
+    cursor: pointer;
     display: flex;
     align-items: center;
-}
-
-.toggle-track {
-    width: 48px;
-    height: 24px;
-    background: rgba(128, 128, 128, 0.1);
-    border-radius: 20px;
-    border: 1px solid var(--border-color);
+    justify-content: center;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
-    cursor: pointer;
-    transition: 0.3s;
 }
-
-.toggle-thumb {
+.fab-btn:hover {
+    transform: scale(1.1) translateY(-5px);
+}
+.fab-badge {
     position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 18px;
-    height: 18px;
-    background: #fff;
+    top: -4px;
+    right: -4px;
+    background: #facc15;
+    color: #1a1d21;
+    font-size: 15px;
+    font-weight: 900;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-}
-
-.toggle-thumb svg {
-    color: #000;
-    width: 12px;
-    height: 12px;
-}
-
-/* 라이트 모드일 때 (버튼이 오른쪽으로 이동) */
-[data-theme="light"] .toggle-thumb {
-    transform: translateX(24px);
-    background: var(--text-primary);
-}
-
-[data-theme="light"] .toggle-thumb svg {
-    color: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 </style>
