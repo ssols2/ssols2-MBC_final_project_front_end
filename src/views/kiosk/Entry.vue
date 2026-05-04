@@ -63,7 +63,7 @@
           </div>
 
           <div class="info-card data-card">
-            <template v-if="resultText && !isAlreadyParked">
+            <template v-if="resultText && !isAlreadyParked && !isFull">
               <h2 class="card-title">{{ t.resultDetail }}</h2>
               <table class="res-table">
                 <tbody>
@@ -97,7 +97,7 @@
                     <th>{{ t.entryTime }}</th>
                     <td>{{ formatDateTime(entryTime) }}</td>
                   </tr>
-                  <tr v-if="recommendedSpot">
+                  <tr v-if="translatedSpot">
                     <th>{{ t.recommendedSpot }}</th>
                     <td>{{ translatedSpot }}</td>
                   </tr>
@@ -126,6 +126,25 @@
               </table>
               <div class="warning-guide-box">
                 <p>{{ t.duplicateGuide }}</p>
+              </div>
+            </template>
+
+            <template v-else-if="isFull">
+              <h2 class="card-title warning-title">{{ t.fullTitle }}</h2>
+              <table class="res-table warning">
+                <tbody>
+                  <tr>
+                    <th>{{ t.vehicleNum }}</th>
+                    <td class="plate-num warn">{{ resultText }}</td>
+                  </tr>
+                  <tr>
+                    <th>{{ t.alert }}</th>
+                    <td class="status-warn">{{ t.parkingFull }}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="warning-guide-box">
+                <p>{{ t.fullGuide }}</p>
               </div>
             </template>
 
@@ -165,7 +184,7 @@ const backendUrl = 'http://localhost:8080';
 const TRANSLATIONS = {
   KOR: {
     locale: 'ko-KR',
-    floor: '층',
+    formatSpot: (floor, row, col) => `지하 ${floor}층 ${row}-${col}`,
     noTime: '시간 정보 없음',
     resultTitle: '입차 결과 안내',
     aiImageTitle: 'AI 인식 이미지',
@@ -182,7 +201,7 @@ const TRANSLATIONS = {
     nonEv: '일반 차량',
     evNotSupported: '한국 차량 전용 분석',
     entryTime: '입차 시각',
-    recommendedSpot: '추천 주차 위치',
+    recommendedSpot: '주차 위치',
     status: '상태',
     normalEntry: '정상 입차',
     welcomeMsg: '어서 오십시오. 즐거운 하루 되세요!',
@@ -190,6 +209,9 @@ const TRANSLATIONS = {
     alert: '알림',
     alreadyParked: '이미 입차된 차량',
     duplicateGuide: '차단기가 열리지 않으면 호출 버튼을 눌러주세요',
+    fullTitle: '만차 안내',
+    parkingFull: '주차장 만차',
+    fullGuide: '주차 가능한 자리가 없습니다. 잠시 후 다시 시도해 주세요',
     errorTitle: '인식 오류',
     errorMsg: '번호판 인식에 실패했습니다',
     errorGuide: '관리자 호출 또는 다시 시도해 주세요',
@@ -197,7 +219,7 @@ const TRANSLATIONS = {
   },
   BRA: {
     locale: 'pt-BR',
-    floor: 'F',
+    formatSpot: (floor, row, col) => `Subsolo ${floor} ${row}-${col}`,
     noTime: 'Sem informacao de horario',
     resultTitle: 'Resultado da Entrada',
     aiImageTitle: 'Imagem Reconhecida por IA',
@@ -214,7 +236,7 @@ const TRANSLATIONS = {
     nonEv: 'Convencional',
     evNotSupported: 'Disponivel apenas para placas KOR',
     entryTime: 'Hora de Entrada',
-    recommendedSpot: 'Vaga Recomendada',
+    recommendedSpot: 'Vaga de Estacionamento',
     status: 'Status',
     normalEntry: 'Entrada Normal',
     welcomeMsg: 'Bem-vindo! Tenha um otimo dia!',
@@ -222,6 +244,9 @@ const TRANSLATIONS = {
     alert: 'Aviso',
     alreadyParked: 'Veiculo ja estacionado',
     duplicateGuide: 'Se a cancela nao abrir, pressione o botao de chamada',
+    fullTitle: 'Aviso de Lotacao',
+    parkingFull: 'Estacionamento lotado',
+    fullGuide: 'Sem vagas disponiveis. Por favor, tente novamente mais tarde',
     errorTitle: 'Erro de Reconhecimento',
     errorMsg: 'Falha no reconhecimento da placa',
     errorGuide: 'Chame o administrador ou tente novamente',
@@ -229,7 +254,7 @@ const TRANSLATIONS = {
   },
   CHN: {
     locale: 'zh-CN',
-    floor: '层',
+    formatSpot: (floor, row, col) => `地下${floor}层 ${row}-${col}`,
     noTime: '无时间信息',
     resultTitle: '入场结果通知',
     aiImageTitle: 'AI识别图像',
@@ -246,7 +271,7 @@ const TRANSLATIONS = {
     nonEv: '普通车',
     evNotSupported: '仅韩国车牌支持',
     entryTime: '入场时间',
-    recommendedSpot: '推荐车位',
+    recommendedSpot: '停车位',
     status: '状态',
     normalEntry: '正常入场',
     welcomeMsg: '欢迎光临，祝您愉快！',
@@ -254,6 +279,9 @@ const TRANSLATIONS = {
     alert: '提醒',
     alreadyParked: '车辆已入场',
     duplicateGuide: '如果闸门未打开，请按呼叫按钮',
+    fullTitle: '停车场已满通知',
+    parkingFull: '停车场已满',
+    fullGuide: '当前没有可用车位，请稍后再试',
     errorTitle: '识别错误',
     errorMsg: '车牌识别失败',
     errorGuide: '请呼叫管理员或重试',
@@ -261,7 +289,7 @@ const TRANSLATIONS = {
   },
   EUR: {
     locale: 'en-GB',
-    floor: 'F',
+    formatSpot: (floor, row, col) => `Basement ${floor} ${row}-${col}`,
     noTime: 'No time info',
     resultTitle: 'Entry Result',
     aiImageTitle: 'AI Recognized Image',
@@ -278,7 +306,7 @@ const TRANSLATIONS = {
     nonEv: 'Regular',
     evNotSupported: 'Korean plates only',
     entryTime: 'Entry Time',
-    recommendedSpot: 'Recommended Spot',
+    recommendedSpot: 'Parking Spot',
     status: 'Status',
     normalEntry: 'Normal Entry',
     welcomeMsg: 'Welcome! Have a great day!',
@@ -286,6 +314,9 @@ const TRANSLATIONS = {
     alert: 'Alert',
     alreadyParked: 'Vehicle already parked',
     duplicateGuide: 'If the gate does not open, press the call button',
+    fullTitle: 'Parking Full Notice',
+    parkingFull: 'Parking lot is full',
+    fullGuide: 'No spots available. Please try again later',
     errorTitle: 'Recognition Error',
     errorMsg: 'License plate recognition failed',
     errorGuide: 'Please call an administrator or try again',
@@ -293,7 +324,7 @@ const TRANSLATIONS = {
   },
   IND: {
     locale: 'hi-IN',
-    floor: 'F',
+    formatSpot: (floor, row, col) => `तहख़ाना ${floor} ${row}-${col}`,
     noTime: 'समय की जानकारी नहीं',
     resultTitle: 'प्रवेश परिणाम सूचना',
     aiImageTitle: 'AI पहचान छवि',
@@ -310,7 +341,7 @@ const TRANSLATIONS = {
     nonEv: 'सामान्य',
     evNotSupported: 'केवल KOR के लिए',
     entryTime: 'प्रवेश समय',
-    recommendedSpot: 'अनुशंसित पार्किंग स्थान',
+    recommendedSpot: 'पार्किंग स्थान',
     status: 'स्थिति',
     normalEntry: 'सामान्य प्रवेश',
     welcomeMsg: 'स्वागत है! आपका दिन शुभ हो!',
@@ -318,6 +349,9 @@ const TRANSLATIONS = {
     alert: 'सूचना',
     alreadyParked: 'वाहन पहले से पार्क है',
     duplicateGuide: 'यदि बैरियर नहीं खुलता है, तो कॉल बटन दबाएं',
+    fullTitle: 'पार्किंग भरी सूचना',
+    parkingFull: 'पार्किंग भरी हुई है',
+    fullGuide: 'कोई पार्किंग स्थान उपलब्ध नहीं है। कृपया बाद में पुनः प्रयास करें',
     errorTitle: 'पहचान त्रुटि',
     errorMsg: 'नंबर प्लेट पहचान विफल',
     errorGuide: 'कृपया प्रबंधक को कॉल करें या पुनः प्रयास करें',
@@ -340,9 +374,12 @@ const ocrAccuracy = ref(0);
 const isEvLicensePlate = ref(false);
 const isMember = ref(false);
 const entryTime = ref('');
-const recommendedSpot = ref('');
+const recommendedFloor = ref(null);
+const recommendedRow = ref('');
+const recommendedColumn = ref(null);
 
 const isAlreadyParked = ref(false);
+const isFull = ref(false);
 const countdown = ref(5); // 결과 확인을 위해 5초로 변경
 let timerId = null;
 
@@ -370,7 +407,10 @@ const submitImage = async () => {
   isMember.value = false;
   entryTime.value = '';
   isAlreadyParked.value = false;
-  recommendedSpot.value = '';
+  isFull.value = false;
+  recommendedFloor.value = null;
+  recommendedRow.value = '';
+  recommendedColumn.value = null;
 
   try {
     const response = await uploadEntryImage(selectedFile.value);
@@ -387,11 +427,15 @@ const submitImage = async () => {
     isEvLicensePlate.value = data.isEvLicensePlate || false;
     isMember.value = data.isMember || false;
     entryTime.value = data.entryTime || '';
-    recommendedSpot.value = data.recommendedSpot || '';
+    recommendedFloor.value = data.recommendedFloor ?? null;
+    recommendedRow.value = data.recommendedRow || '';
+    recommendedColumn.value = data.recommendedColumn ?? null;
 
-    // 중복 입차 로직 (필요시 백엔드 응답 규격에 맞춰 수정)
+    // 중복 입차 / 만차 로직 (백엔드 parkingStatus 분기)
     if (data.parkingStatus === 'ALREADY_PARKED') {
       isAlreadyParked.value = true;
+    } else if (data.parkingStatus === 'FULL') {
+      isFull.value = true;
     }
 
     viewMode.value = 'result';
@@ -421,7 +465,11 @@ const resetToIdle = () => {
   viewMode.value = 'idle';
   isLoading.value = false;
   selectedFile.value = null;
-  recommendedSpot.value = '';
+  recommendedFloor.value = null;
+  recommendedRow.value = '';
+  recommendedColumn.value = null;
+  isAlreadyParked.value = false;
+  isFull.value = false;
   if (timerId) {
     clearInterval(timerId);
     timerId = null;
@@ -440,10 +488,12 @@ const formatDateTime = (dateString) => {
   });
 };
 
-// 추천 주차 위치 번역 (백엔드: "B1층 2-3" → 국가별: "B1F 2-3", "B1层 2-3" 등)
+// 주차 위치 표기 (백엔드는 floor/row/col raw 값만 보냄, 다국어 조립은 프론트가 담당)
 const translatedSpot = computed(() => {
-  if (!recommendedSpot.value) return '';
-  return recommendedSpot.value.replace('층', t.value.floor);
+  if (recommendedFloor.value == null || !recommendedRow.value || recommendedColumn.value == null) {
+    return '';
+  }
+  return t.value.formatSpot(recommendedFloor.value, recommendedRow.value, recommendedColumn.value);
 });
 </script>
 
