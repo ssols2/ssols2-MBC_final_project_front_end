@@ -61,6 +61,7 @@
 
     <div class="summary-toolbar">
       <select v-model="selectedChargerId" class="charger-select" @change="handleChargerChange">
+        <option value="" disabled>기기 선택</option>
         <option v-for="item in normalizedChargerList" :key="item.chargerId" :value="item.chargerId">
           {{ item.chargerId }}
         </option>
@@ -134,7 +135,7 @@ const props = defineProps({
 const isFacilityTeam = computed(() => {
   try {
     const loginData = JSON.parse(sessionStorage.getItem('loginId')) || {}
-    
+
     return loginData.adminDeptName === '시설관리팀'
   } catch (error) {
     console.error('부서 정보 확인 중 에러 발생:', error)
@@ -298,211 +299,199 @@ const handleForceShutdown = () => {
 .summary-card {
   width: 100%;
   height: 100%;
-  min-height: 0;
-  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  padding: 14px 16px;
-  border: 1px solid #1d9f49;
-  border-radius: 8px;
-  background: linear-gradient(180deg, #0b1018 0%, #0c1119 100%);
-  box-shadow:
-    0 0 0 1px rgba(38, 211, 100, 0.14),
-    0 0 12px rgba(27, 186, 79, 0.1);
-  color: #f3f4f6;
-  overflow: hidden;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
 }
 
+/* 상태에 따른 전체 카드 테두리 및 그림자 */
 .summary-card.normal,
 .summary-card.done {
-  border-color: #1d9f49;
-  box-shadow:
-    0 0 0 1px rgba(38, 211, 100, 0.14),
-    0 0 12px rgba(27, 186, 79, 0.1);
+  border: 1px solid #00e6779c;
+  box-shadow: 0 0 12px rgba(0, 230, 118, 0.15);
+  padding: 20px;
+  border-radius: 10px;
 }
 
 .summary-card.check {
-  border-color: #ffcc00;
-  box-shadow:
-    0 0 0 1px rgba(255, 204, 0, 0.14),
-    0 0 12px rgba(255, 204, 0, 0.1);
+  border: 1px solid #fbb900;
+  box-shadow: 0 0 12px rgba(251, 185, 0, 0.15);
+  padding: 20px;
+  border-radius: 10px;
 }
 
 .summary-card.risk {
-  border-color: #ef4444;
-  box-shadow:
-    0 0 0 1px rgba(239, 68, 68, 0.14),
-    0 0 12px rgba(239, 68, 68, 0.1);
+  border: 1px solid #ff0000;
+  box-shadow: 0 0 12px rgba(255, 0, 0, 0.15);
+  padding: 20px;
+  border-radius: 10px;
 }
 
 .summary-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  margin-bottom: 17px;
 }
 
 .card-title {
   margin: 0;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
   color: #ffffff;
 }
 
 .header-actions {
   display: flex;
-  align-items: center;
   gap: 8px;
-  flex-wrap: nowrap; /* 줄바꿈 금지 */
-  justify-content: flex-end;
-  height: 30px; /* 버튼 높이로 고정하여 틀어짐 방지 */
 }
 
+/* 액션 버튼 통일 */
 .action-btn {
   min-width: 84px;
   height: 30px;
-  padding: 0 10px;
-  border-radius: 6px;
+  padding: 0 12px;
+  border-radius: 5px;
   border: 1px solid transparent;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease,
-    opacity 0.2s ease;
+  transition: 0.2s;
 }
 
 .action-btn.inspection {
-  background: rgba(255, 204, 0, 0.12);
-  border-color: #ffcc00;
-  color: #ffcc00;
+  background: transparent;
+  border-color: #fbb900;
+  color: #fbb900;
+}
+
+.action-btn.inspection:hover {
+  background: rgba(251, 185, 0, 0.1);
 }
 
 .action-btn.shutdown {
-  background: rgba(239, 68, 68, 0.12);
-  border-color: #ef4444;
-  color: #f87171;
+  background: transparent;
+  border-color: #ff0000;
+  color: #ff0000;
+}
+
+.action-btn.shutdown:hover {
+  background: rgba(255, 0, 0, 0.1);
+}
+
+.action-btn.restart.active {
+  background: transparent;
+  border-color: #00e676;
+  color: #00e676;
 }
 
 .action-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
 .action-done {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   min-width: 84px;
   height: 30px;
   padding: 0 10px;
-  border-radius: 6px;
-  font-size: 12px;
+  border-radius: 5px;
+  font-size: 13px;
   font-weight: 700;
-  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .action-done.complete {
-  background: rgba(34, 197, 94, 0.14);
-  border: 1px solid #22c55e;
-  color: #22c55e;
+  border: 1px solid #00e676;
+  color: #00e676;
 }
 
 .action-done.inspection-done {
-  background: rgba(255, 204, 0, 0.14);
-  border: 1px solid #ffcc00;
-  color: #ffcc00;
+  border: 1px solid #fbb900;
+  color: #fbb900;
 }
 
 .action-done.shutdown-done {
-  background: rgba(239, 68, 68, 0.14);
-  border: 1px solid #ef4444;
-  color: #f87171;
+  border: 1px solid #ff0000;
+  color: #ff0000;
 }
 
 .summary-toolbar {
-  margin-top: 10px;
+  margin-bottom: 17px;
 }
 
 .charger-select {
-  min-width: 17px;
   height: 32px;
-  padding: 0 30px 0 10px;
-  border: 1px solid #374151;
-  border-radius: 6px;
-  background: #1f2937;
-  color: #e5e7eb;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  background: #444d5650;
+  color: #f5f5f5;
   font-size: 13px;
-  font-weight: 600;
+  outline: none;
 }
 
 .summary-body {
   flex: 1;
-  min-height: 0;
-  margin-top: 12px;
   display: flex;
-  align-items: stretch;
   justify-content: space-between;
-  gap: 12px;
+  gap: 17px;
 }
 
 .summary-info-panel {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  align-items: stretch;
+  flex: 1;
 }
 
 .device-card {
   width: 100%;
   max-width: 400px;
-  padding: 14px;
+  padding: 17px;
+  background: rgba(15, 23, 42, 0.3);
+  border: 1px solid rgba(245, 245, 245, 0.08);
   border-radius: 10px;
-  background: linear-gradient(180deg, #1a202c 0%, #161b25 100%);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
 }
 
 .device-top {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 9px;
+  margin-bottom: 12px;
 }
 
 .device-id {
   margin: 0;
   font-size: 20px;
   font-weight: 800;
-  letter-spacing: -0.02em;
   color: #ffffff;
 }
 
+/* 상태 램프(dot) */
 .status-lamp {
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
 }
 
 .status-lamp.normal,
 .status-lamp.done {
-  background: #22c55e;
-  box-shadow: 0 0 10px rgba(34, 197, 94, 0.85);
+  background: #00e676;
+  box-shadow: 0 0 8px #00e676;
 }
 
 .status-lamp.check {
-  background: #ffcc00;
-  box-shadow: 0 0 10px rgba(255, 204, 0, 0.85);
+  background: #fbb900;
+  box-shadow: 0 0 8px #fbb900;
 }
 
 .status-lamp.risk {
-  background: #ef4444;
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.85);
+  background: #ff0000;
+  box-shadow: 0 0 8px #ff0000;
 }
 
+/* 결과 박스 통일 */
 .result-box {
   border: 2px solid rgba(34, 197, 94, 0.7);
   border-radius: 10px;
@@ -511,12 +500,14 @@ const handleForceShutdown = () => {
   box-shadow: 0 0 12px rgba(34, 197, 94, 0.18);
 }
 
+/* 점검 상태 (노랑) */
 .summary-card.check .result-box {
   border-color: rgba(255, 204, 0, 0.7);
   background: rgba(255, 204, 0, 0.08);
   box-shadow: 0 0 12px rgba(255, 204, 0, 0.18);
 }
 
+/* 위험 상태 (빨강) */
 .summary-card.risk .result-box {
   border-color: rgba(239, 68, 68, 0.7);
   background: rgba(239, 68, 68, 0.08);
@@ -544,6 +535,7 @@ const handleForceShutdown = () => {
   color: #fecaca;
 }
 
+/* 아이콘 상태 (체크 표시) */
 .result-icon {
   display: inline-flex;
   align-items: center;
@@ -593,6 +585,7 @@ const handleForceShutdown = () => {
   color: #e5e7eb;
 }
 
+/* 기기 이미지 영역 */
 .summary-image-panel {
   flex: 0 0 160px;
   display: flex;

@@ -1,172 +1,131 @@
 <template>
-  <div class="ev-infra-page">
-    <div class="top-bar">
-      <div class="page-header">
+  <div class="ev-infra-container">
+    <header class="ev-header">
+      <div class="header-left">
         <h2 class="page-title">EV 인프라 관리</h2>
 
-        <div class="top-tabs">
-          <button
-            type="button"
-            class="tab-btn"
-            :class="{ active: activeTab === 'charger' }"
-            @click="activeTab = 'charger'"
-          >
+        <div class="tab-button-group">
+          <button type="button" class="tab-btn" :class="{ active: activeTab === 'charger' }"
+            @click="activeTab = 'charger'">
             실시간 현황
           </button>
-
-          <button
-            type="button"
-            class="tab-btn"
-            :class="{ active: activeTab === 'predictive' }"
-            @click="activeTab = 'predictive'"
-          >
+          <button type="button" class="tab-btn" :class="{ active: activeTab === 'predictive' }"
+            @click="activeTab = 'predictive'">
             예지보전 및 장애 관리
           </button>
         </div>
       </div>
 
-      <div class="date-filter-slot">
-        <button
-          type="button"
-          class="date-filter-button"
-          @click.stop="isDatePopupOpen = !isDatePopupOpen"
-        >
-          {{ displayDateRange }}
-          <span class="calendar-icon">
-            <img src="@/assets/calender_Icon.png" alt="calendar" />
-          </span>
-        </button>
-      
-        <PredictiveDatePopup
-          :visible="isDatePopupOpen"
-          :start-date="filterStartDate"
-          :end-date="filterEndDate"
-          @update:startDate="filterStartDate = $event"
-          @update:endDate="filterEndDate = $event"
-          @apply="handleDateApply"
-          @close="isDatePopupOpen = false"
-        />
+      <!-- 공통 달력 트리거 (PaymentManage와 동일 규격) -->
+      <div class="header-right relative-box">
+        <div class="date-trigger-box" @click.stop="isDatePopupOpen = !isDatePopupOpen">
+          <span class="date-text">{{ filterStartDate }} ~ {{ filterEndDate }}</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+        </div>
+
+        <!-- 공통 달력 컴포넌트 적용 -->
+        <DatePopup :visible="isDatePopupOpen" :start-date="filterStartDate" :end-date="filterEndDate"
+          @close="isDatePopupOpen = false" @apply="handleDateApply" />
       </div>
-    </div>
+    </header>
 
     <div class="tab-content">
+      <!-- 1. 실시간 현황 탭 -->
       <div v-if="activeTab === 'charger'" class="status-layout">
         <div class="status-top-grid">
-          <section class="layout-card space-card">
-            <ChargerStatusStats
-              :charger-list="chargerList"
-              @detail-view="handleChargerDetailView"
-            />
+          <section class="layout-card">
+            <ChargerStatusStats :charger-list="chargerList" @detail-view="handleChargerDetailView" />
           </section>
-        
-          <section class="layout-card summary-card-right">
-            <ChargerOperationSummary
-              :start-date="filterStartDate"
-              :end-date="filterEndDate"
-            />
+
+          <section class="layout-card">
+            <ChargerOperationSummary :start-date="filterStartDate" :end-date="filterEndDate" />
           </section>
         </div>
-      
+
         <section class="layout-card log-card">
-          <ChargerEventLogTable 
-            :start-date="filterStartDate"
-            :end-date="filterEndDate"
-            :charger-list="chargerList"
-          />
+          <ChargerEventLogTable :start-date="filterStartDate" :end-date="filterEndDate" :charger-list="chargerList" />
         </section>
       </div>
 
+      <!-- 2. 예지보전 탭 -->
       <div v-else class="predictive-layout">
         <div class="predictive-top-grid">
-          <section class="layout-card summary-card">
-            <PredictiveSummaryCard
-              :charger-detail="chargerDetail"
-              :charger-list="chargerList"
-              @charger-change="handleChargerChange"
-              @inspection-request="openSummaryInspectionModal"
-              @force-shutdown="openSummaryForceShutdownModal"
-              
-              @inspection-complete="handleInspectionComplete"
-              @power-on="handlePowerOnConfirm"
-            />
+          <section class="layout-card">
+            <PredictiveSummaryCard :charger-detail="chargerDetail" :charger-list="chargerList"
+              @charger-change="handleChargerChange" @inspection-request="openSummaryInspectionModal"
+              @force-shutdown="openSummaryForceShutdownModal" @inspection-complete="handleInspectionComplete"
+              @power-on="handlePowerOnConfirm" />
           </section>
 
-          <section class="layout-card analysis-card">
-            <PredictiveMetricTabs
-               :metric-data="metricData"
-               :start-date="filterStartDate" 
-               :end-date="filterEndDate"
-            />
+          <section class="layout-card">
+            <PredictiveMetricTabs :metric-data="metricData" :start-date="filterStartDate" :end-date="filterEndDate" />
           </section>
         </div>
 
         <section class="layout-card history-card">
-          <FaultHistoryTable
-            :history-data="historyData"
-            :charger-list="chargerList"
-            :active-charger-id="historyChargerId"
-            :start-date="filterStartDate"
-            :end-date="filterEndDate"
-            @inspection-request="openInspectionModal"
-            @force-shutdown="openForceShutdownModal"
-            @charger-select="handleHistoryChargerSelect"
-
-            @inspection-complete="handleInspectionComplete"
-            @power-on="handlePowerOnConfirm"
-          />
+          <FaultHistoryTable :history-data="historyData" :charger-list="chargerList"
+            :active-charger-id="historyChargerId" :start-date="filterStartDate" :end-date="filterEndDate"
+            @inspection-request="openInspectionModal" @force-shutdown="openForceShutdownModal"
+            @charger-select="handleHistoryChargerSelect" @inspection-complete="handleInspectionComplete"
+            @power-on="handlePowerOnConfirm" />
         </section>
       </div>
     </div>
 
-    <InspectionRequestModal
-      :visible="inspectionModalVisible"
-      :charger-detail="selectedHistoryItem || chargerDetail"
-      @close="closeInspectionModal"
-      @submit="handleInspectionSubmit"
-    />
+    <!-- 모달 레이어 -->
+    <InspectionRequestModal :visible="inspectionModalVisible" :charger-detail="selectedHistoryItem || chargerDetail"
+      @close="closeInspectionModal" @submit="handleInspectionSubmit" />
 
-    <ForceShutdownConfirmModal
-      :visible="forceShutdownModalVisible"
-      :charger-detail="selectedHistoryItem || chargerDetail"
-      @close="closeForceShutdownModal"
-      @confirm="handleForceShutdownConfirm"
-    />
+    <ForceShutdownConfirmModal :visible="forceShutdownModalVisible"
+      :charger-detail="selectedHistoryItem || chargerDetail" @close="closeForceShutdownModal"
+      @confirm="handleForceShutdownConfirm" />
   </div>
 </template>
 
 <script setup>
 import { computed, ref, onMounted, onBeforeUnmount, watch, inject } from 'vue'
 
-// [임소리] 추가 ======================================================================
+// ── [임소리] 추가 시작 ======================================================================
 import { useRoute } from 'vue-router'
+import DatePopup from '@/components/DatePopup.vue'
+
 const route = useRoute()
+const refreshPendingCount = inject('refreshPendingCount', () => { })
 
-// DashboardLayout에서 던져준 새로고침 받기
-const refreshPendingCount = inject('refreshPendingCount', () => {})
+// 1. 공통 달력 제어 로직 (기존 filterStartDate/EndDate와 통합)
+const getTodayStr = () => new Date().toISOString().split('T')[0]
+const isDatePopupOpen = ref(false)
+const filterStartDate = ref(getTodayStr())
+const filterEndDate = ref(getTodayStr())
 
-import axios from 'axios'
+const handleDateApply = (dates) => {
+  filterStartDate.value = dates.startDate
+  filterEndDate.value = dates.endDate
+  isDatePopupOpen.value = false
+}
 
-// 플로팅 팝업에서 다른 기기를 클릭했을 때 화면 즉시 갱신
+// 2. 라우터 쿼리 감시 (플로팅 팝업에서 기기 클릭 시 즉시 갱신)
 watch(() => route.query.chargerId, async (newId) => {
   if (newId && route.query.tab === 'predictive') {
     await handleChargerDetailView(newId)
   }
 })
 
-// 시설관리팀 점검 완료 처리 함수
+// 3. 시설관리팀 점검 완료 처리 함수
 const handleInspectionComplete = async (item = null) => {
-  // 테이블에서 넘어오면 item.chargerId, 요약 카드에서 넘어오면 현재 선택된 getActiveChargerId() 사용
   const targetId = item ? item.chargerId : getActiveChargerId()
-  
   if (confirm(`[${targetId}] 기기의 점검을 완료 처리하시겠습니까?`)) {
     try {
       const res = await axios.post('http://localhost:8003/inspection/complete', { chargerId: targetId })
       if (res.data.success) {
         alert('점검 완료 처리되었습니다')
-        await fetchChargerList()
-        await fetchChargerDetail(targetId)
-        await fetchHistoryData()
-
+        await Promise.all([fetchChargerList(), fetchChargerDetail(targetId), fetchHistoryData()])
         refreshPendingCount()
       }
     } catch (e) {
@@ -176,18 +135,15 @@ const handleInspectionComplete = async (item = null) => {
   }
 }
 
-// 주차/보안팀 가동 재개 처리 함수
+// 4. 주차/보안팀 가동 재개 처리 함수
 const handlePowerOnConfirm = async (item = null) => {
   const targetId = item ? item.chargerId : getActiveChargerId()
-  
   if (confirm(`[${targetId}] 기기를 다시 가동하시겠습니까?`)) {
     try {
       const res = await axios.post('http://localhost:8003/control/power-on', { chargerId: targetId })
       if (res.data.success) {
         alert('기기 가동이 재개되었습니다')
-        await fetchChargerList()
-        await fetchChargerDetail(targetId)
-        await fetchHistoryData()
+        await Promise.all([fetchChargerList(), fetchChargerDetail(targetId), fetchHistoryData()])
       }
     } catch (e) {
       console.error('가동 재개 실패:', e)
@@ -195,7 +151,7 @@ const handlePowerOnConfirm = async (item = null) => {
     }
   }
 }
-// =============================================================================================
+// ── [임소리] 추가 끝 ========================================================================
 
 // 예지보전 컴포넌트
 import PredictiveSummaryCard from '@/components/ev_infra/predictive/PredictiveSummaryCard.vue'
@@ -203,9 +159,8 @@ import PredictiveMetricTabs from '@/components/ev_infra/predictive/PredictiveMet
 import FaultHistoryTable from '@/components/ev_infra/predictive/FaultHistoryTable.vue'
 import InspectionRequestModal from '@/components/ev_infra/predictive/InspectionRequestModal.vue'
 import ForceShutdownConfirmModal from '@/components/ev_infra/predictive/ForceShutdownConfirmModal.vue'
-import PredictiveDatePopup from '@/components/ev_infra/predictive/PredictiveDatePopup.vue'
 
-// 충전기 현황 컴포넌트
+// 충전기 현황 컴포넌트[cite: 7]
 import ChargerStatusStats from '@/components/ev_infra/charger/ChargerStatusStats.vue'
 import ChargerOperationSummary from '@/components/ev_infra/charger/ChargerOperationSummary.vue'
 import ChargerEventLogTable from '@/components/ev_infra/charger/ChargerEventLogTable.vue'
@@ -231,7 +186,6 @@ const HISTORY_REFRESH_MS = STATUS_REFRESH_MS
 // 상태 관리 변수
 const inspectionModalVisible = ref(false)
 const forceShutdownModalVisible = ref(false)
-const isDatePopupOpen = ref(false)
 const selectedHistoryItem = ref(null)
 const chargerList = ref([])
 const historyChargerId = ref('ALL')
@@ -240,29 +194,25 @@ const metricIntervalId = ref(null)
 const historyIntervalId = ref(null)
 
 // 날짜 관련 헬퍼 함수
-function formatDateOnly(date) {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
+// function formatDateOnly(date) {
+//   const year = date.getFullYear()
+//   const month = String(date.getMonth() + 1).padStart(2, '0')
+//   const day = String(date.getDate()).padStart(2, '0')
+//   return `${year}-${month}-${day}`
+// }
 
-function getDefaultLast7DaysRange() {
-  const end = new Date()
-  end.setHours(0, 0, 0, 0)
-  const start = new Date(end)
-  start.setDate(end.getDate() - 6)
-  return {
-    startDate: formatDateOnly(start),
-    endDate: formatDateOnly(end)
-  }
-}
+// function getDefaultLast7DaysRange() {
+//   const end = new Date()
+//   end.setHours(0, 0, 0, 0)
+//   const start = new Date(end)
+//   start.setDate(end.getDate() - 6)
+//   return {
+//     startDate: formatDateOnly(start),
+//     endDate: formatDateOnly(end)
+//   }
+// }
 
-const defaultRange = getDefaultLast7DaysRange()
-const filterStartDate = ref(defaultRange.startDate)
-const filterEndDate = ref(defaultRange.endDate)
-
-// 충전기 상세 데이터 초기값
+// 충전기 상세 데이터 초기
 const chargerDetail = ref({
   chargerId: '',
   aiStatus: '',
@@ -284,7 +234,7 @@ const emptyMetricData = () => ({
 const metricData = ref(emptyMetricData())
 const historyData = ref([])
 
-// 비즈니스 로직 함수들
+// 비즈니스 로직 함수
 const getActiveChargerId = () => {
   return selectedHistoryItem.value?.chargerId || chargerDetail.value?.chargerId || '5F-D-10'
 }
@@ -295,22 +245,19 @@ const reconcileDetail = (detail, listItem, prevDetail = null) => {
   const merged = { ...detail }
 
   // shutdownDone이면 강제종료 시점의 fault 상태(aiStatus/mainReason) 보존
-  // merged.shutdownDone이 아직 false여도 listItem.powerOffDone 또는 prevDetail.shutdownDone으로 판단
   const isShutdown = merged.shutdownDone || listItem?.powerOffDone || prevDetail?.shutdownDone
   if (isShutdown) {
     merged.shutdownDone = true
-    // frozenAiStatus는 사용자가 강제종료 클릭 시에만 명시적으로 설정됨 — prevDetail.aiStatus fallback 없음
     const lockedStatus = prevDetail?.frozenAiStatus
     if (lockedStatus === 'RISK' || lockedStatus === 'CHECK') {
-      merged.aiStatus        = lockedStatus
-      merged.mainReason      = prevDetail.frozenMainReason || merged.mainReason
-      merged.faultProb7d     = prevDetail.frozenFaultProb7d ?? merged.faultProb7d
-      merged.frozenAiStatus  = lockedStatus
-      merged.frozenMainReason  = prevDetail.frozenMainReason
+      merged.aiStatus = lockedStatus
+      merged.mainReason = prevDetail.frozenMainReason || merged.mainReason
+      merged.faultProb7d = prevDetail.frozenFaultProb7d ?? merged.faultProb7d
+      merged.frozenAiStatus = lockedStatus
+      merged.frozenMainReason = prevDetail.frozenMainReason
       merged.frozenFaultProb7d = prevDetail.frozenFaultProb7d
       return merged
     }
-    // frozenAiStatus 없으면 shutdownDone만 true로 두고 일반 로직 진행
   }
 
   const cs = listItem.chargerStatus
@@ -359,7 +306,6 @@ const fetchHistoryData = async (chargerId = null) => {
   try {
     const rows = await getHistoryData(200, chargerId)
     if (chargerId && chargerId !== 'ALL') {
-      // 특정 기기 선택 시: 해당 기기 결과 + 기존 다른 기기 기록 병합 (중복 제거)
       const existingOthers = historyData.value.filter((r) => r.chargerId !== chargerId)
       const merged = [...rows, ...existingOthers]
       const seen = new Set()
@@ -389,7 +335,6 @@ const fetchChargerList = async () => {
 
     chargingLogs.forEach((log) => {
       if (!log?.chargerId) return
-
       const current = latestChargingLogMap.get(log.chargerId)
       const currentTime = current?.time ? new Date(current.time).getTime() : 0
       const nextTime = log?.time ? new Date(log.time).getTime() : 0
@@ -402,7 +347,6 @@ const fetchChargerList = async () => {
     chargerList.value = chargers.map((charger) => {
       const latestLog = latestChargingLogMap.get(charger.chargerId)
       const isCharging = charger.chargerStatus === 'CHARGING'
-
       return {
         ...charger,
         currentChargeKwh: isCharging ? latestLog?.currentChargeKwh ?? 0 : 0,
@@ -410,24 +354,20 @@ const fetchChargerList = async () => {
       }
     })
   } catch (error) {
-    console.error('fetchChargerList error:', error)
-    chargerList.value = []
+    console.error('fetchChargerList error:', error); chargerList.value = []
   }
 }
 
-// 폴링 제어
+// 폴링 제
 const stopPolling = () => {
   if (statusIntervalId.value) clearInterval(statusIntervalId.value)
   if (metricIntervalId.value) clearInterval(metricIntervalId.value)
   if (historyIntervalId.value) clearInterval(historyIntervalId.value)
-  statusIntervalId.value = null
-  metricIntervalId.value = null
-  historyIntervalId.value = null
+  statusIntervalId.value = metricIntervalId.value = historyIntervalId.value = null
 }
 
 const startPolling = () => {
   stopPolling()
-  
   statusIntervalId.value = setInterval(async () => {
     await fetchChargerList()
     const chargerId = chargerDetail.value?.chargerId || getActiveChargerId()
@@ -444,341 +384,226 @@ const startPolling = () => {
   }, HISTORY_REFRESH_MS)
 }
 
-// 유틸리티 및 이벤트 핸들러
-const formatShortDate = (value) => {
-  if (!value) return '-'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '-'
-  const yy = String(date.getFullYear()).slice(2)
-  const mm = String(date.getMonth() + 1).padStart(2, '0')
-  const dd = String(date.getDate()).padStart(2, '0')
-  return `${yy}.${mm}.${dd}`
-}
+// 유틸리티 및 이벤트 핸들
+// const formatShortDate = (value) => {
+//   if (!value) return '-'
+//   const date = new Date(value); const yy = String(date.getFullYear()).slice(2)
+//   const mm = String(date.getMonth() + 1).padStart(2, '0'); const dd = String(date.getDate()).padStart(2, '0')
+//   return `${yy}.${mm}.${dd}`
+// }
 
-const displayDateRange = computed(() => {
-  return `${formatShortDate(filterStartDate.value)} - ${formatShortDate(filterEndDate.value)}`
-})
+// const displayDateRange = computed(() => {
+//   return `${formatShortDate(filterStartDate.value)} - ${formatShortDate(filterEndDate.value)}`
+// })
 
 const handleChargerDetailView = async (chargerId) => {
-  // 클릭 시점 스냅샷 캡처
   const clicked = chargerList.value.find((c) => c.chargerId === chargerId)
-  // 클릭한 카드의 상태를 즉시 반영 (Spring fetch 완료 전 정상으로 깜빡이는 현상 방지)
   if (clicked) {
     const cs = clicked.chargerStatus
     const las = clicked.aiStatus
-    const aiStatus =
-      cs === 'RISK' || las === 'RISK' ? 'RISK'
-      : cs === 'CHECK' || cs === 'FAULT' || las === 'CHECK' ? 'CHECK'
-      : 'NORMAL'
-    chargerDetail.value = {
-      ...chargerDetail.value,
-      chargerId,
-      aiStatus,
-      mainReason: clicked.mainReason || '',
-      faultProb7d: clicked.faultProb7d ?? 0,
-      inspectionStatus: chargerDetail.value.inspectionStatus || 'NONE',
-      shutdownDone: clicked.powerOffDone ?? false
-    }
+    const aiStatus = (cs === 'RISK' || las === 'RISK') ? 'RISK' : (cs === 'CHECK' || cs === 'FAULT' || las === 'CHECK') ? 'CHECK' : 'NORMAL'
+    chargerDetail.value = { ...chargerDetail.value, chargerId, aiStatus, mainReason: clicked.mainReason || '', faultProb7d: clicked.faultProb7d ?? 0, inspectionStatus: chargerDetail.value.inspectionStatus || 'NONE', shutdownDone: clicked.powerOffDone ?? false }
   }
-  // FaultHistoryTable 셀렉트도 클릭한 기기로 맞춤
   historyChargerId.value = chargerId
-  // 탭 즉시 전환
   activeTab.value = 'predictive'
   selectedHistoryItem.value = null
-  // 스냅샷 전달로 in-flight polling 응답과의 race 방지
-  await Promise.all([
-    fetchChargerDetail(chargerId, clicked),
-    fetchMetricData(chargerId),
-    fetchHistoryData(chargerId)
-  ])
+  await Promise.all([fetchChargerDetail(chargerId, clicked), fetchMetricData(chargerId), fetchHistoryData(chargerId)])
 }
 
-const openInspectionModal = (item) => {
-  selectedHistoryItem.value = item
-  inspectionModalVisible.value = true
-}
-
-const closeInspectionModal = () => {
-  inspectionModalVisible.value = false
-  selectedHistoryItem.value = null
-}
-
-const openForceShutdownModal = (item) => {
-  selectedHistoryItem.value = item
-  forceShutdownModalVisible.value = true
-}
-
-const closeForceShutdownModal = () => {
-  forceShutdownModalVisible.value = false
-  selectedHistoryItem.value = null
-}
+const openInspectionModal = (item) => { selectedHistoryItem.value = item; inspectionModalVisible.value = true }
+const closeInspectionModal = () => { inspectionModalVisible.value = false; selectedHistoryItem.value = null }
+const openForceShutdownModal = (item) => { selectedHistoryItem.value = item; forceShutdownModalVisible.value = true }
+const closeForceShutdownModal = () => { forceShutdownModalVisible.value = false; selectedHistoryItem.value = null }
 
 const handleInspectionSubmit = async (payload) => {
   try {
-    const targetChargerId = getActiveChargerId()
-    await requestInspection({ ...payload, chargerId: targetChargerId })
+    const targetId = getActiveChargerId()
+    await requestInspection({ ...payload, chargerId: targetId })
     inspectionModalVisible.value = false
     selectedHistoryItem.value = null
-    fetchChargerDetail(targetChargerId)
-    fetchMetricData(targetChargerId)
-    fetchHistoryData()
-  } catch (error) {
-    console.error('handleInspectionSubmit error:', error)
-    alert('점검 요청 전송에 실패했습니다. 서버 연결을 확인해주세요.')
-  }
+    fetchChargerDetail(targetId); fetchMetricData(targetId); fetchHistoryData()
+  } catch (error) { console.error('handleInspectionSubmit error:', error) }
 }
 
 const handleForceShutdownConfirm = async (payload) => {
   try {
-    const targetChargerId = getActiveChargerId()
-    // DB fault 레코드의 status를 기준으로 고정 (실시간 센서값 아님)
-    const faultRecord = historyData.value.find(
-      (r) => r.chargerId === targetChargerId &&
-             r.inspectionStatus !== 'DONE' &&
-             (r.status === 'CHECK' || r.status === 'RISK' || r.status === 'FAULT')
-    )
+    const targetId = getActiveChargerId()
+    const faultRecord = historyData.value.find((r) => r.chargerId === targetId && r.inspectionStatus !== 'DONE' && (r.status === 'CHECK' || r.status === 'RISK' || r.status === 'FAULT'))
     const frozenAiStatus = faultRecord?.status || chargerDetail.value.aiStatus
     const frozenMainReason = faultRecord?.detail || chargerDetail.value.mainReason
     const frozenFaultProb7d = chargerDetail.value.faultProb7d
-    await requestForceShutdown({ ...payload, chargerId: targetChargerId })
-    chargerDetail.value = {
-      ...chargerDetail.value,
-      shutdownDone: true,
-      frozenAiStatus,
-      frozenMainReason,
-      frozenFaultProb7d
-    }
-    // chargerList도 즉시 반영 → FaultHistoryTable syntheticRow가 전원꺼짐 표시
-    chargerList.value = chargerList.value.map((c) =>
-      c.chargerId === targetChargerId ? { ...c, powerOffDone: true } : c
-    )
+    await requestForceShutdown({ ...payload, chargerId: targetId })
+    chargerDetail.value = { ...chargerDetail.value, shutdownDone: true, frozenAiStatus, frozenMainReason, frozenFaultProb7d }
+    chargerList.value = chargerList.value.map((c) => c.chargerId === targetId ? { ...c, powerOffDone: true } : c)
     forceShutdownModalVisible.value = false
     selectedHistoryItem.value = null
-    fetchChargerDetail(targetChargerId)
-    fetchMetricData(targetChargerId)
-    fetchHistoryData()
-  } catch (error) {
-    console.error('handleForceShutdownConfirm error:', error)
-    alert('강제 종료 요청에 실패했습니다. 서버 연결을 확인해주세요.')
-  }
+    fetchChargerDetail(targetId); fetchMetricData(targetId); fetchHistoryData()
+  } catch (error) { console.error('handleForceShutdownConfirm error:', error) }
 }
 
-const openSummaryInspectionModal = () => {
-  selectedHistoryItem.value = null
-  inspectionModalVisible.value = true
-}
+const openSummaryInspectionModal = () => { selectedHistoryItem.value = null; inspectionModalVisible.value = true }
+const handleChargerChange = async (id) => { selectedHistoryItem.value = null; await Promise.all([fetchChargerDetail(id), fetchMetricData(id)]) }
+const handleHistoryChargerSelect = async (id) => { await fetchHistoryData(id === 'ALL' ? null : id) }
+const openSummaryForceShutdownModal = () => { selectedHistoryItem.value = null; forceShutdownModalVisible.value = true }
 
-const handleChargerChange = async (chargerId) => {
-  selectedHistoryItem.value = null
-  await Promise.all([
-    fetchChargerDetail(chargerId),
-    fetchMetricData(chargerId)
-  ])
-}
-
-const handleHistoryChargerSelect = async (chargerId) => {
-  await fetchHistoryData(chargerId === 'ALL' ? null : chargerId)
-}
-
-const openSummaryForceShutdownModal = () => {
-  selectedHistoryItem.value = null
-  forceShutdownModalVisible.value = true
-}
-
-const handleDateApply = ({ startDate, endDate }) => {
-  filterStartDate.value = startDate
-  filterEndDate.value = endDate
-  isDatePopupOpen.value = false
-}
-
-const handleWindowClick = (event) => {
-  const target = event.target
-  if (!(target instanceof Element)) return
-  if (!target.closest('.date-filter-slot')) {
-    isDatePopupOpen.value = false
-  }
-}
-
-// onMounted(async () => {
-//   await fetchChargerList()
-//   const initialChargerId = chargerList.value.length > 0 ? chargerList.value[0].chargerId : '5F-D-10'
-
-//   await Promise.all([
-//     fetchChargerDetail(initialChargerId),
-//     fetchMetricData(initialChargerId),
-//     fetchHistoryData()
-//   ])
-
-//   startPolling()
-//   window.addEventListener('click', handleWindowClick)
-// })
+const handleWindowClick = (event) => { if (!event.target.closest('.header-right')) isDatePopupOpen.value = false }
 
 onMounted(async () => {
   await fetchChargerList()
-
   if (route.query.tab === 'predictive' && route.query.chargerId) {
     await handleChargerDetailView(route.query.chargerId)
   } else {
-    // 꼬리표 없이 그냥 메뉴로 들어왔으면 원래대로 첫 번째 기기 띄워주기
-    const initialChargerId = chargerList.value.length > 0 ? chargerList.value[0].chargerId : '5F-D-10'
-    await Promise.all([
-      fetchChargerDetail(initialChargerId),
-      fetchMetricData(initialChargerId),
-      fetchHistoryData()
-    ])
+    const initialId = chargerList.value.length > 0 ? chargerList.value[0].chargerId : '5F-D-10'
+    await Promise.all([fetchChargerDetail(initialId), fetchMetricData(initialId), fetchHistoryData()])
   }
-
   startPolling()
   window.addEventListener('click', handleWindowClick)
 })
 
-onBeforeUnmount(() => {
-  stopPolling()
-  window.removeEventListener('click', handleWindowClick)
-})
+onBeforeUnmount(() => { stopPolling(); window.removeEventListener('click', handleWindowClick) })
 </script>
 
 <style scoped>
-@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
-
-.ev-infra-page {
-  height: 100vh;
-  /* overflow-y: auto; */
-  padding: 20px;
-  color: #ffffff;
-  box-sizing: border-box;
-  font-family: 'Pretendard', sans-serif;
+/* 1. 전역 컨테이너 레이아웃 */
+.ev-infra-container {
+    width: 100%;
+    overflow-y: auto;       
+    overflow-x: hidden;     
+    display: flex;
+    flex-direction: column;
+    background-color: transparent;
+    color: #f5f5f5;
+    font-family: 'Pretendard', sans-serif;
 }
 
-.page-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 0;
+/* ── 2. 헤더 영역 (타이틀 & 탭 & 달력) ── */
+.ev-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 17px;
+    border-left: 5px solid #82c2e3;
+    padding-left: 17px;
+}
+
+/* 왼쪽 (타이틀 + 탭) */
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 17px;
 }
 
 .page-title {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 700;
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0;
+    color: #fff;
 }
 
-.top-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 16px;
-}
-
-.top-tabs {
-  display: flex;
-  flex-wrap: wrap;
+/* 탭 버튼 그룹 */
+.tab-button-group {
+    display: flex;
+    background: rgba(68, 77, 86, 0.3);
+    padding: 4px;
+    border-radius: 5px; 
 }
 
 .tab-btn {
-  min-width: 160px;
-  padding: 8px 16px;
-  border: 1px solid #2b3553;
-  border-radius: 5px;
-  background: #11182c;
-  color: #cdd6f4;
-  font-size: 14px;
+  padding: 8px 20px;
+  border: none;
+  background: transparent;
+  color: rgba(245, 245, 245, 0.6);
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  border-radius: 5px;
+  transition: 0.2s;
 }
 
 .tab-btn.active {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #ffffff;
+    background: #82c2e3; 
+    color: #000; 
 }
 
-.date-filter-slot {
-  position: relative;
-  display: flex;
-  justify-content: flex-end;
+/* ── 3. 오른쪽 달력 영역 ── */
+.relative-box {
+    position: relative; 
 }
 
-.date-filter-button {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-width: 190px;
-  padding: 9px 12px;
-  border: 1px solid #2b3553;
-  border-radius: 10px;
-  background: #11182c;
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
+.date-trigger-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(68, 77, 86, 0.3);
+    padding: 8px 16px;
+    border-radius: 5px; 
+    border: 1px solid rgba(245, 245, 245, 0.1);
+    cursor: pointer;
+    transition: 0.2s;
 }
 
-.calendar-icon img {
-  width: 16px;
-  height: 16px;
+.date-trigger-box:hover {
+    border-color: #82c2e3; 
 }
 
+.date-text {
+    font-size: 15px; 
+    font-weight: 600;
+    color: #fff;
+}
+
+/* 달력 아이콘 */
+.date-trigger-box svg {
+    width: 18px;
+    height: 18px;
+    color: rgba(245, 245, 245, 0.6);
+    flex-shrink: 0;
+}
+
+/* ── 4. 탭 콘텐츠 영역 레이아웃 ── */
 .tab-content {
-  display: block;
-  min-height: auto;
+    flex: 1; 
+    display: flex;
+    flex-direction: column;
 }
 
-.predictive-layout {
+/* 레이아웃 공통 간격 통일 (17px 규격) */
+.status-layout, .predictive-layout {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 17px; 
+}
+
+/* 상단 그리드 레이아웃 */
+.status-top-grid {
+  display: grid;
+  grid-template-columns: 0.8fr 1fr;
+  gap: 17px;
+  align-items: stretch;
 }
 
 .predictive-top-grid {
   display: grid;
   grid-template-columns: 1fr 1.32fr;
-  gap: 15px;
+  gap: 17px;
   min-height: 0;
-  align-items: start;
-}
-
-.layout-card {
-  position: relative;
-  padding: 18px;
-  
-  color: #e5e7eb;
-  font-size: 15px;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.history-card {
-  height: 560px;
-  min-height: 560px;
-  overflow: hidden;
-}
-
-
-.status-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.status-top-grid {
-  display: grid;
-  grid-template-columns: 0.8fr 1fr;
-  gap: 15px;
   align-items: stretch;
 }
 
-.space-card {
-  height: 490px;
-  min-height: 490px;
-  overflow: hidden;
+/* 자식들을 감싸는 카드 공통 스타일 */
+.layout-card {
+  background: rgba(68, 77, 86, 0.3);
+  border: 1px solid rgba(245, 245, 245, 0.08);
+  border-radius: 10px;
+  padding: 17px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
-.summary-card-right {
+/* 5. 각 자식 섹션별 높이 지정  */
+.space-card, .summary-card-right {
   height: 490px;
   min-height: 490px;
   overflow: hidden;
@@ -790,20 +615,14 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-/* 반응형 처리 */
-@media (max-width: 1200px) {
-  .predictive-top-grid {
-    grid-template-columns: 1fr;
-  }
+.history-card {
+  height: 560px;
+  min-height: 560px;
+  overflow: hidden;
 }
 
-@media (max-width: 768px) {
-  .top-bar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .date-filter-slot {
-    justify-content: flex-start;
-  }
+/* 반응형 처리 */
+@media (max-width: 1200px) {
+  .predictive-top-grid { grid-template-columns: 1fr; }
 }
 </style>

@@ -76,86 +76,109 @@ const handleDateApply = (dates) => {
 </script>
 
 <style scoped>
+/* 1. 전역 컨테이너 레이아웃 */
 .payment-manage-container {
-    padding: 10px;
-    color: #fff;
+    width: 100%;
+    overflow-y: auto;       
+    overflow-x: hidden;     
+    display: flex;
+    flex-direction: column;
+    background-color: transparent;
+    color: #f5f5f5;
 }
 
-/* 헤더 레이아웃 수정: 양끝 정렬(space-between) 적용 */
+/* ── 2. 헤더 영역 (타이틀 & 탭 & 달력) ── */
 .payment-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 25px;
+    margin-bottom: 17px;
+    border-left: 5px solid #82c2e3;
+  padding-left: 17px;
 }
 
-/* 왼쪽 타이틀과 탭 사이 간격 유지 */
+/* 왼쪽 (타이틀 + 탭) */
 .header-left {
     display: flex;
     align-items: center;
-    gap: 30px;
+    gap: 17px;
 }
 
 .page-title {
-    font-size: 24px;
+    font-size: 28px;
     font-weight: 700;
-    margin: 0; /* flex 적용 시 여백 초기화 */
+    margin: 0;
+    color: #fff;
 }
 
+/* 탭 버튼 그룹 */
 .tab-button-group {
     display: flex;
-    background: #1e1e2d;
+    background: rgba(68, 77, 86, 0.3);
     padding: 4px;
-    border-radius: 8px;
+    border-radius: 5px; 
 }
 
 .tab-btn {
-    padding: 8px 16px;
-    border: none;
-    background: none;
-    color: #a1a1aa;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    border-radius: 6px;
-    transition: 0.3s;
+  padding: 8px 20px;
+  border: none;
+  background: transparent;
+  color: rgba(245, 245, 245, 0.6);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: 0.2s;
 }
 
 .tab-btn.active {
-    background: #82c2e3;
-    color: #000;
+    background: #82c2e3; 
+    color: #000; 
 }
 
-/* 오른쪽 달력 영역 디자인 */
+/* ── 오른쪽 달력 영역 ── */
 .relative-box {
-    position: relative; /* 팝업이 이 박스를 기준으로 아래에 뜨게 함 */
+    position: relative; 
 }
 
 .date-trigger-box {
     display: flex;
     align-items: center;
     gap: 12px;
-    background: #1e1e2d;
+    background: rgba(68, 77, 86, 0.3);
     padding: 8px 16px;
-    border-radius: 8px;
-    border: 1px solid #3f3f46;
-    color: #a1a1aa;
+    border-radius: 5px; 
+    border: 1px solid rgba(245, 245, 245, 0.1);
     cursor: pointer;
     transition: 0.2s;
 }
 
 .date-trigger-box:hover {
-    border-color: #82c2e3;
-    color: #fff;
+    border-color: #82c2e3; 
 }
 
 .date-text {
-    font-size: 14px;
+    font-size: 15px; 
     font-weight: 600;
-    color: #e5edf8;
+    color: #fff; 
 }
 
-/* ── 부드러운 전환 효과 ── */
+/* 달력 아이콘  */
+.date-trigger-box svg {
+    width: 18px;
+    height: 18px;
+    color: rgba(245, 245, 245, 0.6); 
+    flex-shrink: 0;
+}
+
+/* ── 4. 탭 콘텐츠가 들어갈 자리 ── */
+.payment-content {
+    flex: 1; 
+    display: flex;
+    flex-direction: column;
+}
+
+/* 부드러운 전환 효과 */
 .fade-enter-active,
 .fade-leave-active {
     transition: opacity 0.2s ease;

@@ -4,28 +4,16 @@
       <h3 class="section-title">AI 예지보전 분석</h3>
 
       <div class="tab-buttons">
-        <button
-          type="button"
-          class="tab-button"
-          :class="{ active: activeTab === 'temperature' }"
-          @click="activeTab = 'temperature'"
-        >
+        <button type="button" class="tab-button" :class="{ active: activeTab === 'temperature' }"
+          @click="activeTab = 'temperature'">
           온도
         </button>
-        <button
-          type="button"
-          class="tab-button"
-          :class="{ active: activeTab === 'current' }"
-          @click="activeTab = 'current'"
-        >
+        <button type="button" class="tab-button" :class="{ active: activeTab === 'current' }"
+          @click="activeTab = 'current'">
           전류
         </button>
-        <button
-          type="button"
-          class="tab-button"
-          :class="{ active: activeTab === 'voltage' }"
-          @click="activeTab = 'voltage'"
-        >
+        <button type="button" class="tab-button" :class="{ active: activeTab === 'voltage' }"
+          @click="activeTab = 'voltage'">
           전압
         </button>
       </div>
@@ -35,26 +23,17 @@
       <div class="metric-unit">{{ currentUnitLabel }}</div>
 
       <div class="legend-row">
-        <span
-          v-if="activeTab === 'temperature'"
-          class="legend-item temperature"
-        >
+        <span v-if="activeTab === 'temperature'" class="legend-item temperature">
           <span class="legend-line temperature"></span>
           온도
         </span>
 
-        <span
-          v-if="activeTab === 'current'"
-          class="legend-item current"
-        >
+        <span v-if="activeTab === 'current'" class="legend-item current">
           <span class="legend-line current"></span>
           전류
         </span>
 
-        <span
-          v-if="activeTab === 'voltage'"
-          class="legend-item voltage"
-        >
+        <span v-if="activeTab === 'voltage'" class="legend-item voltage">
           <span class="legend-line voltage"></span>
           전압
         </span>
@@ -536,179 +515,133 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .metric-tabs-section {
-  width: 100%;
+  width: 100%; 
   height: 100%;
-  min-height: 360px;
-  padding: 0;
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  box-sizing: border-box;
-  display: flex;
+  flex: 1;
+  display: flex; 
   flex-direction: column;
 }
-
 .top-row {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
   gap: 14px;
-  margin-bottom: 8px;
+  margin-bottom: 17px;
 }
 
 .section-title {
   margin: 0;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
   color: #ffffff;
-  flex-shrink: 0;
 }
 
 .tab-buttons {
-  display: inline-flex;
-  align-items: center;
-  gap: 0;
-  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
 }
 
 .tab-button {
-  min-width: 52px;
   height: 28px;
   padding: 0 14px;
-  border: 1px solid #2a3a4e;
-  background: #1a2535;
-  color: #7a8fa6;
+  border: 1px solid rgba(245, 245, 245, 0.1);
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(245, 245, 245, 0.6);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.18s ease;
-  border-radius: 0;
-}
-
-.tab-button:first-child {
-  border-top-left-radius: 4px;
-  border-bottom-left-radius: 4px;
-}
-
-.tab-button:last-child {
-  border-top-right-radius: 4px;
-  border-bottom-right-radius: 4px;
-}
-
-.tab-button + .tab-button {
-  margin-left: -1px;
+  transition: 0.2s;
 }
 
 .tab-button.active {
-  background: #1d4ed8;
-  border-color: #3b82f6;
-  color: #ffffff;
-  position: relative;
-  z-index: 1;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+  background: rgba(130, 194, 227, 0.15);
+  border-color: #82c2e3;
+  color: #fff;
 }
 
 .metric-title-row {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 6px;
+  align-items: center;
+  margin-bottom: 10px;
 }
 
 .metric-unit {
-  font-size: 11px;
-  color: #64748b;
-  letter-spacing: 0.3px;
+  font-size: 14px;
+  color: rgba(245, 245, 245, 0.4);
 }
 
 .legend-row {
   display: flex;
-  align-items: center;
   gap: 14px;
-  flex-wrap: wrap;
 }
 
 .legend-item {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
 }
 
-.legend-item.temperature {
-  color: #fca5a5;
-}
-
-.legend-item.current {
-  color: #fde68a;
-}
-
-.legend-item.voltage {
-  color: #93c5fd;
-}
-
 .legend-line {
-  width: 16px;
-  height: 2px;
-  border-radius: 999px;
-  display: inline-block;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.legend-item.temperature {
+  color: #ff0000;
 }
 
 .legend-line.temperature {
-  background: #ff4d57;
-  box-shadow: 0 0 8px rgba(255, 77, 87, 0.45);
+  background: #ff0000;
+}
+
+.legend-item.current {
+  color: #fbb900;
 }
 
 .legend-line.current {
-  background: #facc15;
-  box-shadow: 0 0 8px rgba(250, 204, 21, 0.42);
+  background: #fbb900;
+}
+
+.legend-item.voltage {
+  color: #82c2e3;
 }
 
 .legend-line.voltage {
-  background: #60a5fa;
-  box-shadow: 0 0 8px rgba(96, 165, 250, 0.44);
+  background: #82c2e3;
 }
 
+/* 차트 메인 영역 (데이터 유무 상관없이 높이 유지) */
 .chart-main {
-  position: relative;
-  flex: 1 1 auto;
-  min-width: 0;
-  min-height: 280px;
-  overflow: hidden;
-  background: transparent;
+  flex: 1;
+  min-height: 240px;
 }
 
 .echart-box {
   width: 100%;
   height: 100%;
-  min-height: 280px;
 }
 
+/* 데이터 없을 때 뜨는 빈 박스 */
 .empty-box {
-  flex: 1;
-  min-height: 240px;
-  display: flex;
-  align-items: center;
+  flex: 1; 
+  height: 100%; 
+  min-height: 240px; 
+  display: flex; 
+  align-items: center; 
   justify-content: center;
-  padding: 24px 12px;
-  border: 1px dashed #334155;
-  border-radius: 8px;
-  text-align: center;
-  color: #94a3b8;
-  background: #0f172a;
+  color: rgba(245, 245, 245, 0.6); 
+  font-size: 14px;
 }
 
-@media (max-width: 768px) {
-  .top-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .metric-title-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+/* 메인 섹션 자체도 부모 카드를 가득 채우도록 강제 */
+.metric-tabs-section {
+  width: 100%; 
+  height: 100%;
+  display: flex; 
+  flex-direction: column;
 }
 </style>

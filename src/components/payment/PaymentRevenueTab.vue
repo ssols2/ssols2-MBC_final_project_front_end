@@ -137,8 +137,9 @@
         </div>
         <div class="right-controls">
           <div class="search-wrapper">
-            <input type="text" placeholder="Search..." class="search-input" v-model="searchQuery" />
-            <span class="search-icon">
+            <input type="text" placeholder="Search..." class="search-input" v-model="searchQuery"
+              @keyup.enter="handleSearch" />
+            <span class="search-icon" @click="handleSearch">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="11" cy="11" r="8"></circle>
@@ -146,7 +147,7 @@
               </svg>
             </span>
           </div>
-          <button class="excel-btn" @click="downloadExcel">
+          <!-- <button class="excel-btn" @click="downloadExcel">
             <span class="icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round">
@@ -156,7 +157,7 @@
               </svg>
             </span>
             엑셀 다운로드
-          </button>
+          </button> -->
         </div>
       </div>
 
@@ -176,7 +177,7 @@
               <td colspan="5" class="empty-message">정산 내역이 없습니다</td>
             </tr>
             <tr v-for="(item, index) in tableItems" :key="index">
-              <td>{{ item.settlement_date }}</td>
+              <td>{{ formatDate(item.settlement_date) }}</td>
               <td>{{ item.payment_count }}건</td>
               <td>₩ {{ (item.total_generated || 0).toLocaleString() }}</td>
               <td class="text-red">₩ {{ (item.discount_total || 0).toLocaleString() }}</td>
@@ -220,7 +221,17 @@ watch(() => [props.startDate, props.endDate], () => {
 
 
 // ── [2] 상태 관리 (State) ──
-// (주의: 기존에 있던 startDate, endDate ref는 부모한테서 받으므로 삭제함)
+// 날짜 포맷 함수 (YYYY-MM-DD HH:mm:ss)
+const formatDate = (dateStr) => {
+  if (!dateStr) return '-'
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return dateStr // 날짜 형식이 아니면 그대로 반환
+
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}년 ${month}월 ${day}일`
+}
 
 const viewType = ref('day') // day, week, month
 
@@ -262,6 +273,7 @@ const getRatio = (target, total) => {
 
 
 // ── [4] API 데이터 패칭 (Fetch) ──
+
 // 상단 요약 카드 데이터 가져오기
 const fetchSummary = async () => {
   try {
@@ -307,14 +319,21 @@ const fetchChart = async () => {
 const fetchTable = async () => {
   try {
     const skip = (currentPage.value - 1) * itemsPerPage.value
-    const res = await paymentApi.getRevenueTable(props.startDate, props.endDate, skip, itemsPerPage.value)
+    // API에 searchQuery.value 와 sortOrder.value 파라미터를 추가해서 백엔드로 넘겨줌
+    const res = await paymentApi.getRevenueTable(
+      props.startDate,
+      props.endDate,
+      skip,
+      itemsPerPage.value,
+      searchQuery.value, // 검색어 전달
+      sortOrder.value    // 정렬 기준 전달 ('desc' or 'asc')
+    )
     tableItems.value = res.data.items
     totalTableCount.value = res.data.total_count
   } catch (error) {
     console.error("테이블 데이터를 불러오는데 실패했습니다", error)
   }
 }
-
 
 // ── [5] ECharts 렌더링 함수 ──
 const renderChart = () => {
@@ -331,15 +350,24 @@ const renderChart = () => {
   const seriesType = viewType.value === 'day' ? 'line' : 'bar'
 
   const option = {
+    grid: {
+      top: '60px',    // 범례(Legend) 공간 확보
+      left: '15px',   // 왼쪽 여백 최소화
+      right: '25px',  // 오른쪽 여백 최소화
+      bottom: '10px', // 아래쪽 여백 최소화
+      containLabel: true // 숫자가 박스 밖으로 나가지 않게 자동으로 잡아줌
+    },
     tooltip: { trigger: 'axis' },
     legend: {
       data: ['주차비 매출', '충전비 매출'],
-      textStyle: { color: '#a1a1aa' }
+      textStyle: { color: '#a1a1aa' },
+      top: '10px' // 범례 위치 살짝 조정
     },
     xAxis: {
       type: 'category',
       data: labels,
-      axisLabel: { color: '#a1a1aa' }
+      axisLabel: { color: '#a1a1aa' },
+      boundaryGap: viewType.value === 'day' ? false : true // 축 선이 끝까지 닿도록
     },
     yAxis: {
       type: 'value',
@@ -368,14 +396,17 @@ const renderChart = () => {
         type: seriesType,
         data: parkingValues,
         itemStyle: { color: '#82c2e3' },
-        smooth: true
+        smooth: true,
+        // 추가: 영역 색상 채우기 (선 그래프일 때 더 꽉 차 보임)
+        areaStyle: viewType.value === 'day' ? { opacity: 0.1 } : null
       },
       {
         name: '충전비 매출',
         type: seriesType,
         data: evValues,
         itemStyle: { color: '#fadb14' },
-        smooth: true
+        smooth: true,
+        areaStyle: viewType.value === 'day' ? { opacity: 0.1 } : null
       }
     ],
     backgroundColor: 'transparent'
@@ -386,6 +417,24 @@ const renderChart = () => {
 
 
 // ── [6] 사용자 인터랙션 핸들러 ──
+// 검색 실행 함수 (엔터키 or 돋보기 클릭 시)
+const handleSearch = () => {
+  currentPage.value = 1 // 검색 시 무조건 1페이지로 리셋
+  fetchTable()
+}
+
+// 검색어를 싹 지웠을 때 자동으로 전체 목록 복구
+watch(searchQuery, (newVal) => {
+  if (!newVal) {
+    handleSearch()
+  }
+})
+
+// 정렬 기준(최신순/과거순)이 바뀌면 즉시 목록 다시 불러오기
+watch(sortOrder, () => {
+  handleSearch()
+})
+
 const fetchData = () => {
   currentPage.value = 1
   fetchSummary()
@@ -402,6 +451,7 @@ const goToPage = (page) => {
   currentPage.value = page
   fetchTable()
 }
+
 const prevPage = () => {
   if (currentPage.value > 1) {
     currentPage.value--
@@ -415,9 +465,9 @@ const nextPage = () => {
   }
 }
 
-const downloadExcel = () => {
-  alert("엑셀 다운로드 API를 연결해주세요")
-}
+// const downloadExcel = () => {
+//   alert("엑셀 다운로드 API를 연결해주세요")
+// }
 
 // ── [7] 라이프사이클 ──
 onMounted(() => {
@@ -430,42 +480,50 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* ── 1. 전체 탭 컨테이너 (부모 영역 침범 방지) ── */
 .payment-revenue-tab {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 17px;
   height: 100%;
-  /* 부모의 main 영역 높이를 100% 채움 */
   overflow-y: auto;
-  /* 내용이 길어져도 내부에서만 스크롤 됨 */
-  padding: 16px;
-  color: #f4f4f5;
-  background-color: #12121c;
-  /* 세련된 다크 배경 */
+  padding: 0 4px;
+  color: #f5f5f5;
+  background-color: transparent;
+  font-family: 'Pretendard', sans-serif;
 }
 
-/* ── 3. 상단: 요약 카드 4종 (Grid로 1:1:1:1 분할) ── */
+.payment-revenue-tab::-webkit-scrollbar {
+  width: 10px;
+}
+
+.payment-revenue-tab::-webkit-scrollbar-thumb {
+  background: #444D56;
+  border-radius: 4px;
+}
+
+/* 상단 요약 카드 */
 .summary-dashboard {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: 17px;
 }
 
 .summary-card {
-  background: #1e1e2d;
-  padding: 24px;
-  border-radius: 16px;
+  background: rgba(68, 77, 86, 0.3);
+  padding: 28px 22px;
+  border-radius: 10px;
+  border: 1px solid rgba(245, 245, 245, 0.08);
   display: flex;
   flex-direction: column;
   gap: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  min-height: 120px;
 }
 
 .card-title {
-  font-size: 14px;
-  color: #a1a1aa;
+  font-size: 20px;
+  color: #fff;
   font-weight: 600;
+  margin: 0;
 }
 
 .card-value {
@@ -476,24 +534,32 @@ onMounted(() => {
 
 .card-value h2 {
   margin: 0;
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 28px;
+  font-weight: 800;
+  color: #f5f5f5;
+}
+
+.trend {
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .trend.up {
-  color: #ff4d4f;
+  color: #ff0000;
 }
 
 .trend.down {
-  color: #3b82f6;
+  color: #82c2e3;
 }
 
-/* 프로그레스 바 디자인 */
 .progress-bar {
   width: 100%;
-  height: 6px;
-  background: #3f3f46;
-  border-radius: 3px;
+  height: 8px;
+  background: rgba(245, 245, 245, 0.1);
+  border-radius: 4px;
   overflow: hidden;
   margin-top: auto;
 }
@@ -501,19 +567,43 @@ onMounted(() => {
 .progress-bar .fill {
   height: 100%;
   background: #82c2e3;
-  /* 파란색 포인트 */
-  border-radius: 3px;
+  border-radius: 4px;
   transition: width 0.5s ease;
 }
 
-/* ── 4. 중앙: 매출 추이 그래프 영역 ── */
-.chart-section {
-  background: #1e1e2d;
-  padding: 24px;
-  border-radius: 16px;
+.discount-details {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.label {
+  font-size: 16px;
+  color: rgba(245, 245, 245, 0.6);
+}
+
+.value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* 중앙: 차트 섹션 */
+.chart-section {
+  background: rgba(68, 77, 86, 0.3);
+  padding: 17px;
+  border-radius: 10px;
+  border: 1px solid rgba(245, 245, 245, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
 }
 
 .section-header {
@@ -526,27 +616,82 @@ onMounted(() => {
 .header-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 17px;
 }
 
 .section-title {
   margin: 0;
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 700;
+  color: #fff;
 }
 
-/* 차트 본문: 좌측 그래프(3) vs 우측 패널(1) 비율 분할 */
+/* 일/주/월별 탭 버튼 */
+.view-type-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.view-type-toggle button {
+  height: 28px;
+  padding: 0 14px;
+  border: 1px solid rgba(245, 245, 245, 0.1);
+  border-radius: 999px;
+  /* 완전 둥근 알약 형태 */
+  background: transparent;
+  color: rgba(245, 245, 245, 0.6);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.view-type-toggle button:hover {
+  border-color: #82c2e3;
+  color: #82c2e3;
+}
+
+.view-type-toggle button.active {
+  border-color: #82c2e3;
+  background: rgba(130, 194, 227, 0.15);
+  color: #fff;
+}
+
+.total-stats {
+  font-size: 18px;
+  color: rgba(245, 245, 245, 0.6);
+}
+
+.stat-label {
+  color: rgba(245, 245, 245, 0.6);
+}
+
+.stat-value {
+  font-weight: 600;
+  font-size: 18px;
+  color: #f5f5f5;
+}
+
+.stat-value.text-blue {
+  color: #82c2e3;
+}
+
+.divider {
+  color: rgba(245, 245, 245, 0.1);
+  margin: 0 8px;
+}
+
 .chart-body-wrapper {
   display: flex;
-  gap: 24px;
-  height: 400px;
-  /* 그래프 영역 고정 높이 */
+  gap: 17px;
+  height: 350px;
 }
 
 .chart-canvas-area {
   flex: 4;
-  background: #2a2a3c;
+  background: rgba(68, 77, 86, 0.3);
   border-radius: 10px;
+  border: 1px solid rgba(245, 245, 245, 0.08);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -556,79 +701,190 @@ onMounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 17px;
 }
 
 .side-card {
   flex: 1;
-  background: #2a2a3c;
-  border-radius: 12px;
+  background: rgba(68, 77, 86, 0.3);
+  border-radius: 10px;
+  border: 1px solid rgba(245, 245, 245, 0.08);
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   gap: 8px;
-}
-
-.side-card .card-title {
-  font-size: 15px;
+  padding: 17px;
 }
 
 .side-card .card-value {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
 }
 
-/* ── 5. 하단: 상세 정산 내역 요약 테이블 ── */
+/* ── 하단: 테이블 섹션 ── */
 .table-section {
-  background: #1e1e2d;
-  padding: 24px;
-  border-radius: 16px;
+  background: rgba(68, 77, 86, 0.3);
+  padding: 17px;
+  border-radius: 10px;
+  border: 1px solid rgba(245, 245, 245, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 17px;
+}
+
+.left-controls,
+.right-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 정렬 셀렉트 박스 */
+.sort-select {
+  background-color: #444d5650;
+  border: 1px solid rgba(245, 245, 245, 0.1);
+  color: #f5f5f5;
+  padding: 0 12px;
+  height: 28px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-family: 'Pretendard', sans-serif;
+  outline: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.sort-select option {
+  background-color: #444D56;
+  color: #f5f5f5;
+  padding: 10px;
+}
+
+.sort-select:hover {
+  border-color: #82c2e3;
+}
+
+/* 검색창 */
+.search-wrapper {
+  display: flex;
+  align-items: center;
+  background: rgba(68, 77, 86, 0.3);
+  border: 1px solid rgba(245, 245, 245, 0.08);
+  border-radius: 5px;
+  padding: 8px 12px;
+}
+
+.search-input {
+  background: transparent;
+  border: none;
+  color: #f5f5f5;
+  outline: none;
+  width: 180px;
+  font-size: 14px;
+}
+
+.search-input::placeholder {
+  color: rgba(245, 245, 245, 0.6);
+}
+
+.search-icon {
+  color: rgba(245, 245, 245, 0.6);
+  cursor: pointer;
+}
+
+/* 테이블 스타일 */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  text-align: left;
-}
-
-.data-table th,
-.data-table td {
-  padding: 16px;
-  border-bottom: 1px solid #3f3f46;
+  text-align: center;
 }
 
 .data-table th {
-  color: #a1a1aa;
+  padding: 17px 10px;
+  border-bottom: 1px solid rgba(245, 245, 245, 0.1);
+  color: rgba(245, 245, 245, 0.6);
+  font-size: 16px;
   font-weight: 600;
-  background: #2a2a3c;
 }
 
-.data-table tr:hover {
-  background: #2a2a3c;
+.data-table td {
+  padding: 17px 10px;
+  border-bottom: 1px solid rgba(245, 245, 245, 0.05);
+  color: #f5f5f5;
+  font-size: 16px;
+  font-weight: 500;
 }
 
-/* 유틸리티 및 텍스트 컬러 */
+.empty-message {
+  padding: 40px !important;
+  color: rgba(245, 245, 245, 0.6) !important;
+  font-weight: 400 !important;
+}
+
 .text-blue {
   color: #82c2e3;
 }
 
-.text-yellow {
-  color: #fadb14;
-}
-
+.text-yellow,
 .text-orange {
-  color: #faad14;
+  color: #fbb900;
 }
 
 .text-red {
-  color: #ff4d4f;
+  color: #ff0000;
 }
 
 .text-white {
-  color: #ffffff;
+  color: #fff;
+}
+
+/* 페이지네이션 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 17px;
+  margin-bottom: 17px;
+}
+
+.page-arrow,
+.page-num {
+  background: transparent;
+  border: 1px solid rgba(245, 245, 245, 0.1);
+  color: rgba(245, 245, 245, 0.6);
+  min-width: 32px;
+  height: 32px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: 0.2s;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-arrow:hover:not(:disabled),
+.page-num:hover:not(:disabled) {
+  border-color: #82c2e3;
+  color: #82c2e3;
+}
+
+.page-num.active {
+  background: #82c2e3;
+  border-color: #82c2e3;
+  color: #000;
+}
+
+.page-arrow:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 </style>

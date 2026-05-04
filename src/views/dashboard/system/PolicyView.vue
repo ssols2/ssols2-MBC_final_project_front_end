@@ -90,41 +90,129 @@
         </div>
       </section>
     </div>
-
-    <!-- <footer class="action-footer">
-      <button class="btn-save">운영 정책 실시간 반영</button>
-    </footer> -->
   </div>
 </template>
 
 <style scoped>
-.policy-wrapper { padding: 30px; display: flex; flex-direction: column; gap: 30px; background: #09090b; min-height: 100%; }
+/* 운영 정책 및 요금 CSS */
+.policy-wrapper {
+  padding: 0 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
+  background: transparent;
+  height: 100%;
+}
 
-.view-header { border-left: 4px solid #82c2e3; padding-left: 15px; }
-.view-title { font-size: 24px; font-weight: 700; color: #fff; margin: 0 0 8px 0; }
-.view-desc { font-size: 14px; color: #a1a1aa; margin: 0; }
+.view-header {
+  border-left: 5px solid #82c2e3;
+  padding-left: 17px;
+  margin-bottom: 5px;
+}
 
-.policy-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+.view-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 8px 0;
+}
 
-.policy-card { background: #1e1e2d; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 20px; transition: 0.3s; }
-.policy-card:hover { border-color: rgba(130, 194, 227, 0.3); transform: translateY(-2px); }
+.view-desc {
+  font-size: 18px;
+  color: rgba(245, 245, 245, 0.6);
+}
 
-.card-header { display: flex; align-items: center; gap: 12px; color: #82c2e3; }
-.card-icon { width: 24px; height: 24px; }
-.card-header h4 { font-size: 18px; font-weight: 600; color: #f4f4f5; margin: 0; }
+.policy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 17px;
+}
 
-.card-body { display: flex; flex-direction: column; gap: 16px; }
+.policy-card {
+  background: rgba(68, 77, 86, 0.3);
+  border: 1px solid rgba(245, 245, 245, 0.08);
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  transition: 0.3s;
+}
 
-.input-item { display: flex; flex-direction: column; gap: 8px; }
-.input-item label { font-size: 13px; color: #a1a1aa; }
+.policy-card:hover {
+  border-color: rgba(130, 194, 227, 0.3);
+}
 
-.input-group { display: flex; align-items: center; background: #12121c; border: 1px solid #3f3f46; border-radius: 8px; padding: 0 12px; }
-.input-group input { flex: 1; background: transparent; border: none; color: #fff; padding: 12px 0; outline: none; font-size: 15px; font-weight: 600; }
-.input-group span { color: #71717a; font-size: 13px; }
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #82c2e3;
+  margin-bottom: 5px;
+}
 
-.helper-text { font-size: 12px; color: #71717a; margin: 4px 0 0 0; font-style: italic; }
+.card-icon {
+  width: 24px;
+  height: 24px;
+}
 
-.action-footer { display: flex; justify-content: flex-end; margin-top: 20px; }
-.btn-save { background: #82c2e3; color: #000; border: none; padding: 14px 28px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 15px rgba(130, 194, 227, 0.2); }
-.btn-save:hover { background: #9bd3ef; transform: scale(1.02); }
+.card-header h4 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.input-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-item label {
+  font-size: 18px;
+  color: rgba(245, 245, 245, 0.6);
+  font-weight: 500;
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(245, 245, 245, 0.1);
+  border-radius: 5px;
+  padding: 0 12px;
+}
+
+.input-group input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #82c2e3;
+  padding: 12px 0;
+  outline: none;
+  font-size: 20px;
+  font-weight: 800;
+  text-align: right;
+  padding-right: 8px;
+}
+
+.input-group span {
+  color: rgba(245, 245, 245, 0.4);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.helper-text {
+  font-size: 16px;
+  color: rgba(245, 245, 245, 0.538);
+  font-style: italic;
+  margin-top: 5px;
+}
 </style>

@@ -1,39 +1,43 @@
 <template>
     <div class="control-container">
 
-        <!-- <div class="page-header">
-            <div class="header-title-area">
-                <h2 class="page-title">출입 차량 관리</h2>
-                <div class="tab-group">
-                    <button class="tab-btn" @click="$router.push('/dashboard/vehicle-log')">
-                        입출차 로그
-                    </button>
-                    <button class="tab-btn active">
-                        주차 예측 통계
-                    </button>
-                </div>
-            </div>
-        </div> -->
-
         <div class="tab-content">
 
             <div class="stats-header-bar">
-                <div class="date-range">
-                    <input type="date" v-model="startDate" :max="maxAllowedDate" class="date-input"
-                        @change="fetchShortData" />
-                    <span class="date-sep">-</span>
-                    <input type="date" v-model="endDate" :max="maxAllowedDate" class="date-input"
-                        @change="fetchShortData" />
+                <div class="relative-box">
+                    <!-- 클릭하면 달력 열리는 박스 -->
+                    <div class="date-trigger-box" @click="isCalendarOpen = true">
+                        <span class="date-text">{{ startDate }} ~ {{ endDate }}</span>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                    </div>
+
+                    <!-- 공통 달력 컴포넌트 -->
+                    <DatePopup :visible="isCalendarOpen" :start-date="startDate" :end-date="endDate"
+                        @close="isCalendarOpen = false" @apply="handleDateApply" />
                 </div>
 
-                <button class="info-btn">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="16" x2="12" y2="12"></line>
-                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                    </svg>
-                    주차 예측 데이터
-                </button>
+                <div class="info-wrapper">
+                    <button class="info-btn">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        주차 예측 데이터 안내
+                    </button>
+
+                    <!-- 호버 시 나타날 안내 박스 -->
+                    <div class="info-tooltip">
+                        AI 주차 예측 모델은 <strong>기상 상태, 대기질 정보, 공휴일 여부,
+                            진료 예약 현황</strong>을 종합적으로 분석하여 산출된 신뢰도 높은 데이터입니다.
+                    </div>
+                </div>
             </div>
 
             <div class="chart-row">
@@ -144,12 +148,21 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import Chart from 'chart.js/auto'
 import axios from 'axios'
+import DatePopup from '@/components/DatePopup.vue'
 
-// ── 날짜 유틸 ────────────────────────────────────────────────
-const getTodayString = () => {
-    const d = new Date()
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+const getTodayStr = () => new Date().toISOString().split('T')[0]
+
+const isCalendarOpen = ref(false)
+const startDate = ref(getTodayStr())
+const endDate = ref(getTodayStr())
+
+const handleDateApply = (dates) => {
+    startDate.value = dates.startDate
+    endDate.value = dates.endDate
+    isCalendarOpen.value = false
+    fetchShortData()
 }
+
 const getDaysLaterString = (days) => {
     const d = new Date()
     d.setDate(d.getDate() + days)
@@ -165,10 +178,7 @@ const getDowLabel = (dateStr) => {
     return `${dateStr.slice(5)} (${DOW_KO[d.getDay()]})`
 }
 
-// ── 상태 ─────────────────────────────────────────────────────
 const activeTab = ref('stats')
-const startDate = ref(getTodayString())
-const endDate = ref(getTodayString())
 const maxAllowedDate = ref(getDaysLaterString(2))
 
 const shortChartRef = ref(null)
@@ -416,7 +426,7 @@ const fetchMidData = async () => {
     try {
         const res = await axios.get('http://localhost:8080/dashBoard/parkingChart/mid')
         midData.value = res.data
-        
+
         const labels = []         // X축에 표시될 글씨 (날짜, 공휴일명)
         const labelColors = []    // X축 글씨 색상 (빨강, 파랑, 회색)
         const predList = []
@@ -431,19 +441,19 @@ const fetchMidData = async () => {
             // 1. 일요일 또는 공휴일 (빨간색)
             if (d.isHoliday || day === 0) {
                 labelColors.push('#ef4444') // 다크모드용 밝은 빨강
-                
+
                 if (d.holidayName) {
                     // 배열로 넣으면 Chart.js가 자동으로 두 줄로 줄바꿈 처리해 줍니다!
-                    labels.push([baseLabel, `[${d.holidayName}]`]) 
+                    labels.push([baseLabel, `[${d.holidayName}]`])
                 } else {
                     labels.push(baseLabel) // 단순 일요일일 경우
                 }
-            } 
+            }
             // 2. 토요일 (파란색)
             else if (day === 6) {
                 labelColors.push('#60a5fa') // 다크모드용 밝은 파랑
                 labels.push(baseLabel)
-            } 
+            }
             // 3. 평일 (회색/흰색 - 다크모드 기준)
             else {
                 labelColors.push('#d4d4d8') // 다크모드 기본 글씨색
@@ -476,20 +486,20 @@ const fetchMidData = async () => {
                     }
                 },
                 scales: {
-                    y: { 
-                        beginAtZero: true, 
-                        title: { display: true, text: '주차 대수 (대)', color: '#f5f5f5a9' }, 
-                        ticks: { stepSize: 5, color: '#f5f5f5a9' } 
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: '주차 대수 (대)', color: '#f5f5f5a9' },
+                        ticks: { stepSize: 5, color: '#f5f5f5a9' }
                     },
-                    x: { 
-                        title: { display: true, text: '예측 날짜', color: '#f5f5f5a9' }, 
-                        ticks: { 
-                            maxTicksLimit: 12, 
+                    x: {
+                        title: { display: true, text: '예측 날짜', color: '#f5f5f5a9' },
+                        ticks: {
+                            maxTicksLimit: 12,
                             color: labelColors, // ✨ 여기에 지정한 색상 배열을 투입!
                             font: {
                                 size: 12
                             }
-                        } 
+                        }
                     },
                 },
             },
@@ -526,18 +536,16 @@ watch(activeTab, (newTab) => {
 </script>
 
 <style scoped>
+/* Container & Layout */
 .control-container {
     width: 100%;
-    height: 100vh;
-    overflow-y: auto;       
-    overflow-x: hidden;     
+    overflow-y: auto;
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    padding: 22px;
-    background-color: #000;
+    gap: 17px;
+    background-color: transparent;
     color: #f5f5f5;
-    box-sizing: border-box; /* 패딩이 너비 잡아먹는 거 방지 */
 }
 
 .control-container::-webkit-scrollbar {
@@ -557,180 +565,158 @@ watch(activeTab, (newTab) => {
     background: #4f5963;
 }
 
-/* 상단 헤더 & 탭 */
-.page-header {
-    margin-bottom: 17px;
-}
-
-.header-title-area {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-}
-
-.page-title {
-    font-size: 22px;
-    font-weight: 700;
-    margin: 0;
-}
-
-.tab-group {
-    display: flex;
-    background: #27272a;
-    /* 시안 1번 탭 배경 */
-    border-radius: 8px;
-    padding: 4px;
-}
-
-.tab-btn {
-    padding: 6px 16px;
-    border: none;
-    background: transparent;
-    color: #a1a1aa;
-    cursor: pointer;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 600;
-    transition: 0.2s;
-}
-
-.tab-btn.active {
-    background: #3b82f6;
-    /* 포인트 블루 */
-    color: #fff;
-}
-
-/* 탭 1 (로그) - 시안 1번 상단 바 */
-.filter-bar {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 20px;
-}
-
-.date-range,
-.search-box {
-    display: flex;
-    align-items: center;
-    background: #18181b;
-    border: 1px solid #3f3f46;
-    border-radius: 6px;
-    padding: 8px 12px;
-}
-
-.date-input {
-    background: transparent;
-    border: none;
-    color: #d4d4d8;
-    font-size: 14px;
-    outline: none;
-    width: 140px;
-}
-
-.search-box input {
-    background: transparent;
-    border: none;
-    color: #fff;
-    outline: none;
-    width: 200px;
-    font-size: 14px;
-}
-
-.search-box input::placeholder {
-    color: #52525b;
-}
-
-.calendar-icon,
-.search-icon {
-    width: 16px;
-    height: 16px;
-    color: #a1a1aa;
-    cursor: pointer;
-}
-
-/* 탭 1 - 미구현 안내박스 */
-.placeholder-box {
-    background: #18181b;
-    border: 1px dashed #3f3f46;
-    border-radius: 12px;
-    height: 400px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: #71717a;
-    gap: 16px;
-    font-size: 15px;
-}
-
-/* 탭 2 (통계) - 시안 5번 상단 바 */
+/* Header & Calendar */
 .stats-header-bar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 17px;
 }
 
-.date-sep {
-    color: #52525b;
-    margin: 0 8px;
+.relative-box {
+    position: relative;
+}
+
+.date-trigger-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(68, 77, 86, 0.3);
+    padding: 8px 16px;
+    border-radius: 5px;
+    border: 1px solid rgba(245, 245, 245, 0.1);
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.date-trigger-box:hover {
+    border-color: #82c2e3;
+}
+
+.date-text {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.calendar-icon {
+    width: 18px;
+    height: 18px;
+    color: rgba(245, 245, 245, 0.6);
+    flex-shrink: 0;
 }
 
 .info-btn {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: #27272a;
-    border: 1px solid #3f3f46;
-    color: #d4d4d8;
+    background: rgba(68, 77, 86, 0.3);
+    border: 1px solid rgba(245, 245, 245, 0.1);
+    color: #fff;
     padding: 8px 16px;
-    border-radius: 6px;
+    border-radius: 5px;
     cursor: pointer;
     font-size: 14px;
+    font-weight: 600;
 }
 
-/* 탭 2 - 차트 레이아웃 */
+.info-btn:hover {
+    border-color: #82c2e3;
+    color: #82c2e3;
+}
+
+.info-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+/* 안내 박스 기본 스타일  */
+.info-tooltip {
+    position: absolute;;         
+    right: 0;
+    width: 303px;          
+    background: #1f1f23;  
+    border: 1px solid rgba(245, 245, 245, 0.15);
+    padding: 12px 16px;
+    border-radius: 8px;
+    color: rgba(245, 245, 245, 0.8);
+    font-size: 15px;
+    line-height: 1.6;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    z-index: 100;
+    opacity: 0;            
+    visibility: hidden;    
+    transition: all 0.3s ease;
+    pointer-events: none; 
+}
+
+/* 강조 텍스트 (기상, 대기질 등) */
+.info-tooltip strong {
+    color: #82c2e3;        /* 메인 포인트 블루 컬러 */
+    font-weight: 600;
+}
+
+/* 호버 시 나타나는 효과 */
+.info-wrapper:hover .info-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(-5px); /* 살짝 위로 떠오르는 느낌 */
+}
+
+/* 툴팁 아래 꼬리 (말풍선 느낌) */
+.info-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    right: 20px;
+    border-width: 8px;
+    border-style: solid;
+    border-color: #1f1f23 transparent transparent transparent;
+}
+
+/* Chart Cards */
 .chart-row {
     display: grid;
     grid-template-columns: 3fr 2fr;
-    gap: 20px;
-    margin-bottom: 20px;
-    width: 100%;  
+    gap: 17px;
+    margin-bottom: 17px;
+    width: 100%;
 }
 
 .chart-card {
-    background: #18181b;
-    border-radius: 12px;
-    padding: 20px;
-    border: 1px solid #27272a;
-    min-width: 0;      
+    background: rgba(68, 77, 86, 0.3);
+    border-radius: 10px;
+    padding: 17px;
+    border: 1px solid rgba(245, 245, 245, 0.08);
+    min-width: 0;
 }
 
 .card-title-wrap {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 17px;
 }
 
 .card-title {
-    font-size: 16px;
-    font-weight: 700;
+    font-size: 22px;
+    font-weight: 600;
     margin: 0;
+    color: #fff;
 }
 
 .sub-text {
     font-size: 13px;
-    color: #a1a1aa;
+    color: rgba(245, 245, 245, 0.6);
     font-weight: 400;
     margin-left: 6px;
 }
 
-/* 커스텀 범례 */
 .legend-custom {
     display: flex;
     gap: 15px;
-    font-size: 12px;
-    color: #f5f5f5a9;
+    font-size: 13px;
+    color: rgba(245, 245, 245, 0.6);
 }
 
 .l-item {
@@ -742,18 +728,15 @@ watch(activeTab, (newTab) => {
 .legend-line.dashed-mainblue {
     display: inline-block;
     width: 30px;
-    height: 15px;
-    background-color: rgba(79, 134, 247, 0.1);
-    border: 2px dashed #005baa;
+    height: 12px;
+    border: 2px dashed rgba(245, 245, 245, 0.6);
     border-radius: 2px;
 }
 
-/* 예상 대수 점선 */
 .legend-line.dashed-blue {
     display: inline-block;
     width: 30px;
-    height: 15px;
-    background-color: rgba(79, 134, 247, 0.1);
+    height: 12px;
     border: 2px dashed #82c2e3;
     border-radius: 2px;
 }
@@ -761,8 +744,7 @@ watch(activeTab, (newTab) => {
 .legend-line.dashed-og {
     display: inline-block;
     width: 30px;
-    height: 15px;
-    background-color: rgba(79, 134, 247, 0.1);
+    height: 12px;
     border: 2px dashed #fbb900;
     border-radius: 2px;
 }
@@ -778,24 +760,24 @@ watch(activeTab, (newTab) => {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #71717a;
+    color: rgba(245, 245, 245, 0.6);
 }
 
-/* 탭 2 - 테이블 레이아웃 */
+/* Table Area */
 .table-card {
-    background: #18181b;
-    border-radius: 12px;
-    padding: 20px;
-    border: 1px solid #27272a;
-    width: 100%;         
-    min-width: 0;        
+    background: rgba(68, 77, 86, 0.3);
+    border-radius: 10px;
+    padding: 17px;
+    border: 1px solid rgba(245, 245, 245, 0.08);
+    width: 100%;
+    min-width: 0;
 }
 
 .table-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 17px;
 }
 
 .th-left {
@@ -805,21 +787,38 @@ watch(activeTab, (newTab) => {
 }
 
 .record-count {
-    background: #27272a;
-    padding: 4px 12px;
-    border-radius: 15px;
-    font-size: 12px;
-    color: #a1a1aa;
+    height: 28px;
+    padding: 0 12px;
+    background: rgba(130, 194, 227, 0.15);
+    border: 1px solid #82c2e3;
+    color: #fff;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .dark-select {
-    background: #27272a;
-    border: 1px solid #3f3f46;
-    color: #d4d4d8;
-    padding: 6px 12px;
-    border-radius: 6px;
+    background-color: #444D56;
+    border: 1px solid rgba(245, 245, 245, 0.1);
+    color: #f5f5f5;
+    padding: 0 12px;
+    height: 28px;
+    border-radius: 20px;
     font-size: 13px;
+    font-family: 'Pretendard', sans-serif;
     outline: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.dark-select option {
+    background-color: #444D56;
+    color: #f5f5f5;
+    padding: 10px;
 }
 
 .dark-select.plain {
@@ -829,58 +828,62 @@ watch(activeTab, (newTab) => {
 
 .table-responsive {
     width: 100%;
-    overflow-x: auto;       /* 화면이 작아지면 테이블 안에서만 가로 스크롤 생김 */
+    overflow-x: auto;
 }
 
 .dark-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
 }
 
 .dark-table th {
-    background: #1f1f23;
-    color: #a1a1aa;
+    background: transparent;
+    color: rgba(245, 245, 245, 0.6);
+    font-size: 14px;
     font-weight: 600;
-    padding: 14px;
+    padding: 17px 10px;
     text-align: center;
-    border-bottom: 1px solid #27272a;
+    border-bottom: 1px solid rgba(245, 245, 245, 0.1);
+    white-space: nowrap;
 }
 
 .dark-table td {
-    padding: 14px;
+    padding: 17px 10px;
+    font-size: 15px;
+    font-weight: 600;
     text-align: center;
-    border-bottom: 1px solid #27272a;
-    color: #e4e4e7;
+    border-bottom: 1px solid rgba(245, 245, 245, 0.05);
+    color: #f5f5f5;
+    white-space: nowrap;
 }
 
 .empty-msg {
     padding: 40px !important;
-    color: #52525b !important;
+    color: rgba(245, 245, 245, 0.6) !important;
+    font-weight: 400 !important;
 }
 
-/* 데이터 텍스트 색상 */
+/* Colors & Badges */
 .text-blue {
     color: #82c2e3;
 }
 
 .text-gray {
-    color: #52525b;
+    color: rgba(245, 245, 245, 0.6);
 }
 
 .error-good {
-    color: #22c55e;
+    color: #82c2e3;
 }
 
 .error-ok {
-    color: #eab308;
+    color: #fbb900;
 }
 
 .error-bad {
-    color: #ef4444;
+    color: #ff0000;
 }
 
-/* 혼잡도 상태 */
 .status-dot {
     display: inline-block;
     width: 8px;
@@ -898,53 +901,49 @@ watch(activeTab, (newTab) => {
 }
 
 .bg-yellow {
-    background: #eab308;
+    background: #fbb900;
 }
 
 .text-yellow {
-    color: #eab308;
+    color: #fbb900;
 }
 
 .bg-red {
-    background: #ef4444;
+    background: #ff0000;
 }
 
 .text-red {
-    color: #ef4444;
+    color: #ff0000;
 }
 
 .bg-dark {
-    background: #71717a;
+    background: rgba(245, 245, 245, 0.6);
 }
 
 .text-dark {
-    color: #71717a;
+    color: rgba(245, 245, 245, 0.6);
 }
 
 .bg-gray {
-    background: #3f3f46;
+    background: rgba(68, 77, 86, 0.3);
 }
 
-.text-gray {
-    color: #a1a1aa;
-}
-
-/* 페이지네이션 */
+/* Pagination */
 .pagination {
     display: flex;
     justify-content: center;
     gap: 6px;
-    margin-top: 22px;
-    margin-bottom: 22px;
+    margin-top: 17px;
+    margin-bottom: 17px;
 }
 
 .page-btn {
     background: transparent;
-    border: 1px solid #3f3f46;
-    color: #a1a1aa;
+    border: 1px solid rgba(245, 245, 245, 0.1);
+    color: rgba(245, 245, 245, 0.6);
     min-width: 32px;
     height: 32px;
-    border-radius: 6px;
+    border-radius: 5px;
     cursor: pointer;
     transition: 0.2s;
 }
@@ -955,64 +954,13 @@ watch(activeTab, (newTab) => {
 }
 
 .page-btn.active {
-    background: #3b82f6;
-    border-color: #3b82f6;
-    color: #fff;
+    background: #82c2e3;
+    border-color: #82c2e3;
+    color: #000;
 }
 
 .page-btn:disabled {
     opacity: 0.3;
     cursor: not-allowed;
-}
-
-/* ── 달력 커스텀 CSS ───────────────────────────── */
-.date-range {
-    display: flex;
-    align-items: center;
-    background-color: #18181b; /* 다크 배경 */
-    border: 1px solid #27272a; /* 테두리 */
-    border-radius: 8px;
-    padding: 6px 12px;
-    width: 270px;
-    gap: 4px;
-}
-
-.date-input {
-    background: transparent;
-    border: none;
-    color: #e4e4e7;
-    font-size: 13px;
-    outline: none;
-    cursor: pointer;
-    width: 105px;
-    font-family: inherit;
-}
-
-/* 브라우저 기본 달력 아이콘 밝게 (반전) */
-.date-input::-webkit-calendar-picker-indicator {
-    filter: invert(1);
-    opacity: 0.5;
-    cursor: pointer;
-}
-
-.date-sep {
-    color: #52525b;
-    font-size: 13px;
-}
-
-/* 시안용 우측 아이콘 */
-.calendar-icon {
-    width: 14px;
-    height: 14px;
-    color: #71717a;
-    margin-left: auto;
-}
-
-/* 탭 2 상단 바 정렬 유지 */
-.stats-header-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
 }
 </style>

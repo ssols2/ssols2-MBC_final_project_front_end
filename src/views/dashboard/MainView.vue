@@ -352,7 +352,7 @@ const fetchLogs = async () => {
         labels: isLogEmpty ? ['기록 없음'] : ['회원', '비회원'],
         datasets: [{
           data: isLogEmpty ? [1] : [logData.memberCount, logData.nonMemberCount],
-          backgroundColor: isLogEmpty ? ['rgba(255, 255, 255, 0.05)'] : ['#fdd45f', '#3a4349'],
+          backgroundColor: isLogEmpty ? ['rgba(255, 255, 255, 0.05)'] : ['#fbb900', '#3a4349'],
           borderWidth: 0,
           borderRadius: (isLogEmpty || hasOnlyOneType) ? 0 : 8,
           spacing: (isLogEmpty || hasOnlyOneType) ? 0 : 5,
@@ -882,6 +882,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 17px;
+  border-left: 5px solid #82c2e3;
+  padding-left: 17px;
 }
 
 .page-title {
@@ -1029,7 +1031,7 @@ onUnmounted(() => {
 .ratio-emphasis .inner-main {
   font-size: 30px;
   font-weight: 800;
-  color: #82c2e3;
+  color: #fbb900;
 }
 
 .ratio-emphasis .unit {
@@ -1065,7 +1067,7 @@ onUnmounted(() => {
 }
 
 .member-dot::before {
-  background: #82c2e3;
+  background: #fbb900;
 }
 
 .non-member-dot::before {

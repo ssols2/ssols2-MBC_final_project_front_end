@@ -86,16 +86,11 @@
 
         <div class="bar-series">
           <div v-for="(value, index) in animatedBars" :key="index" class="bar-col">
-            <div
-              class="bar"
-              :style="{
-                height: `${(value / maxBarAxisValue) * 100}%`,
-                transitionDelay: `${index * 35}ms`
-              }"
-              @mouseenter="showTooltip($event, labels[index], bars[index])"
-              @mousemove="moveTooltip($event)"
-              @mouseleave="hideTooltip"
-            ></div>
+            <div class="bar" :style="{
+              height: `${(value / maxBarAxisValue) * 100}%`,
+              transitionDelay: `${index * 35}ms`
+            }" @mouseenter="showTooltip($event, labels[index], bars[index])" @mousemove="moveTooltip($event)"
+              @mouseleave="hideTooltip"></div>
           </div>
         </div>
 
@@ -107,49 +102,30 @@
             </linearGradient>
           </defs>
 
-          <polygon
-            v-if="lineVisible"
-            :points="`${animatedLinePoints} 100,100 0,100`"
-            fill="url(#lineAreaGradient)"
-          />
+          <polygon v-if="lineVisible" :points="`${animatedLinePoints} 100,100 0,100`" fill="url(#lineAreaGradient)" />
 
-          <polyline
-            v-if="lineVisible"
-            ref="linePolylineRef"
-            class="animated-line"
-            fill="none"
-            stroke="#fbb900"
-            stroke-width="0.2"
-            :points="animatedLinePoints"
-          />
+          <polyline v-if="lineVisible" ref="linePolylineRef" class="animated-line" fill="none" stroke="#fbb900"
+            stroke-width="0.2" :points="animatedLinePoints" />
         </svg>
-        
+
         <div v-if="lineVisible" class="line-point-layer">
-          <div
-            v-for="(value, index) in animatedLine"
-            :key="`point-${index}`"
-            class="line-point"
-            :style="{
-              left: `${((index + 0.5) / animatedLine.length) * 100}%`,
-              top: `${100 - (Number(value || 0) / maxBarAxisValue) * 100}%`,
-              transitionDelay: `${index * 35}ms`
-            }"
-          ></div>
+          <div v-for="(value, index) in animatedLine" :key="`point-${index}`" class="line-point" :style="{
+            left: `${((index + 0.5) / animatedLine.length) * 100}%`,
+            top: `${100 - (Number(value || 0) / maxBarAxisValue) * 100}%`,
+            transitionDelay: `${index * 35}ms`
+          }"></div>
         </div>
 
         <div class="x-axis">
           <span v-for="label in labels" :key="label">{{ label }}</span>
         </div>
 
-        <div
-          v-if="tooltip.show"
-          class="chart-tooltip"
-          :style="{
-            left: `${tooltip.x}px`,
-            top: `${tooltip.y}px`
-          }"
-        >
-          {{ tooltip.label }}:00시 : <br> <p class="kwh-font">{{ Number(tooltip.value || 0).toLocaleString() }} kWh</p>
+        <div v-if="tooltip.show" class="chart-tooltip" :style="{
+          left: `${tooltip.x}px`,
+          top: `${tooltip.y}px`
+        }">
+          {{ tooltip.label }}:00시 : <br>
+          <p class="kwh-font">{{ Number(tooltip.value || 0).toLocaleString() }} kWh</p>
         </div>
       </div>
     </div>
@@ -568,32 +544,33 @@ watch(
   height: 100%;
   display: flex;
   flex-direction: column;
-  min-height: 0;
 }
 
+/* ── 1. 타이틀 ── */
 .header-row {
-  margin-bottom: 14px;
+  margin-bottom: 17px;
 }
 
 .card-title {
   margin: 0;
   color: #ffffff;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
 }
 
+/* ── 2. 상단 요약 박스 ── */
 .summary-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: 17px;
+  margin-bottom: 20px;
 }
 
 .summary-box {
-  padding: 10px 14px;
-  border: 1px solid #2b3553;
-  border-radius: 8px;
-  background: #11182c;
+  padding: 15px 17px;
+  border: 1px solid rgba(245, 245, 245, 0.08);
+  border-radius: 5px;
+  background: rgba(15, 23, 42, 0.3);
 }
 
 .summary-top {
@@ -607,16 +584,9 @@ watch(
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #ffffff;
+  color: rgba(245, 245, 245, 0.6);
   font-size: 16px;
   font-weight: 600;
-}
-
-.summary-icon.line {
-  width: 16px;
-  height: 3px;
-  border-radius: 999px;
-  background: #fbb900;
 }
 
 .summary-icon-week.bar {
@@ -633,38 +603,11 @@ watch(
   background: #fbb900;
 }
 
-.mini-line-chart {
-  width: 46px;
-  height: 26px;
-  flex: 0 0 46px;
-}
-
-.mini-bar-chart {
-  display: flex;
-  align-items: end;
-  gap: 4px;
-  width: 44px;
-  height: 28px;
-  flex: 0 0 44px;
-}
-
-.mini-bar {
-  width: 6px;
-  background: #82c2e3;
-  border-radius: 2px 2px 0 0;
-}
-
-.mini-bar.h1 { height: 14px; }
-.mini-bar.h2 { height: 22px; }
-.mini-bar.h3 { height: 28px; }
-.mini-bar.h4 { height: 18px; }
-
 .summary-bottom {
-  margin-top: 8px;
+  margin-top: 10px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 10px;
 }
 
 .summary-value-wrap {
@@ -676,55 +619,56 @@ watch(
 .summary-value-week {
   color: #82c2e3;
   font-size: 25px;
-  font-weight: 700;
-  line-height: 1.5;
+  font-weight: 800;
+  line-height: 1.2;
 }
 
 .summary-value-month {
   color: #fbb900;
   font-size: 25px;
-  font-weight: 700;
-  line-height: 1.5;
+  font-weight: 800;
+  line-height: 1.2;
 }
 
 .summary-unit-week {
   color: #82c2e3;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .summary-unit-month {
   color: #fbb900;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .summary-change-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 3px;
-  margin-right: -5px;
-  margin-top: 14px;
+  margin-top: 10px;
 }
 
 .summary-change {
-  color: #45c15a;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
 }
 
-.summary-sub {
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 500;
+.summary-change.up {
+  color: #00e676;
 }
 
+.summary-change.down {
+  color: #ff0000;
+}
+
+.summary-change.same {
+  color: rgba(245, 245, 245, 0.6);
+}
+
+/* ── 3. 차트 영역 ── */
 .chart-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .chart-legend {
@@ -736,75 +680,51 @@ watch(
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 500;
-}
-
-.chart-line-sample {
-  width: 18px;
-  height: 3px;
-  border-radius: 999px;
-  background: #fbb900;
-}
-
-.chart-bar-sample {
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
-  background: #82c2e3;
-}
-
-.chart-right-label {
-  color: #ffffff;
-  font-size: 15px;
+  color: rgba(245, 245, 245, 0.6);
+  font-size: 13px;
   font-weight: 500;
 }
 
 .chart-wrap {
   flex: 1;
-  min-height: 0;
   display: grid;
   grid-template-columns: 46px 1fr;
   gap: 10px;
-  align-items: stretch;
 }
 
 .y-axis {
-  padding-top: 8px;
   padding-bottom: 28px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  color: #ffffff;
-  font-size: 14px;
+  color: rgba(245, 245, 245, 0.4);
+  font-size: 12px;
 }
 
 .chart-main {
   position: relative;
   min-height: 290px;
-  padding: 8px 0 28px;
-  isolation: isolate;
+  padding-bottom: 28px;
 }
 
+/* 배경 격자선 */
 .grid-lines {
   position: absolute;
-  inset: 8px 0 28px 0;
+  inset: 0 0 28px 0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  z-index: 0;
 }
 
 .grid-lines span {
-  display: block;
+  border-top: 1px solid rgba(245, 245, 245, 0.05);
   width: 100%;
-  border-top: 1px solid rgba(125, 162, 227, 0.18);
 }
 
+/* 바 & 라인 시리즈 유지 */
 .bar-series {
   position: absolute;
-  inset: 8px 0 28px 0;
+  inset: 0 0 28px 0;
   display: grid;
   grid-template-columns: repeat(24, 1fr);
   align-items: end;
@@ -822,11 +742,9 @@ watch(
 .bar {
   width: 100%;
   max-width: 14px;
-  background: linear-gradient(to top, #5ea7cf 0%, #a9ddf4 100%);
+  background: linear-gradient(to top, #5ea7cf 0%, #82c2e3 100%);
   cursor: pointer;
-  transition:
-    height 0.65s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.2s ease;
+  transition: height 0.65s, transform 0.2s;
   transform-origin: bottom;
 }
 
@@ -836,9 +754,9 @@ watch(
 
 .line-series {
   position: absolute;
-  inset: 8px 0 28px 0;
+  inset: 0 0 28px 0;
   width: 100%;
-  height: calc(100% - 36px);
+  height: calc(100% - 28px);
   pointer-events: none;
   z-index: 3;
 }
@@ -848,6 +766,26 @@ watch(
   stroke-linejoin: round;
 }
 
+/* 꺾은선 점(Point) 디자인 */
+.line-point-layer {
+  position: absolute;
+  inset: 0 0 28px 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.line-point {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fbb900;
+  border: 2px solid #000;
+  transform: translate(-50%, -50%);
+  transition: top 0.8s;
+}
+
+/* X축 라벨 */
 .x-axis {
   position: absolute;
   left: 0;
@@ -856,70 +794,30 @@ watch(
   display: grid;
   grid-template-columns: repeat(24, 1fr);
   text-align: center;
-  color: #ffffff;
-  font-size: 13px;
+  color: rgba(245, 245, 245, 0.4);
+  font-size: 11px;
 }
 
-.right-axis {
-  padding-top: 8px;
-  padding-bottom: 28px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  color: #ffffff;
-  font-size: 12px;
-  text-align: right;
-}
-
+/* 툴팁 */
 .chart-tooltip {
   position: fixed;
   z-index: 9999;
   pointer-events: none;
-  padding: 6px 10px;
-  border-radius: 6px;
-  background: rgba(15, 23, 42, 0.95);
+  padding: 8px 12px;
+  border-radius: 5px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(245, 245, 245, 0.1);
   color: #ffffff;
   font-size: 12px;
-  line-height: 1.2;
-  white-space: nowrap;
-  transform: translate(0, -100%);
+  line-height: 1.4;
   text-align: center;
+  transform: translate(-50%, -120%);
 }
 
 .kwh-font {
-  color: #fbb900;
+  margin: 0;
+  color: #82c2e3;
   font-size: 14px;
-  font-weight: 600;
-}
-
-.summary-change.up {
-  color: #45c15a;
-}
-
-.summary-change.down {
-  color: #ff4d4f;
-}
-
-.summary-change.same {
-  color: #ffffff;
-}
-
-.line-point-layer {
-  position: absolute;
-  inset: 8px 0 28px 0;
-  pointer-events: none;
-  z-index: 4;
-}
-
-.line-point {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #ffffff;
-  transform: translate(-50%, -50%);
-  transition:
-    top 0.8s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.25s ease;
+  font-weight: 700;
 }
 </style>

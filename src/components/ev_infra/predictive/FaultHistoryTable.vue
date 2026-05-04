@@ -1,11 +1,12 @@
 <template>
   <div class="history-table-section">
     <div class="history-header">
-      <h3>기기별 상세 장애 이력 및 이벤트 관리</h3>
+      <!-- 좌측: 타이틀 바로 옆에 기기선택 + 필터 버튼 바짝 붙이기 -->
+      <div class="th-left">
+        <h3>기기별 상세 장애 이력 및 이벤트 관리</h3>
 
-      <div class="header-controls">
-        <!-- 기기 선택 -->
-        <select v-model="selectedChargerId" class="charger-select">
+        <!-- 기기 선택) -->
+        <select v-model="selectedChargerId" class="dark-select">
           <option value="ALL">전체 기기</option>
           <option v-for="id in chargerIdOptions" :key="id" :value="id">{{ id }}</option>
         </select>
@@ -29,11 +30,14 @@
             위험
           </button>
         </div>
+      </div>
 
-        <button class="sort-button" type="button" @click="toggleSortOrder">
-          {{ sortOrderLabel }}
-          <span class="sort-arrows">↕</span>
-        </button>
+      <!-- 우측: 정렬 -->
+      <div class="th-right">
+        <select v-model="sortOrder" class="dark-select plain">
+          <option value="desc">최신순</option>
+          <option value="asc">오래된순</option>
+        </select>
       </div>
     </div>
 
@@ -177,8 +181,8 @@ const props = defineProps({
 
 // 260501 임소리: inspection-complete, power-on 추가
 const emit = defineEmits([
-  'inspection-request', 
-  'force-shutdown', 
+  'inspection-request',
+  'force-shutdown',
   'charger-select',
   'inspection-complete', // 시설팀 점검 완료 이벤트 추가
   'power-on'             // 주차/보안팀 가동 재개 이벤트 추가
@@ -188,7 +192,7 @@ const emit = defineEmits([
 const isFacilityTeam = computed(() => {
   try {
     const loginData = JSON.parse(sessionStorage.getItem('loginId')) || {}
-    
+
     return loginData.adminDeptName === '시설관리팀'
   } catch (error) {
     console.error('부서 정보 확인 중 에러 발생:', error)
@@ -512,54 +516,62 @@ const formatOccurredAt = (value) => {
 </script>
 
 <style scoped>
-.history-table-section {
-  height: 100%;
-  color: #e5e7eb;
-}
-
+/* 헤더 레이아웃 */
 .history-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: 17px;
 }
 
 .history-header h3 {
   margin: 0;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
   color: #ffffff;
-  letter-spacing: -0.2px;
   white-space: nowrap;
 }
 
-.header-controls {
+.th-left {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-left: auto;
-  flex-wrap: wrap;
 }
 
-.charger-select {
-  height: 32px;
-  padding: 0 10px;
-  border: 1px solid #3a4a5a;
-  border-radius: 6px;
-  background: #1e2a36;
-  color: #d6dde5;
+.th-right {
+  display: flex;
+  align-items: center;
+}
+
+/* ── 드롭다운 셀렉트  ── */
+.dark-select {
+  background-color: #444D56;
+  border: 1px solid rgba(245, 245, 245, 0.1);
+  color: #f5f5f5;
+  padding: 0 12px;
+  height: 28px;
+  border-radius: 20px;
   font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
+  font-family: 'Pretendard', sans-serif;
   outline: none;
-  min-width: 110px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
 }
 
-.charger-select:focus {
-  border-color: #78c8ff;
+.dark-select option {
+  background-color: #444D56;
+  color: #f5f5f5;
+  padding: 10px;
 }
 
+/* 정렬용 투명 셀렉트 */
+.dark-select.plain {
+  background: transparent;
+  border: none;
+}
+
+/* ── 필터 탭 버튼 ── */
 .status-filters {
   display: flex;
   align-items: center;
@@ -567,68 +579,49 @@ const formatOccurredAt = (value) => {
 }
 
 .filter-btn {
-  height: 32px;
-  padding: 0 16px;
-  border: none;
-  border-radius: 999px;
-  background: #313a43;
-  color: #d6dde5;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(245, 245, 245, 0.6);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
 }
 
-.filter-btn.all.active {
-  background: #78c8ff;
-  color: #0b1220;
+.filter-btn:hover {
+  border-color: #82c2e3;
+  color: #82c2e3;
 }
 
-.filter-btn.check.active,
-.filter-btn.risk.active {
-  background: #313a43;
-  color: #ffffff;
+.filter-btn.active {
+  border-color: #82c2e3;
+  background: rgba(130, 194, 227, 0.15);
+  color: #fff;
 }
 
 .filter-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  display: inline-block;
 }
 
 .filter-dot.check {
-  background: #ffcc00;
+  background: #fbb900;
 }
 
 .filter-dot.risk {
-  background: #ff2b2b;
+  background: #ff0000;
 }
 
-.sort-button {
-  border: none;
-  background: transparent;
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0;
-  white-space: nowrap;
-}
-
-.sort-arrows {
-  color: #9fb0c2;
-  font-size: 13px;
-}
-
+/* ── 테이블 공통 규격 통일 ── */
 .table-wrap {
-  height: calc(100% - 90px);
-  overflow-x: auto;
+  flex: 1;
   overflow-y: auto;
 }
 
@@ -636,31 +629,31 @@ const formatOccurredAt = (value) => {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
+  text-align: center;
 }
 
 .history-table thead th {
-  background: #2a333c;
-  color: #ffffff;
-  font-size: 18px;
-  font-weight: 700;
-  text-align: center;
-  padding: 14px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(15, 23, 42, 0.4);
+  color: rgba(245, 245, 245, 0.6);
+  font-size: 16px;
+  font-weight: 600;
+  padding: 17px 10px;
+  border-bottom: 1px solid rgba(245, 245, 245, 0.1);
 }
 
 .history-table tbody td {
-  padding: 14px 12px;
-  color: #d9e1ea;
+  padding: 17px 10px;
+  color: #f5f5f5;
   font-size: 16px;
-  text-align: center;
-  vertical-align: middle;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: transparent;
-  word-break: break-word;
+  font-weight: 500;
+  border-bottom: 1px solid rgba(245, 245, 245, 0.05);
 }
 
 .history-table tbody tr.row-risk td {
-  background: rgba(111, 18, 18, 0.45);
+  background: rgba(255, 0, 0, 0.1);
 }
 
 .status-text {
@@ -671,37 +664,27 @@ const formatOccurredAt = (value) => {
 }
 
 .status-dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
 }
 
-.status-text.check {
-  color: #ffcc00;
+.status-text.check,
+.detail-cell.check {
+  color: #fbb900;
 }
 
-.status-text.risk {
-  color: #ff2b2b;
+.status-text.risk,
+.detail-cell.risk {
+  color: #ff0000;
 }
 
 .status-dot.check {
-  background: #ffcc00;
+  background: #fbb900;
 }
 
 .status-dot.risk {
-  background: #ff2b2b;
-}
-
-.detail-cell {
-  font-weight: 600;
-}
-
-.detail-cell.check {
-  color: #d3b100;
-}
-
-.detail-cell.risk {
-  color: #ff2b2b;
+  background: #ff0000;
 }
 
 .action-buttons {
@@ -709,7 +692,6 @@ const formatOccurredAt = (value) => {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  flex-wrap: nowrap;
 }
 
 .action-btn,
@@ -717,126 +699,110 @@ const formatOccurredAt = (value) => {
   min-width: 74px;
   height: 28px;
   padding: 0 10px;
-  border-radius: 4px;
+  border-radius: 5px;
   font-size: 13px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-sizing: border-box;
 }
 
 .action-btn {
-  cursor: pointer;
   background: transparent;
+  cursor: pointer;
+  transition: 0.2s;
 }
 
 .action-btn.inspection {
-  border: 1px solid #d3a600;
-  color: #d3a600;
+  border: 1px solid #fbb900;
+  color: #fbb900;
+}
+
+.action-btn.inspection:hover {
+  background: rgba(251, 185, 0, 0.1);
 }
 
 .action-btn.shutdown {
-  border: 1px solid #ff2b2b;
-  color: #ff2b2b;
+  border: 1px solid #ff0000;
+  color: #ff0000;
+}
+
+.action-btn.shutdown:hover {
+  background: rgba(255, 0, 0, 0.1);
+}
+
+.action-btn.restart.active {
+  border: 1px solid #00e676;
+  color: #00e676;
 }
 
 .action-done.inspection-done {
-  color: #d3a600;
+  color: #fbb900;
 }
 
 .action-done.shutdown-done {
-  color: #ff6a6a;
+  color: #ff0000;
 }
 
 .action-done.complete {
-  color: #d9e1ea;
-}
-
-.action-done.status-updated {
-  color: #94a3b8;
+  color: rgba(245, 245, 245, 0.6);
 }
 
 .empty-row {
-  padding: 26px 12px !important;
-  color: #94a3b8 !important;
+  padding: 40px !important;
+  color: rgba(245, 245, 245, 0.6) !important;
 }
 
-/* 페이지네이션 */
+/* ── 페이지네이션 ── */
 .pagination {
   display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 4px;
-  margin-top: 12px;
+  gap: 6px;
+  margin-top: 17px;
+  margin-bottom: 17px;
 }
 
-.page-nav {
-  border: none;
-  background: transparent;
-  color: #59bfff;
-  font-size: 20px;
-  font-weight: 700;
-  cursor: pointer;
-  padding: 0 6px;
-  line-height: 1;
-}
-
-.page-nav:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
+.page-btn,
+.page-nav,
 .page-number {
-  border: 1px solid transparent;
   background: transparent;
-  color: #6b7c8f;
-  font-size: 14px;
-  font-weight: 600;
+  border: 1px solid rgba(245, 245, 245, 0.1);
+  color: rgba(245, 245, 245, 0.6);
+  min-width: 32px;
+  height: 32px;
+  border-radius: 5px;
   cursor: pointer;
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
+  transition: 0.2s;
+  font-size: 13px;
+  font-weight: 600;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
-.page-number:hover {
-  background: #1e2a36;
-  color: #d6dde5;
+.page-btn:hover:not(:disabled),
+.page-nav:hover:not(:disabled),
+.page-number:hover:not(:disabled) {
+  border-color: #82c2e3;
+  color: #82c2e3;
 }
 
+.page-btn.active,
 .page-number.active {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #ffffff;
+  background: #82c2e3;
+  border-color: #82c2e3;
+  color: #000;
+}
+
+.page-btn:disabled,
+.page-nav:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .page-ellipsis {
-  color: #6b7c8f;
+  color: rgba(245, 245, 245, 0.6);
   font-size: 14px;
   padding: 0 2px;
-  user-select: none;
-}
-
-@media (max-width: 1024px) {
-  .history-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .header-controls {
-    width: 100%;
-  }
-}
-
-/* 260501: 테이블 내 가동 재개 버튼 스타일 */
-.action-btn.restart.active {
-  border: 1px solid #22c55e;
-  color: #22c55e;
-}
-.action-btn.restart.active:hover {
-  background: rgba(34, 197, 94, 0.15);
 }
 </style>

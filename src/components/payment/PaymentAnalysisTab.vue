@@ -27,13 +27,32 @@
 
     <section class="table-section">
       <div class="section-header">
-        <h3 class="section-title">상세 결제 및 할인 로그</h3>
-        <div class="right-controls">
+        <!-- 왼쪽: 타이틀 + 필터 그룹 -->
+        <div class="header-left">
+          <h3 class="section-title">상세 결제 및 할인 로그</h3>
+          <select v-model="sortOrder" class="filter-select">
+            <option value="desc">최신순</option>
+            <option value="asc">과거순</option>
+          </select>
+          <select v-model="customerFilter" class="filter-select">
+            <option value="">고객구분 (전체)</option>
+            <option value="회원">회원</option>
+            <option value="비회원">비회원</option>
+          </select>
+          <select v-model="discountFilter" class="filter-select">
+            <option value="">할인여부 (전체)</option>
+            <option value="applied">할인 적용</option>
+            <option value="none">미적용</option>
+          </select>
+        </div>
+
+        <!-- 오른쪽: 검색창 유지 -->
+        <div class="header-right">
           <div class="search-wrapper">
-            <input type="text" placeholder="차량번호 검색..." class="search-input" v-model="searchQuery" />
-            <span class="search-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
+            <input type="text" placeholder="차량번호 검색..." class="search-input" v-model="searchQuery"
+              @keyup.enter="handleSearch" />
+            <span class="search-icon" @click="handleSearch">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="11" cy="11" r="8"></circle>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
               </svg>
@@ -80,9 +99,19 @@
       </div>
 
       <div class="pagination">
-        <button class="page-arrow" @click="prevPage" :disabled="currentPage === 1">&lt;</button>
-        <span class="page-info">{{ currentPage }} / {{ totalPages }}</span>
-        <button class="page-arrow" @click="nextPage" :disabled="currentPage === totalPages">&gt;</button>
+        <button class="page-btn" @click="prevPage" :disabled="currentPage === 1">‹</button>
+        
+        <button 
+          v-for="p in pageNumbers" 
+          :key="p" 
+          class="page-btn" 
+          :class="{ active: p === currentPage }"
+          @click="goToPage(p)"
+        >
+          {{ p }}
+        </button>
+
+        <button class="page-btn" @click="nextPage" :disabled="currentPage === totalPages">›</button>
       </div>
     </section>
 
@@ -90,17 +119,27 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, defineProps, watch } from 'vue'
 import { paymentApi } from '@/api/payment/stats.js'
 import * as echarts from 'echarts'
 
-// 오늘 날짜를 YYYY-MM-DD 형태로 가져오는 함수
-const getTodayStr = () => new Date().toISOString().split('T')[0]
+// ── [1] 부모 데이터 수신 및 감지 (Props & Watch) ──
+const props = defineProps({
+  startDate: String,
+  endDate: String
+})
 
-// 상태 관리
-const startDate = ref(getTodayStr()) // 접속 시 오늘 날짜로 자동 지정
-const endDate = ref(getTodayStr())   // 접속 시 오늘 날짜로 자동 지정
+// 부모 날짜 변경 시 데이터 다시 불러오기
+watch(() => [props.startDate, props.endDate], () => {
+  fetchData()
+})
+
+// ── [2] 상태 관리 (State) ──
 const searchQuery = ref('')
+const customerFilter = ref('') // 고객 구분 (전체, 회원, 비회원 등)
+const discountFilter = ref('') // 할인 여부 (전체, 할인적용, 미적용)
+const sortOrder = ref('desc')   // 최신순/과거순
+
 const currentPage = ref(1)
 const itemsPerPage = ref(10)
 
@@ -109,18 +148,54 @@ const logItems = ref([])
 const totalLogCount = ref(0)
 const totalPages = computed(() => Math.ceil(totalLogCount.value / itemsPerPage.value) || 1)
 
+const pageNumbers = computed(() => {
+  const range = []
+  for (let i = 1; i <= totalPages.value; i++) {
+    range.push(i)
+  }
+  return range
+})
+
+const goToPage = (page) => {
+  currentPage.value = page
+  fetchData()
+}
+
+const prevPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--
+    fetchData()
+  }
+}
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++
+    fetchData()
+  }
+}
+
 // 차트 Ref
 const payTypeChartRef = ref(null)
 const methodChartRef = ref(null)
 const customerChartRef = ref(null)
 let charts = []
 
-// 데이터 로드
+// ── [3] 데이터 로드 ──
 const fetchData = async () => {
   try {
     const [ratioRes, logRes] = await Promise.all([
-      paymentApi.getAnalysisRatios(startDate.value, endDate.value),
-      paymentApi.getPaymentLogs(startDate.value, endDate.value, (currentPage.value - 1) * itemsPerPage.value, itemsPerPage.value)
+      paymentApi.getAnalysisRatios(props.startDate, props.endDate),
+      paymentApi.getPaymentLogs(
+        props.startDate,
+        props.endDate,
+        (currentPage.value - 1) * itemsPerPage.value,
+        itemsPerPage.value,
+        searchQuery.value,
+        sortOrder.value,      // 정렬 추가
+        customerFilter.value, // 고객필터 추가
+        discountFilter.value  // 할인필터 추가
+      )
     ])
 
     analysisData.value = ratioRes.data
@@ -134,45 +209,50 @@ const fetchData = async () => {
   }
 }
 
-// 도넛 차트 공통 옵션 생성기
-// PaymentAnalysisTab.vue 108라인 근처 수정
+// ── [4] 사용자 인터랙션 핸들러 ──
+const handleSearch = () => {
+  currentPage.value = 1
+  fetchData()
+}
+
+// 모든 필터와 정렬 변경 감지 시 즉시 새로고침
+watch([customerFilter, discountFilter, sortOrder], () => handleSearch())
+watch(searchQuery, (newVal) => { if (!newVal) handleSearch(); })
+watch(() => [props.startDate, props.endDate], () => fetchData())
+
+// ── [5] 차트 렌더링 (ECharts 설정) ──
 const getDoughnutOption = (name, data, colors) => ({
   tooltip: { trigger: 'item' },
-  legend: { 
-    bottom: '2%', // 레전드 위치 살짝 조정
-    left: 'center', 
-    textStyle: { color: '#a1a1aa', fontSize: 11 },
-    itemWidth: 10,
-    itemHeight: 10
+  legend: {
+    bottom: '5%', // 범례 위치 하단으로 더 내림
+    left: 'center',
+    textStyle: { color: 'rgba(245, 245, 245, 0.6)', fontSize: 12 },
+    itemGap: 15
   },
   series: [{
     name: name,
     type: 'pie',
-    radius: ['35%', '60%'], // 레이블 공간 확보를 위해 반지름 살짝 축소
-    avoidLabelOverlap: true, // 레이블 겹침 방지
-    itemStyle: { borderRadius: 8, borderColor: '#1e1e2d', borderWidth: 2 },
-    
-    // [수정] 레이블 상시 노출 설정
-    label: { 
-      show: true, 
-      position: 'outside', 
-      formatter: '{b}\n({d}%)', // 항목명과 퍼센트 표시
-      color: '#cbd5e1',
-      fontSize: 11
-    },
-    labelLine: { // 레이블 연결선 설정
+    center: ['50%', '42%'], // 차트 중심을 위로 올려 하단 여백 확보
+    radius: ['40%', '65%'], // 반지름을 살짝 줄여 짤림 공간 확보
+    avoidLabelOverlap: true,
+    itemStyle: { borderRadius: 6, borderColor: '#1e1e2d', borderWidth: 2 },
+    label: {
       show: true,
-      length: 10,
-      length2: 10,
-      lineStyle: { color: '#3f3f46' }
+      position: 'outside',
+      formatter: '{b}\n{d}%',
+      color: '#fff',
+      fontSize: 13,
+      fontWeight: 'bold',
+      overflow: 'none',
+      ellipsis: ''
     },
-    emphasis: { 
-      label: { show: true, fontSize: 13, fontWeight: 'bold', color: '#fff' } 
+    labelLine: {
+      show: true,
+      length: 12, // 연결선 길이 조정으로 공간 확보
+      length2: 8,
+      lineStyle: { color: 'rgba(255,255,255,0.2)' }
     },
-    data: data.map((item, idx) => ({ 
-      ...item, 
-      itemStyle: { color: colors[idx] } 
-    }))
+    data: data.map((item, idx) => ({ ...item, itemStyle: { color: colors[idx] } }))
   }],
   backgroundColor: 'transparent'
 })
@@ -208,9 +288,6 @@ const renderCharts = () => {
   charts.push(customerChart)
 }
 
-const prevPage = () => { if (currentPage.value > 1) { currentPage.value--; fetchData(); } }
-const nextPage = () => { if (currentPage.value < totalPages.value) { currentPage.value++; fetchData(); } }
-
 onMounted(() => {
   fetchData()
   window.addEventListener('resize', () => charts.forEach(c => c.resize()))
@@ -221,27 +298,40 @@ onMounted(() => {
 .payment-analysis-tab {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 16px;
-  background-color: #12121c;
-  color: #f4f4f5;
+  gap: 17px;
+  height: 100%;
+  overflow-y: auto;
+  padding: 0 4px;
+  color: #f5f5f5;
+  background-color: transparent;
+  font-family: 'Pretendard', sans-serif;
 }
 
-/* 3단 도넛 그리드 */
+.payment-analysis-tab::-webkit-scrollbar {
+  width: 10px;
+}
+
+.payment-analysis-tab::-webkit-scrollbar-thumb {
+  background: #444D56;
+  border-radius: 4px;
+}
+
+/* 상단 대시보드 */
 .ratio-dashboard {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  gap: 17px;
 }
 
 .ratio-card {
-  background: #1e1e2d;
-  border-radius: 16px;
-  padding: 20px;
+  background: rgba(68, 77, 86, 0.3);
+  border-radius: 10px;
+  padding: 17px;
+  border: 1px solid rgba(245, 245, 245, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  height: 320px;
+  position: relative;
+  height: 360px;
 }
 
 .card-header {
@@ -251,67 +341,215 @@ onMounted(() => {
 }
 
 .card-title {
-  font-size: 16px;
+  font-size: 22px;
   font-weight: 700;
-  margin: 0;
+  color: #fff;
 }
 
 .fail-badge {
-  font-size: 12px;
-  color: #ff4d4f;
-  background: rgba(255, 77, 79, 0.1);
-  padding: 4px 8px;
-  border-radius: 4px;
+  position: absolute;
+  top: 17px;
+  right: 17px;
+  font-size: 13px;
+  color: #ff0000;
+  background: rgba(255, 0, 0, 0.1);
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-weight: 800;
 }
 
 .chart-box {
   flex: 1;
   width: 100%;
+  margin-top: 10px;
 }
 
-/* 테이블 스타일 (탭 1 재활용) */
+/* ── 하단 섹션── */
+/* 테이블 섹션: 하단 공간이 비어 보이지 않도록 최소 높이 설정 */
 .table-section {
-  background: #1e1e2d;
-  border-radius: 16px;
-  padding: 24px;
+  background: rgba(68, 77, 86, 0.3);
+  border-radius: 10px;
+  padding: 17px;
+  border: 1px solid rgba(245, 245, 245, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 17px;
+  min-height: 550px;
+}
+
+.empty-message {
+  padding: 60px !important;
+  /* 공간 더 넉넉하게 */
+  color: rgba(245, 245, 245, 0.4) !important;
+  font-weight: 400 !important;
+  /* border-bottom: none !important; */
+}
+
+/* 테이블 컨테이너를 가변적으로 늘려 페이지네이션을 하단에 고정 */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  flex: 1;
+}
+
+/* 페이지네이션 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: auto;
+  padding: 17px 0 10px;
+}
+
+.page-btn {
+  background: transparent;
+  border: 1px solid rgba(245, 245, 245, 0.1);
+  color: rgba(245, 245, 245, 0.6);
+  min-width: 32px;
+  height: 32px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: 0.2s;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-btn:hover:not(:disabled) {
+  border-color: #82c2e3;
+  color: #82c2e3;
+}
+
+.page-btn.active {
+  background: #82c2e3;
+  border-color: #82c2e3;
+  color: #000;
+}
+
+.page-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.section-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  white-space: nowrap;
+  margin-right: 8px;
+}
+
+/* 셀렉트박스 */
+.filter-select {
+  background-color: #444d5650;
+  border: 1px solid rgba(245, 245, 245, 0.1);
+  color: #f5f5f5;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.filter-select option {
+  background-color: #444D56;
+  color: #f5f5f5;
+  padding: 10px;
+}
+
+.filter-select:hover {
+  border-color: #82c2e3;
+}
+
+/* 검색창 */
+.search-wrapper {
+  display: flex;
+  align-items: center;
+  background: rgba(68, 77, 86, 0.3);
+  border: 1px solid rgba(245, 245, 245, 0.08);
+  border-radius: 5px;
+  padding: 8px 12px;
+}
+
+.search-input {
+  background: transparent;
+  border: none;
+  color: #f5f5f5;
+  outline: none;
+  width: 180px;
+  font-size: 14px;
+}
+
+.search-input::placeholder {
+  color: rgba(245, 245, 245, 0.6);
+}
+
+.search-icon {
+  color: rgba(245, 245, 245, 0.6);
+  cursor: pointer;
+}
+
+/* 테이블 스타일 */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
-}
-
-.data-table th,
-.data-table td {
-  padding: 14px;
-  border-bottom: 1px solid #3f3f46;
-  text-align: left;
-  font-size: 14px;
+  text-align: center;
 }
 
 .data-table th {
-  color: #a1a1aa;
-  background: #2a2a3c;
+  padding: 17px 10px;
+  border-bottom: 1px solid rgba(245, 245, 245, 0.1);
+  color: rgba(245, 245, 245, 0.6);
+  font-size: 16px;
+  font-weight: 600;
 }
 
-/* 배지 및 도트 */
+.data-table td {
+  padding: 17px 10px;
+  border-bottom: 1px solid rgba(245, 245, 245, 0.05);
+  color: #f5f5f5;
+  font-size: 16px;
+  font-weight: 500;
+}
+
 .badge {
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: 4px 10px;
+  border-radius: 5px;
   font-size: 12px;
+  font-weight: 700;
 }
 
 .bg-blue {
-  background: #003a8c;
-  color: #bae7ff;
+  background: #1e3a2f;
+  color: #82c2e3;
 }
 
 .bg-gray {
-  background: #262626;
-  color: #8c8c8c;
+  background: #3b2a1a;
+  color: #fbb900;
 }
 
 .status-dot {
@@ -323,33 +561,66 @@ onMounted(() => {
 }
 
 .dot-green {
-  background: #52c41a;
-  box-shadow: 0 0 8px #52c41a;
+  background: #00e676;
+  box-shadow: 0 0 8px rgba(0, 230, 118, 0.5);
 }
 
 .dot-red {
-  background: #ff4d4f;
+  background: #ff0000;
 }
 
+/* 페이지네이션 */
 .pagination {
   display: flex;
   justify-content: center;
-  align-items: center;
-  gap: 20px;
-  margin-top: 10px;
+  gap: 6px;
+  margin-top: 17px;
+  margin-bottom: 17px;
 }
 
-.page-arrow {
-  background: #2a2a3c;
-  border: 1px solid #3f3f46;
-  color: #fff;
-  padding: 4px 12px;
-  border-radius: 4px;
+.page-arrow,
+.page-info {
+  background: transparent;
+  border: 1px solid rgba(245, 245, 245, 0.1);
+  color: rgba(245, 245, 245, 0.6);
+  min-width: 32px;
+  height: 32px;
+  border-radius: 5px;
   cursor: pointer;
+  transition: 0.2s;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-arrow:hover:not(:disabled) {
+  border-color: #82c2e3;
+  color: #82c2e3;
 }
 
 .page-arrow:disabled {
-  opacity: 0.5;
+  opacity: 0.3;
   cursor: not-allowed;
+}
+
+.page-info {
+  border: none;
+  color: #fff;
+  cursor: default;
+}
+
+.text-white {
+  color: #fff;
+}
+
+.text-orange,
+.text-yellow {
+  color: #fbb900;
+}
+
+.font-bold {
+  font-weight: 700;
 }
 </style>

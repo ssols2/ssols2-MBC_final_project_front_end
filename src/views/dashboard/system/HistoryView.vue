@@ -102,16 +102,11 @@
     <!-- 4. 하단 페이지네이션 -->
     <footer class="history-footer">
       <span class="total-count">검색 결과: <strong>{{ filteredLogs.length }}</strong>건</span>
-      
+
       <div class="pagination" v-if="totalPages > 1">
         <button class="page-nav" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">‹</button>
-        <button 
-          v-for="p in visiblePages" 
-          :key="p" 
-          class="page-number" 
-          :class="{ active: currentPage === p }"
-          @click="changePage(p)"
-        >
+        <button v-for="p in visiblePages" :key="p" class="page-number" :class="{ active: currentPage === p }"
+          @click="changePage(p)">
           {{ p }}
         </button>
         <button class="page-nav" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">›</button>
@@ -156,7 +151,7 @@ const fetchEvLogs = async () => {
       const evRes = await axios.get('http://localhost:8003/issue-log', { params: { limit: 500 } })
       realEvLogs = evRes.data.map(r => {
         const floor = r.ev_charger_id ? r.ev_charger_id.split('-')[0] : 'ALL'
-        
+
         let pLabel = '미처리'
         let pStatus = 'PENDING'
         if (r.process_status === 'DONE') {
@@ -190,10 +185,10 @@ const fetchEvLogs = async () => {
     let realOcrLogs = []
     try {
       const ocrRes = await axios.get('http://localhost:8080/parking-log/logs')
-      
+
       // 정확도 85% 미만 필터링
       const ocrIssues = ocrRes.data.filter(log => log.ocrAccuracy > 0 && log.ocrAccuracy < 85)
-      
+
       // LocalStorage에서 읽음(확인완료) 처리된 내역 가져오기
       const savedOcrAlerts = JSON.parse(localStorage.getItem('readOcrAlerts') || '[]')
       const readOcrSet = new Set(savedOcrAlerts)
@@ -201,7 +196,7 @@ const fetchEvLogs = async () => {
       realOcrLogs = ocrIssues.map(log => {
         const logId = `ocr-${log.parkingLogId}`
         const isRead = readOcrSet.has(logId) // Set에 있으면 확인완료
-        
+
         return {
           id: logId,
           time: log.entryTime ? log.entryTime.replace('T', ' ').substring(0, 19) : '',
@@ -234,7 +229,7 @@ const filteredLogs = computed(() => {
   return evLogs.value.filter(log => {
     // 1. 알림 유형 필터
     if (filterType.value !== 'ALL' && log.type !== filterType.value.toLowerCase()) return false
-    
+
     // 2. EV 전용 필터
     if (filterType.value === 'ALL' || filterType.value === 'EV') {
       if (log.type === 'ev') {
@@ -298,7 +293,7 @@ const goToDetail = (log) => {
     const readOcrSet = new Set(savedOcrAlerts)
     readOcrSet.add(log.id)
     localStorage.setItem('readOcrAlerts', JSON.stringify([...readOcrSet]))
-    
+
     router.push({ path: '/dashboard/vehicle-control', query: { search: log.chargerId } })
   }
 }
@@ -315,37 +310,34 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* 통합 알림 및 장애 이력 CSS */
 .history-container {
-  width: 100% !important;
-  max-width: 100% !important;
-  max-height: 100% !important; 
-  display: flex !important;
+  width: 100%;
+  height: 100%;
+  display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 10px;
+  gap: 17px;
+  /* 17px 규격 적용 */
+  padding: 0 4px;
   box-sizing: border-box;
+  color: #f5f5f5;
+  font-family: 'Pretendard', sans-serif;
 }
 
 .view-header {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
 }
 
 .view-title {
-  font-size: 24px;
+  border-left: 5px solid #82c2e3;
+  padding-left: 17px;
+  margin-bottom: 8px;
+  font-size: 28px;
   font-weight: 700;
   color: #ffffff;
   margin: 0;
-}
-
-.history-glass {
-  background: rgba(30, 41, 59, 0.6) !important;
-  backdrop-filter: blur(15px) !important;
-  -webkit-backdrop-filter: blur(15px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
-  border-radius: 12px;
 }
 
 /* 필터바 영역 */
@@ -353,46 +345,37 @@ onUnmounted(() => {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 15px 25px;
+  gap: 17px;
+  padding: 17px;
   box-sizing: border-box;
   flex-wrap: wrap;
+  background: rgba(68, 77, 86, 0.3) !important;
+  border: 1px solid rgba(245, 245, 245, 0.08) !important;
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
 }
 
 .filter-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .filter-group label {
-  font-size: 13px;
-  color: #94a3b8;
-  white-space: nowrap;
-  font-weight: 600;
+  font-size: 18px;
+  color: rgba(245, 245, 245, 0.6);
+  font-weight: 500;
 }
 
 .admin-select {
-  background: #1a202c;
-  border: 1px solid #3f4e5a;
+  background: #444D56;
+  border: 1px solid rgba(245, 245, 245, 0.1);
   color: #fff;
   padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: 5px;
   outline: none;
   cursor: pointer;
-  font-size: 13px;
-  transition: 0.2s;
-}
-
-.admin-select:focus {
-  border-color: #82c2e3;
-}
-
-.type-select {
-  background: #0f172a;
-  color: #82c2e3;
-  font-weight: bold;
-  border-color: #1e293b;
+  font-size: 16px;
 }
 
 .search-group {
@@ -403,19 +386,13 @@ onUnmounted(() => {
 
 .admin-input {
   width: 100%;
-  background: #1a202c;
-  border: 1px solid #3f4e5a;
+  background: rgba(68, 77, 86, 0.3);
+  border: 1px solid rgba(245, 245, 245, 0.1);
   color: #fff;
   padding: 8px 12px 8px 35px;
-  border-radius: 6px;
-  font-size: 14px;
-  box-sizing: border-box;
+  border-radius: 5px;
+  font-size: 16px;
   outline: none;
-  transition: 0.2s;
-}
-
-.admin-input:focus {
-  border-color: #82c2e3;
 }
 
 .search-icon {
@@ -425,51 +402,47 @@ onUnmounted(() => {
   transform: translateY(-50%);
   width: 16px;
   height: 16px;
-  color: #64748b;
+  color: rgba(245, 245, 245, 0.4);
 }
 
+/* 테이블 영역 */
 .table-container {
   width: 100%;
-  max-height: calc(100vh - 250px);
-  overflow-x: auto;
+  background: rgba(68, 77, 86, 0.3) !important;
+  border: 1px solid rgba(245, 245, 245, 0.08) !important;
+  border-radius: 10px;
+  overflow: hidden;
+  max-height: calc(100vh - 280px);
 }
 
 .admin-list-table {
   width: 100%;
   border-collapse: collapse;
+  text-align: center;
 }
 
 .admin-list-table th {
-  background: rgba(15, 23, 42, 0.85);
-  padding: 16px 20px;
-  text-align: left;
-  font-size: 14px;
-  color: #94a3b8;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.05);
+  background: rgba(15, 23, 42, 0.4);
+  padding: 17px 10px;
+  text-align: center;
+  font-size: 18px;
+  color: rgba(245, 245, 245, 0.6);
+  border-bottom: 1px solid rgba(245, 245, 245, 0.1);
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
 .admin-list-table td {
-  padding: 15px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-  font-size: 14px;
-  color: #e2e8f0;
-}
-
-.admin-list-table tbody tr {
-  cursor: pointer;
-  transition: background-color 0.2s;
+  padding: 17px 10px;
+  border-bottom: 1px solid rgba(245, 245, 245, 0.05);
+  font-size: 16px;
+  font-weight: 500;
+  color: #f5f5f5;
 }
 
 .admin-list-table tbody tr:hover {
-  background: rgba(130, 194, 227, 0.12);
-}
-
-.time-col {
-  color: #94a3b8;
-  font-family: monospace;
+  background: rgba(130, 194, 227, 0.1);
 }
 
 .id-col {
@@ -477,52 +450,41 @@ onUnmounted(() => {
   color: #82c2e3;
 }
 
-.content-col {
-  font-weight: 500;
-}
-
 /* 배지 스타일 */
 .type-badge {
   padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 700;
+  border-radius: 5px;
+  font-size: 14px;
+  font-weight: 600;
   display: inline-block;
-  text-align: center;
-  min-width: 60px;
+  min-width: 70px;
 }
 
-.type-badge.risk {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-  border: 1px solid #ef4444;
+.type-badge.risk,
+.type-badge.fault {
+  background: rgba(255, 0, 0, 0.1);
+  color: #ff0000;
+  border: 1px solid #ff0000;
 }
 
 .type-badge.check {
-  background: rgba(245, 158, 11, 0.2);
-  color: #f59e0b;
-  border: 1px solid #f59e0b;
-}
-
-.type-badge.fault {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-  border: 1px solid #ef4444;
+  background: rgba(251, 185, 0, 0.1);
+  color: #fbb900;
+  border: 1px solid #fbb900;
 }
 
 .type-badge.ocr {
-  background: rgba(59, 130, 246, 0.2);
-  color: #60a5fa;
-  border: 1px solid #3b82f6;
+  background: rgba(130, 194, 227, 0.1);
+  color: #82c2e3;
+  border: 1px solid #82c2e3;
 }
 
 .process-badge {
   padding: 4px 12px;
-  font-size: 12px;
-  border-radius: 4px;
-  background: rgba(148, 163, 184, 0.1);
-  color: #94a3b8;
-  display: inline-block;
+  font-size: 14px;
+  border-radius: 5px;
+  background: rgba(245, 245, 245, 0.1);
+  color: rgba(245, 245, 245, 0.6);
   font-weight: 600;
 }
 
@@ -532,7 +494,7 @@ onUnmounted(() => {
 }
 
 .process-badge.in_progress {
-  background: rgba(245, 158, 11, 0.2);
+  background: rgba(251, 185, 0, 0.2);
   color: #fbb900;
 }
 
@@ -541,65 +503,33 @@ onUnmounted(() => {
   color: #82c2e3;
 }
 
-.empty-row {
-  text-align: center;
-  padding: 100px !important;
-  color: #64748b;
-  font-size: 16px;
-}
-
-/* 푸터 및 페이지네이션 */
+/* 페이지네이션 */
 .history-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 13px;
-  color: #64748b;
   padding: 10px 5px;
 }
 
 .pagination {
   display: flex;
-  align-items: center;
   gap: 6px;
 }
 
 .page-nav,
 .page-number {
-  background: #1a202c;
-  border: 1px solid #3f4e5a;
-  color: #d6dde5;
+  background: transparent;
+  border: 1px solid rgba(245, 245, 245, 0.1);
+  color: rgba(245, 245, 245, 0.6);
   width: 32px;
   height: 32px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
+  border-radius: 5px;
   cursor: pointer;
-  transition: 0.2s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.page-nav:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.page-number:hover:not(.active),
-.page-nav:hover:not(:disabled) {
-  background: #2d3748;
-  border-color: #82c2e3;
-  color: #82c2e3;
 }
 
 .page-number.active {
-  background: #3b82f6;
-  border-color: #3b82f6;
-  color: #ffffff;
-}
-
-.total-count strong {
-  color: #e2e8f0;
+  background: #82c2e3;
+  border-color: #82c2e3;
+  color: #000;
 }
 </style>

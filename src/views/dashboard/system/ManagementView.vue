@@ -1,5 +1,6 @@
 <template>
   <div class="management-container">
+    <!-- 대타이틀 규격 유지 -->
     <header class="mgmt-header">
       <div class="header-left">
         <h2 class="page-title">시스템 관리</h2>
@@ -10,50 +11,49 @@
     </header>
 
     <div class="mgmt-main-layout">
-
+      <!-- 좌측: 프로필 + 설정 -->
       <div class="side-column">
-        <!-- 프로필 카드 -->
-        <div class="glass-card profile-section flex-grow-2">
+        <div class="glass-card profile-section">
           <h3 class="card-title">프로필</h3>
           <div class="profile-layout-vertical">
-            <div class="avatar-container">
-              <div class="avatar-circle-large">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-              </div>
+            <div class="avatar-circle-large">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
             </div>
             <div class="profile-details-expanded">
-              <div class="detail-item"><span class="label">이름</span><span class="val">{{ loginUser?.name ||
-                loginUser?.adminname }}</span></div>
-              <div class="detail-item"><span class="label">부서</span><span class="val">{{ loginUser?.deptName ||
-                loginUser?.deptname }}</span></div>
-              <div class="detail-item"><span class="label">사원번호</span><span class="val">{{ loginUser?.emp_number ||
-                loginUser?.empnumber }}</span></div>
-              <div class="detail-item"><span class="label">직위</span><span class="val">{{ loginUser?.rank }}</span></div>
-              <!-- 마이페이지 새 창 연동 -->
+              <!-- 데이터 표시 체크: name, deptName, empNumber 등 다양한 필드 대응 -->
+              <div class="detail-item">
+                <span class="label">이름</span>
+                <span class="val">{{ loginUser?.name || loginUser?.adminname || loginUser?.adminName || '-' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="label">부서</span>
+                <span class="val">{{ loginUser?.deptName || loginUser?.deptname || '-' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="label">사원번호</span>
+                <span class="val">{{ loginUser?.emp_number || loginUser?.empnumber || loginUser?.empNumber || '-' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="label">직위</span>
+                <span class="val">{{ loginUser?.rank || '-' }}</span>
+              </div>
               <button class="mypage-btn-large" @click="goToMyPage">마이페이지</button>
             </div>
           </div>
         </div>
 
-        <!-- 시스템 설정 및 로그아웃 -->
         <div class="glass-card settings-compact-section">
           <h3 class="card-title">시스템 설정</h3>
           <div class="settings-list-compact">
             <div class="setting-row-mini">
-              <div class="s-info-mini">
-                <span class="s-label-mini">화면 모드</span>
-              </div>
+              <span class="s-label-mini">화면 모드</span>
               <button class="mini-action-btn" @click="toggleTheme">{{ currentTheme }}</button>
             </div>
-
-            <!-- 세션 시간: 팀장은 컨트롤 셀렉트, 일반 직원은 텍스트 노출 -->
             <div class="setting-row-mini">
-              <div class="s-info-mini">
-                <span class="s-label-mini">세션 시간</span>
-              </div>
+              <span class="s-label-mini">세션 시간</span>
               <div v-if="isAuthorizedManager" class="s-control-mini">
                 <select class="mini-select" v-model="timeoutValue">
                   <option value="15">15분</option>
@@ -62,36 +62,35 @@
                 </select>
                 <button class="mini-save-btn" @click="saveSettings">저장</button>
               </div>
-              <div v-else class="s-control-mini">
-                <span style="font-size: 13px; color: #a1a1aa;">{{ timeoutValue }}분 (자동 로그아웃)</span>
-              </div>
+              <span v-else class="session-val">{{ timeoutValue }}분 (자동 로그아웃)</span>
             </div>
-
             <div class="divider"></div>
-
-            <button class="logout-btn-full" @click="handleLogout">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                class="logout-icon">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                <polyline points="16 17 21 12 16 7"></polyline>
-                <line x1="21" y1="12" x2="9" y2="12"></line>
-              </svg>
-              시스템 로그아웃
-            </button>
+            <button class="logout-btn-full" @click="handleLogout">시스템 로그아웃</button>
           </div>
         </div>
       </div>
 
-      <!-- 관리자 목록 -->
+      <!-- 우측: 관리자 목록 (검색 및 필터 라인 정렬) -->
       <div class="main-column">
         <div class="glass-card list-card-full">
           <div class="card-header-flex">
-            <h3 class="card-title">시스템 관리자 목록</h3>
+            <div class="title-group">
+              <h3 class="card-title">시스템 관리자 목록</h3>
+              <span class="count-badge">Total: {{ totalAdminCount }}</span>
+            </div>
             <div class="header-tools">
-              <select class="glass-select-mini" v-model="selectedDept">
+              <!-- 부서 필터 -->
+              <select class="filter-select" v-model="selectedDept">
                 <option v-for="dept in uniqueDepts" :key="dept" :value="dept">{{ dept }}</option>
               </select>
-              <span class="count-badge">Total: {{ filteredAdminList.length }}</span>
+              <!-- 검색창 + 돋보기 아이콘 -->
+              <div class="admin-search-wrapper">
+                <input type="text" v-model="adminSearchQuery" placeholder="이름 또는 사번 검색..." class="admin-search-input" />
+                <svg class="search-icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+              </div>
             </div>
           </div>
 
@@ -104,18 +103,14 @@
                   <th>직위</th>
                   <th>부서</th>
                   <th>상태</th>
-                  <!-- 팀장일 때만 권한 제어 테이블 헤더 노출 -->
                   <th v-if="isAuthorizedManager">권한 제어</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-if="filteredAdminList.length === 0">
-                  <!-- 컬럼 수 동적 변화에 대응하기 위해 colspan 조절 -->
-                  <td :colspan="isAuthorizedManager ? 6 : 5" style="text-align: center; color: #a1a1aa; padding: 30px;">
-                    해당 부서의 데이터가 없습니다
-                  </td>
+                <tr v-if="paginatedAdminList.length === 0">
+                  <td :colspan="isAuthorizedManager ? 6 : 5" class="empty-msg">데이터가 없습니다</td>
                 </tr>
-                <tr v-for="admin in filteredAdminList" :key="admin.empnumber || admin.empNumber">
+                <tr v-for="admin in paginatedAdminList" :key="admin.empnumber || admin.empNumber">
                   <td class="emp-id-text">{{ admin.empnumber || admin.empNumber }}</td>
                   <td>{{ admin.adminname || admin.adminName }}</td>
                   <td>{{ admin.rank }}</td>
@@ -124,10 +119,8 @@
                     <span class="dot-indicator" :class="{ 'active': admin.status === '재직' }"></span>
                     {{ admin.status }}
                   </td>
-                  <!-- 팀장일 때만 액션 버튼 컬럼 노출 -->
                   <td v-if="isAuthorizedManager" class="btn-cell">
-                    <button class="status-btn" :class="admin.status === '재직' ? 'revoke' : 'grant'"
-                      @click="toggleAdminStatus(admin)">
+                    <button class="status-btn" :class="admin.status === '재직' ? 'revoke' : 'grant'" @click="toggleAdminStatus(admin)">
                       {{ admin.status === '재직' ? '해제' : '부여' }}
                     </button>
                   </td>
@@ -135,15 +128,20 @@
               </tbody>
             </table>
           </div>
+
+          <div class="admin-pagination" v-if="adminTotalPages > 1">
+            <button class="page-nav" :disabled="adminCurrentPage === 1" @click="adminCurrentPage--">‹</button>
+            <span class="page-info">{{ adminCurrentPage }} / {{ adminTotalPages }}</span>
+            <button class="page-nav" :disabled="adminCurrentPage === adminTotalPages" @click="adminCurrentPage++">›</button>
+          </div>
         </div>
       </div>
-
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
 
@@ -154,27 +152,36 @@ const currentTheme = ref(localStorage.getItem('theme') === 'light' ? 'Light' : '
 const timeoutValue = ref(localStorage.getItem('sessionTimeout') || '30')
 const selectedDept = ref('전체')
 
+// 관리자 목록 검색 및 페이징
+const adminSearchQuery = ref('')
+const adminCurrentPage = ref(1)
+const adminItemsPerPage = ref(15) // 15개 기준
+
 let sessionTimer = null
 
 const fetchCurrentUser = async () => {
   try {
-    const res = await axios.get('http://localhost:8080/admin/my-info', { withCredentials: true });
-    if (res.data) loginUser.value = res.data;
-  } catch (error) { console.error('Auth Error', error); }
+    const res = await axios.get('http://localhost:8080/admin/my-info', { withCredentials: true })
+    if (res.data) {
+      loginUser.value = res.data
+      console.log('내 정보 로드 성공:', loginUser.value) // 디버깅용
+    }
+  } catch (error) { console.error('내 정보 로드 실패', error) }
 }
 
 const isAuthorizedManager = computed(() => {
-  const user = loginUser.value;
-  if (!user) return false;
-  const dept = user.deptName || user.deptname || '';
-  return dept.includes('주차') && user.rank === '팀장';
+  const user = loginUser.value
+  if (!user) return false
+  const dept = user.deptName || user.deptname || ''
+  const rank = user.rank || ''
+  return dept.includes('주차') && rank === '팀장'
 })
 
 const fetchAdmins = async () => {
   try {
     const res = await axios.get('http://localhost:8080/admin/dashboard-admins', { withCredentials: true })
     adminList.value = res.data
-  } catch (e) { console.error('List Error', e) }
+  } catch (e) { console.error('관리자 목록 로드 실패', e) }
 }
 
 const uniqueDepts = computed(() => {
@@ -182,10 +189,40 @@ const uniqueDepts = computed(() => {
   return ['전체', ...Array.from(depts)]
 })
 
-const filteredAdminList = computed(() => {
-  if (selectedDept.value === '전체') return adminList.value
-  return adminList.value.filter(a => (a.deptname || a.deptName) === selectedDept.value)
+// 검색 + 부서 필터가 적용된 전체 목록
+const searchedAdminList = computed(() => {
+  let list = adminList.value
+
+  // 1. 부서 필터
+  if (selectedDept.value !== '전체') {
+    list = list.filter(a => (a.deptname || a.deptName) === selectedDept.value)
+  }
+
+  // 2. 이름/사번 검색
+  if (adminSearchQuery.value) {
+    const q = adminSearchQuery.value.toLowerCase()
+    list = list.filter(a => {
+      const name = (a.adminname || a.adminName || '').toLowerCase()
+      const emp = (a.empnumber || a.empNumber || '').toLowerCase()
+      return name.includes(q) || emp.includes(q)
+    })
+  }
+  return list
 })
+
+const totalAdminCount = computed(() => searchedAdminList.value.length)
+
+// 페이징 처리된 목록
+const adminTotalPages = computed(() => Math.ceil(totalAdminCount.value / adminItemsPerPage.value) || 1)
+
+const paginatedAdminList = computed(() => {
+  const start = (adminCurrentPage.value - 1) * adminItemsPerPage.value
+  return searchedAdminList.value.slice(start, start + adminItemsPerPage.value)
+})
+
+// 검색어 바뀌면 페이지 1로 리셋
+watch(adminSearchQuery, () => { adminCurrentPage.value = 1 })
+watch(selectedDept, () => { adminCurrentPage.value = 1 })
 
 const toggleAdminStatus = async (admin) => {
   const isRevoke = admin.status === '재직'
@@ -227,18 +264,13 @@ const goToMyPage = () => {
 
 const startSessionTimer = (minutes) => {
   if (sessionTimer) clearTimeout(sessionTimer)
-  const ms = minutes * 60 * 1000
-  sessionTimer = setTimeout(() => {
-    alert('보안을 위해 세션이 만료되어 자동 로그아웃됩니다.')
-    sessionStorage.clear()
-    router.push('/admin/login')
-  }, ms)
+  sessionTimer = setTimeout(() => { sessionStorage.clear(); router.push('/admin/login') }, minutes * 60 * 1000)
 }
 
 const saveSettings = () => {
   localStorage.setItem('sessionTimeout', timeoutValue.value)
   startSessionTimer(Number(timeoutValue.value))
-  alert(`세션 시간이 ${timeoutValue.value}분으로 적용되어 타이머가 재시작되었습니다`)
+  alert(`세션 시간이 ${timeoutValue.value}분으로 적용되었습니다`)
 }
 
 onMounted(async () => {
@@ -254,34 +286,39 @@ onUnmounted(() => {
 
 <style scoped>
 .management-container {
-  padding: 0;
-  color: #fff;
-  height: calc(100vh - 105px);
+  padding: 0 4px;
+  color: #f5f5f5;
+  height: 100%;
   display: flex;
   flex-direction: column;
+  gap: 17px;
 }
 
+/* 대타이틀 규격 유지 */
 .mgmt-header {
-  margin-bottom: 15px;
-  flex-shrink: 0;
+  border-left: 5px solid #82c2e3;
+  padding-left: 17px;
+  margin-bottom: 5px;
 }
 
 .page-title {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 700;
+  color: #fff;
   margin: 0;
 }
 
 .page-subtitle {
-  color: #a1a1aa;
-  font-size: 13px;
+  color: rgba(245, 245, 245, 0.6);
+  font-size: 18px;
+  margin-top: 5px;
 }
 
-/* 🪄 레이아웃 통합: 권한 상관없이 동일한 그리드 적용 */
+/* 레이아웃: 좌우 박스 크기 균형 조정 */
 .mgmt-main-layout {
   display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 15px;
+  grid-template-columns: 340px 1fr;
+  gap: 17px;
   flex: 1;
   min-height: 0;
 }
@@ -289,23 +326,7 @@ onUnmounted(() => {
 .side-column {
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  min-height: 0;
-}
-
-.profile-layout-vertical {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-  padding: 10px 0;
-}
-
-.detail-item {
-  display: flex;
-  justify-content: space-between;
-  padding-bottom: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  gap: 17px;
 }
 
 .main-column {
@@ -314,19 +335,49 @@ onUnmounted(() => {
   min-height: 0;
 }
 
+/* 카드 공통 규격 (17px gap, 10px radius, 444D56 30%) */
 .glass-card {
-  background: rgba(68, 77, 86, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  background: rgba(68, 77, 86, 0.3);
+  border: 1px solid rgba(245, 245, 245, 0.08);
+  border-radius: 10px;
   padding: 20px;
+}
+
+/* 프로필 & 설정 섹션 (좌측) */
+.profile-section { flex: 0 0 auto; }
+.settings-compact-section { flex: 1; }
+
+.title-group {
+  display: flex;
+  align-items: baseline; /* 텍스트 하단 라인 맞춤 */
+  gap: 12px;
+}
+
+.card-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  margin-bottom: 17px;
+}
+
+.count-badge {
+  font-size: 16px;
+  color: rgba(245, 245, 245, 0.5);
+}
+
+/* 프로필 섹션 디테일 */
+.profile-layout-vertical {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  gap: 15px;
 }
 
 .avatar-circle-large {
-  width: 140px;
-  height: 140px;
-  background: #31363f;
+  width: 120px;
+  height: 120px;
+  background: rgba(245, 245, 245, 0.05);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -339,41 +390,51 @@ onUnmounted(() => {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(245, 245, 245, 0.05);
 }
 
 .detail-item .label {
-  color: #a1a1aa;
-  font-size: 13px;
+  color: rgba(245, 245, 245, 0.6);
+  font-size: 16px;
 }
 
 .detail-item .val {
+  font-weight: 500;
+  font-size: 18px;
   color: #fff;
-  font-weight: 600;
-  font-size: 15px;
 }
 
 .mypage-btn-large {
-  margin-top: auto;
+  margin-top: 10px;
   background: #fbb900;
   border: none;
-  border-radius: 6px;
+  border-radius: 5px;
   padding: 12px;
+  font-size: 18px;
   font-weight: 700;
-  color: #1a1d21;
+  color: #000;
   cursor: pointer;
-  width: 100%;
 }
 
+/* 시스템 설정 섹션 */
 .settings-compact-section {
   flex: 1;
-  justify-content: space-between;
+  display: flex;
+  flex-direction: column;
 }
 
 .settings-list-compact {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 17px;
 }
 
 .setting-row-mini {
@@ -383,9 +444,9 @@ onUnmounted(() => {
 }
 
 .s-label-mini {
-  font-size: 14px;
-  font-weight: 500;
-  color: #e5edf8;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
 }
 
 .mini-action-btn,
@@ -394,155 +455,160 @@ onUnmounted(() => {
   border: 1px solid #82c2e3;
   color: #82c2e3;
   padding: 5px 12px;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.mini-select {
-  background: #1a1d21;
-  border: 1px solid #3f3f46;
-  color: #fff;
-  font-size: 12px;
-  padding: 4px;
-  border-radius: 4px;
-}
-
-.divider {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.1);
-  margin: 10px 0;
-}
-
-.logout-btn-full {
-  width: 100%;
-  background: rgba(255, 82, 82, 0.1);
-  border: 1px solid #ff5252;
-  color: #ff5252;
-  padding: 10px;
-  border-radius: 6px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.list-card-full {
-  height: 100%;
-  flex: 1;
-}
-
-.scrollable-area {
-  flex: 1;
-  overflow-y: auto;
-  padding-right: 5px;
-  margin-top: 10px;
-}
-
-.scrollable-area::-webkit-scrollbar {
-  width: 4px;
-}
-
-.scrollable-area::-webkit-scrollbar-thumb {
-  background: #4a5568;
-  border-radius: 10px;
-}
-
-.admin-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.admin-table th {
-  position: sticky;
-  top: 0;
-  background: #252a30;
-  padding: 12px;
-  text-align: left;
-  font-size: 13px;
-  color: #a1a1aa;
-  z-index: 2;
-}
-
-.admin-table td {
-  padding: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: 5px;
   font-size: 14px;
 }
 
-.emp-id-text {
-  color: #82c2e3;
-  font-weight: 500;
-}
-
-.dot-indicator {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #444;
-  margin-right: 5px;
-}
-
-.dot-indicator.active {
-  background: #4caf50;
-  box-shadow: 0 0 6px #4caf50;
-}
-
-.status-btn {
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: transparent;
-  color: #fff;
-}
-
-.status-btn.revoke {
-  color: #ff5252;
-  border-color: rgba(255, 82, 82, 0.2);
-}
-
-.del-row-btn {
-  background: #ff5252;
-  color: #fff;
-  border: none;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  margin-left: 4px;
-}
-
-.card-title {
+.logout-btn-full {
+  margin-top: auto;
+  background: rgba(255, 0, 0, 0.1);
+  border: 1px solid #ff0000;
+  color: #ff0000;
+  padding: 12px;
+  border-radius: 5px;
   font-size: 18px;
-  font-weight: 600;
-  color: #82c2e3;
-  margin: 0 0 15px 0;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* 관리자 목록 섹션 */
+.list-card-full {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .card-header-flex {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-bottom: 10px;
 }
 
-.glass-select-mini {
-  background: #1a1d21;
-  border: 1px solid #3f3f46;
+.header-left-group {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+/* 오른쪽 필터/검색 그룹 */
+.header-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 필터(Select) 디자인 */
+.filter-select {
+  background-color: #444d5661;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f5f5f5;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 5px;
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+}
+
+/* 검색창 및 돋보기 디자인 */
+.admin-search-wrapper {
+  display: flex;
+  align-items: center;
+  background: rgba(68, 77, 86, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  padding: 0 12px;
+  height: 34px;
+}
+
+.admin-search-input {
+  background: transparent;
+  border: none;
   color: #fff;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
+  outline: none;
+  width: 180px;
+  font-size: 13px;
 }
 
-.count-badge {
-  font-size: 11px;
+.search-icon-svg {
+  color: rgba(245, 245, 245, 0.4);
+  margin-left: 5px;
+}
+
+.table-container {
+  flex: 1;
+  overflow-y: auto;
+  margin-top: 10px;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+}
+
+.admin-table th {
+  position: sticky;
+  top: 0;
+  background: #252a30;
+  z-index: 10;
+  padding: 15px;
+  font-size: 16px;
+  color: rgba(245, 245, 245, 0.6);
+  border-bottom: 1px solid rgba(245, 245, 245, 0.1);
+}
+
+.admin-table td {
+  padding: 15px;
+  font-size: 16px;
+  border-bottom: 1px solid rgba(245, 245, 245, 0.05);
+}
+
+/* 페이지네이션 */
+.admin-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  padding: 15px 0;
+}
+
+.page-nav {
+  background: transparent;
+  border: 1px solid rgba(245, 245, 245, 0.1);
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.page-info {
+  font-size: 14px;
+  color: rgba(245, 245, 245, 0.6);
+}
+
+.dot-indicator.active {
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+}
+
+.status-btn {
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  cursor: pointer;
+  background: transparent;
+}
+
+.status-btn.revoke {
+  color: #ff0000;
+  border: 1px solid rgba(255, 0, 0, 0.3);
+}
+
+.status-btn.grant {
   color: #82c2e3;
-  background: rgba(130, 194, 227, 0.1);
-  padding: 2px 8px;
-  border-radius: 10px;
+  border: 1px solid rgba(130, 194, 227, 0.3);
 }
 </style>

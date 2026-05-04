@@ -1,45 +1,9 @@
 <template>
     <div class="control-container">
-        <!-- Header -->
-        <!-- <div class="page-header">
-            <div class="header-title-area">
-                <h2 class="page-title">출입 차량 관리</h2>
-                <div class="tab-group">
-                    <button class="tab-btn active">입출차 로그</button>
-                    <button class="tab-btn" @click="$router.push('/dashboard/vehicle-prediction')">주차 예측 통계</button>
-                </div>
-            </div>
-        </div> -->
 
         <!-- Filter bar -->
         <div class="filter-bar">
-            <div class="date-range-wrap">
-                <div class="date-range" @click="showDatePicker = !showDatePicker">
-                    <span class="date-display">{{ dateRangeLabel }}</span>
-                    <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <rect x="3" y="4" width="18" height="18" rx="2" />
-                        <line x1="16" y1="2" x2="16" y2="6" />
-                        <line x1="8" y1="2" x2="8" y2="6" />
-                        <line x1="3" y1="10" x2="21" y2="10" />
-                    </svg>
-                </div>
-                <!-- Date Picker Dropdown -->
-                <div v-if="showDatePicker" class="datepicker-dropdown">
-                    <div class="dp-presets">
-                        <button v-for="p in datePresets" :key="p.label" class="dp-preset-btn" @click="applyPreset(p)">{{
-                            p.label }}</button>
-                    </div>
-                    <div class="dp-custom">
-                        <input type="date" v-model="tempStart" class="dp-input" />
-                        <span class="dp-sep">-</span>
-                        <input type="date" v-model="tempEnd" class="dp-input" />
-                    </div>
-                    <div class="dp-actions">
-                        <button class="dp-btn apply" @click="applyDateRange">적용</button>
-                        <button class="dp-btn cancel" @click="showDatePicker = false">취소</button>
-                    </div>
-                </div>
-            </div>
+            
             <div class="search-box">
                 <input type="text" v-model="searchQuery" placeholder="차량번호 검색(예: 12가 4567)"
                     @keyup.enter="executeSearch" />
@@ -157,7 +121,8 @@
                                 <td>{{ log.empNumber || '—' }}</td>
                                 <td class="action-cell">
                                     <button class="action-btn edit-btn" @click="openModify(log)">수정</button>
-                                    <button class="action-btn del-btn" @click="deleteLog(log)">삭제</button></td>
+                                    <button class="action-btn del-btn" @click="deleteLog(log)">삭제</button>
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -190,9 +155,9 @@
                         </div>
                         <div class="carousel-info">
                             <div class="cinfo-row"><span class="cinfo-label">차량번호</span><span class="cinfo-value">{{
-                                    log.vehicleNum }}</span></div>
+                                log.vehicleNum }}</span></div>
                             <div class="cinfo-row"><span class="cinfo-label">입차시간</span><span class="cinfo-value">{{
-                                    formatDT(log.entryTime) }}</span></div>
+                                formatDT(log.entryTime) }}</span></div>
                             <div class="cinfo-row"><span class="cinfo-label">출차시간</span><span class="cinfo-value">{{
                                 log.exitTime ? formatDT(log.exitTime) : '' }}</span></div>
                         </div>
@@ -374,6 +339,17 @@ watch(() => route.query.search, (newSearch) => {
     }
 })
 
+const props = defineProps({
+    startDate: {
+        type: String,
+        default: ''
+    },
+    endDate: {
+        type: String,
+        default: ''
+    }
+})
+
 // ── 국가 ─────────────────────────────────────────────
 const FLAG_MAP = { KOR: 'https://flagcdn.com/w40/kr.png', CHN: 'https://flagcdn.com/w40/cn.png', BRA: 'https://flagcdn.com/w40/br.png', EUR: 'https://flagcdn.com/w40/eu.png', IND: 'https://flagcdn.com/w40/in.png' }
 const COUNTRY_NAMES = { KOR: '대한민국', CHN: '중국', BRA: '브라질', EUR: '유럽', IND: '인도' }
@@ -389,28 +365,28 @@ const currentPage = ref(1)
 const rowsPerPage = 7
 
 // ── 날짜 ─────────────────────────────────────────────
-const fmtDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-const today = new Date()
-const startDate = ref(fmtDate(new Date(today.getFullYear(), today.getMonth() - 1, today.getDate())))
-const endDate = ref(fmtDate(today))
-const showDatePicker = ref(false)
-const tempStart = ref(startDate.value)
-const tempEnd = ref(endDate.value)
+// const fmtDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+// const today = new Date()
+// const startDate = ref(fmtDate(new Date(today.getFullYear(), today.getMonth() - 1, today.getDate())))
+// const endDate = ref(fmtDate(today))
+// const showDatePicker = ref(false)
+// const tempStart = ref(startDate.value)
+// const tempEnd = ref(endDate.value)
 
-const dateRangeLabel = computed(() => {
-    return `${startDate.value.slice(2).replace(/-/g, '.')} - ${endDate.value.slice(2).replace(/-/g, '.')}`
-})
+// const dateRangeLabel = computed(() => {
+//     return `${startDate.value.slice(2).replace(/-/g, '.')} - ${endDate.value.slice(2).replace(/-/g, '.')}`
+// })
 
-const datePresets = [
-    { label: '오늘', fn: () => { const t = fmtDate(today); return [t, t] } },
-    { label: '어제', fn: () => { const d = new Date(today); d.setDate(d.getDate() - 1); const s = fmtDate(d); return [s, s] } },
-    { label: '최근 7일', fn: () => { const d = new Date(today); d.setDate(d.getDate() - 6); return [fmtDate(d), fmtDate(today)] } },
-    { label: '최근 30일', fn: () => { const d = new Date(today); d.setDate(d.getDate() - 29); return [fmtDate(d), fmtDate(today)] } },
-    { label: '이번 달', fn: () => [fmtDate(new Date(today.getFullYear(), today.getMonth(), 1)), fmtDate(today)] },
-    { label: '지난 달', fn: () => { const f = new Date(today.getFullYear(), today.getMonth() - 1, 1); const l = new Date(today.getFullYear(), today.getMonth(), 0); return [fmtDate(f), fmtDate(l)] } },
-]
-const applyPreset = (p) => { const [s, e] = p.fn(); tempStart.value = s; tempEnd.value = e }
-const applyDateRange = () => { startDate.value = tempStart.value; endDate.value = tempEnd.value; showDatePicker.value = false; fetchLogs() }
+// const datePresets = [
+//     { label: '오늘', fn: () => { const t = fmtDate(today); return [t, t] } },
+//     { label: '어제', fn: () => { const d = new Date(today); d.setDate(d.getDate() - 1); const s = fmtDate(d); return [s, s] } },
+//     { label: '최근 7일', fn: () => { const d = new Date(today); d.setDate(d.getDate() - 6); return [fmtDate(d), fmtDate(today)] } },
+//     { label: '최근 30일', fn: () => { const d = new Date(today); d.setDate(d.getDate() - 29); return [fmtDate(d), fmtDate(today)] } },
+//     { label: '이번 달', fn: () => [fmtDate(new Date(today.getFullYear(), today.getMonth(), 1)), fmtDate(today)] },
+//     { label: '지난 달', fn: () => { const f = new Date(today.getFullYear(), today.getMonth() - 1, 1); const l = new Date(today.getFullYear(), today.getMonth(), 0); return [fmtDate(f), fmtDate(l)] } },
+// ]
+// const applyPreset = (p) => { const [s, e] = p.fn(); tempStart.value = s; tempEnd.value = e }
+// const applyDateRange = () => { startDate.value = tempStart.value; endDate.value = tempEnd.value; showDatePicker.value = false; fetchLogs() }
 
 // ── 기본 모드 필터 ───────────────────────────────────
 const countryFilter = ref('')
@@ -419,8 +395,14 @@ const parkingFilter = ref('')
 
 const filteredLogs = computed(() => {
     let rows = [...allLogs.value]
-    if (startDate.value) { const s = new Date(startDate.value + 'T00:00:00'); rows = rows.filter(r => r.entryTime && new Date(r.entryTime) >= s) }
-    if (endDate.value) { const e = new Date(endDate.value + 'T23:59:59'); rows = rows.filter(r => r.entryTime && new Date(r.entryTime) <= e) }
+    if (props.startDate) { 
+        const s = new Date(props.startDate + 'T00:00:00')
+        rows = rows.filter(r => r.entryTime && new Date(r.entryTime) >= s) 
+    }
+    if (props.endDate) { 
+        const e = new Date(props.endDate + 'T23:59:59')
+        rows = rows.filter(r => r.entryTime && new Date(r.entryTime) <= e) 
+    }
     if (countryFilter.value) rows = rows.filter(r => r.licensePlateCountry === countryFilter.value)
     if (memberFilter.value === 'Y') rows = rows.filter(r => r.isMember)
     if (memberFilter.value === 'N') rows = rows.filter(r => !r.isMember)
@@ -632,247 +614,179 @@ onMounted(() => fetchLogs())
 onUnmounted(() => { if (durationChart) durationChart.destroy(); if (memberChart) memberChart.destroy() })
 </script>
 
+
 <style scoped>
+/* Container & Layout */
 .control-container {
+    width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 17px;
     background-color: transparent;
+    color: #f5f5f5;
+    font-family: 'Pretendard', sans-serif;
 }
 
 .control-container::-webkit-scrollbar {
-    width: 10px
+    width: 10px;
 }
 
 .control-container::-webkit-scrollbar-track {
-    background: transparent
+    background: transparent;
 }
 
 .control-container::-webkit-scrollbar-thumb {
     background: #444D56;
-    border-radius: 4px
+    border-radius: 4px;
 }
 
-/* Header */
-.page-header {
-    margin-bottom: 17px
-}
-
-.header-title-area {
-    display: flex;
-    align-items: center;
-    gap: 20px
-}
-
-.page-title {
-    font-size: 22px;
-    font-weight: 700;
-    margin: 0
-}
-
-.tab-group {
-    display: flex;
-    background: #27272a;
-    border-radius: 8px;
-    padding: 4px
-}
-
-.tab-btn {
-    padding: 6px 16px;
-    border: none;
-    background: transparent;
-    color: #a1a1aa;
-    cursor: pointer;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 600;
-    transition: 0.2s
-}
-
-.tab-btn.active {
-    background: #3b82f6;
-    color: #fff
-}
-
-/* Filter bar */
-.filter-bar {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 20px;
-    position: relative
-}
-
-.date-range-wrap {
-    position: relative
-}
-
-.date-range {
-    display: flex;
-    align-items: center;
-    background: #18181b;
-    border: 1px solid #27272a;
-    border-radius: 8px;
-    padding: 8px 14px;
-    gap: 8px;
-    cursor: pointer;
-    min-width: 200px
-}
-
-.date-display {
-    color: #d4d4d8;
-    font-size: 13px
-}
-
-.calendar-icon {
-    width: 16px;
-    height: 16px;
-    color: #71717a;
-    flex-shrink: 0
+.control-container::-webkit-scrollbar-thumb:hover {
+    background: #4f5963;
 }
 
 .search-box {
     display: flex;
     align-items: center;
-    background: #18181b;
-    border: 1px solid #3f3f46;
-    border-radius: 6px;
-    padding: 8px 12px
+    background: rgba(68, 77, 86, 0.3);
+    border: 1px solid rgba(245, 245, 245, 0.08);
+    border-radius: 5px;
+    padding: 8px 12px;
+    width: 320px;
 }
 
 .search-box input {
     background: transparent;
     border: none;
-    color: #fff;
+    color: #f5f5f5;
     outline: none;
-    width: 220px;
-    font-size: 14px
+    width: 100%; 
+    font-size: 14px;
 }
 
 .search-box input::placeholder {
-    color: #52525b
+    color: rgba(245, 245, 245, 0.6);
 }
 
 .search-icon {
     width: 16px;
     height: 16px;
-    color: #a1a1aa;
-    cursor: pointer
+    color: rgba(245, 245, 245, 0.6);
+    cursor: pointer;
 }
 
-/* Date picker */
+/* Date Picker Dropdown */
 .datepicker-dropdown {
     position: absolute;
     top: 100%;
     left: 0;
     margin-top: 6px;
     background: #1f1f23;
-    border: 1px solid #3f3f46;
-    border-radius: 12px;
-    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 17px;
     z-index: 100;
     min-width: 320px;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6)
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
 }
 
 .dp-presets {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    margin-bottom: 14px
+    margin-bottom: 14px;
 }
 
 .dp-preset-btn {
-    background: #27272a;
-    border: 1px solid #3f3f46;
-    color: #d4d4d8;
+    background: rgba(68, 77, 86, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #f5f5f5;
     padding: 5px 12px;
-    border-radius: 6px;
+    border-radius: 5px;
     font-size: 12px;
     cursor: pointer;
-    transition: 0.2s
+    transition: 0.2s;
 }
 
 .dp-preset-btn:hover {
-    background: #3b82f6;
-    color: #fff;
-    border-color: #3b82f6
+    background: #82c2e3;
+    color: #000;
+    border-color: #82c2e3;
 }
 
 .dp-custom {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 14px
+    margin-bottom: 14px;
 }
 
 .dp-sep {
-    color: #52525b
+    color: rgba(245, 245, 245, 0.6);
 }
 
 .dp-input {
-    background: #27272a;
-    border: 1px solid #3f3f46;
-    color: #e4e4e7;
+    background: rgba(68, 77, 86, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #f5f5f5;
     padding: 6px 10px;
-    border-radius: 6px;
+    border-radius: 5px;
     font-size: 13px;
-    outline: none
+    outline: none;
 }
 
 .dp-input::-webkit-calendar-picker-indicator {
     filter: invert(1);
-    opacity: 0.5
+    opacity: 0.5;
 }
 
 .dp-actions {
     display: flex;
     gap: 8px;
-    justify-content: flex-end
+    justify-content: flex-end;
 }
 
 .dp-btn {
     padding: 6px 20px;
     border: none;
-    border-radius: 6px;
+    border-radius: 5px;
     font-size: 13px;
     font-weight: 600;
-    cursor: pointer
+    cursor: pointer;
 }
 
 .dp-btn.apply {
-    background: #3b82f6;
-    color: #fff
+    background: #82c2e3;
+    color: #000;
 }
 
 .dp-btn.cancel {
-    background: #27272a;
-    color: #d4d4d8;
-    border: 1px solid #3f3f46
+    background: rgba(68, 77, 86, 0.3);
+    color: #f5f5f5;
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Search mode */
+/* Search Mode */
 .search-result-area {
     display: flex;
-    gap: 16px;
-    margin-bottom: 20px;
-    min-height: 280px
+    gap: 17px;
+    min-height: 280px;
 }
 
 .search-list-panel {
     width: 380px;
     flex-shrink: 0;
-    background: #18181b;
-    border: 1px solid #27272a;
-    border-radius: 12px;
-    padding: 16px;
+    background: rgba(68, 77, 86, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 17px;
     overflow-y: auto;
-    max-height: 340px
+    max-height: 340px;
 }
 
 .panel-title {
     font-size: 14px;
-    color: #a1a1aa;
-    margin: 0 0 12px
+    color: rgba(245, 245, 245, 0.6);
+    margin: 0 0 12px;
 }
 
 .search-item {
@@ -880,78 +794,78 @@ onUnmounted(() => { if (durationChart) durationChart.destroy(); if (memberChart)
     align-items: center;
     gap: 10px;
     padding: 10px 12px;
-    border-radius: 8px;
+    border-radius: 5px;
     cursor: pointer;
     border: 1px solid transparent;
     margin-bottom: 6px;
-    transition: 0.15s
+    transition: 0.15s;
 }
 
 .search-item:hover {
-    background: #27272a
+    background: rgba(68, 77, 86, 0.3);
 }
 
 .search-item.selected {
-    background: #1e293b;
-    border-color: #3b82f6
+    background: rgba(130, 194, 227, 0.15);
+    border-color: #82c2e3;
 }
 
 .si-check {
-    color: #3b82f6;
+    color: #82c2e3;
     font-weight: 700;
     font-size: 14px;
-    width: 18px
+    width: 18px;
 }
 
 .si-plate {
     font-size: 15px;
     font-weight: 700;
-    color: #e4e4e7;
-    min-width: 100px
+    color: #fff;
+    min-width: 100px;
 }
 
 .si-badge {
     font-size: 11px;
     padding: 2px 8px;
-    border-radius: 10px;
-    font-weight: 600
+    border-radius: 5px;
+    font-weight: 600;
 }
 
 .badge-member {
     background: #1e3a2f;
-    color: #22c55e
+    color: #82c2e3;
 }
 
 .badge-guest {
     background: #3b2a1a;
-    color: #fbb900
+    color: #fbb900;
 }
 
 .si-status {
     font-size: 12px;
-    color: #71717a;
+    color: rgba(245, 245, 245, 0.6);
     margin-left: auto;
-    white-space: nowrap
+    white-space: nowrap;
 }
 
 .search-empty {
-    color: #52525b;
+    color: rgba(245, 245, 245, 0.6);
     text-align: center;
-    padding: 30px 0
+    padding: 30px 0;
 }
 
 .search-detail-panel {
     flex: 1;
-    background: #18181b;
-    border: 1px solid #27272a;
-    border-radius: 12px;
+    background: rgba(68, 77, 86, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
     display: flex;
-    overflow: hidden
+    overflow: hidden;
 }
 
 .detail-images {
     display: flex;
-    width: 55%
+    width: 55%;
 }
 
 .detail-car-img,
@@ -959,7 +873,7 @@ onUnmounted(() => { if (durationChart) durationChart.destroy(); if (memberChart)
     width: 50%;
     height: 100%;
     object-fit: cover;
-    min-height: 240px
+    min-height: 240px;
 }
 
 .no-detail-img {
@@ -967,63 +881,61 @@ onUnmounted(() => { if (durationChart) durationChart.destroy(); if (memberChart)
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #27272a;
-    color: #52525b
+    background: rgba(68, 77, 86, 0.3);
+    color: rgba(245, 245, 245, 0.6);
 }
 
 .detail-info-table {
     width: 45%;
-    border-collapse: collapse
+    border-collapse: collapse;
 }
 
 .detail-info-table th {
     text-align: left;
-    padding: 16px 14px;
-    color: #a1a1aa;
+    padding: 17px 14px;
+    color: rgba(245, 245, 245, 0.6);
     font-size: 13px;
     font-weight: 600;
-    border-bottom: 1px solid #27272a;
-    width: 80px
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    width: 80px;
 }
 
 .detail-info-table td {
-    padding: 16px 14px;
-    color: #e4e4e7;
+    padding: 17px 14px;
+    color: #f5f5f5;
     font-size: 14px;
     font-weight: 600;
-    border-bottom: 1px solid #27272a
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Filter tabs */
 .filter-tab {
-    background: #27272a;
-    border: 1px solid #3f3f46;
-    color: #a1a1aa;
-    padding: 4px 12px;
-    border-radius: 15px;
-    font-size: 12px;
+    height: 28px;
+    padding: 0 14px;
+    border: 1px solid rgba(245, 245, 245, 0.1);
+    border-radius: 999px;
+    background: transparent;
+    color: rgba(245, 245, 245, 0.6);
+    font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
-    transition: 0.2s
-}
-
-.filter-tab.active {
-    background: #3b82f6;
-    border-color: #3b82f6;
-    color: #fff
+    transition: 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Table */
 .full-width {
-    width: 100%
+    width: 100%;
 }
 
 .table-card {
     flex: 1;
     min-width: 0;
-    background: #18181b;
-    border-radius: 12px;
-    padding: 20px;
-    border: 1px solid #27272a;
+    background: rgba(68, 77, 86, 0.3);
+    border-radius: 10px;
+    padding: 17px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     flex-direction: column;
     overflow-x: auto;
@@ -1033,95 +945,114 @@ onUnmounted(() => { if (durationChart) durationChart.destroy(); if (memberChart)
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 17px;
     flex-wrap: wrap;
-    gap: 8px
+    gap: 8px;
 }
 
 .th-left {
     display: flex;
     align-items: center;
-    gap: 8px;
-    flex-wrap: wrap
+    gap: 12px;
 }
 
 .th-right {
     display: flex;
-    align-items: center
+    align-items: center;
 }
 
 .card-title {
-    font-size: 16px;
+    font-size: 22px;
     font-weight: 700;
-    margin: 0
+    margin: 0;
+    color: #fff;
 }
 
 .record-count {
-    background: #27272a;
-    padding: 4px 12px;
-    border-radius: 15px;
-    font-size: 12px;
-    color: #a1a1aa
+    height: 28px;               
+    padding: 0 12px;
+    background: rgba(130, 194, 227, 0.15); 
+    border: 1px solid #82c2e3;      
+    color: #fff;                 
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .dark-select {
-    background: #27272a;
-    border: 1px solid #3f3f46;
-    color: #d4d4d8;
-    padding: 5px 10px;
-    border-radius: 6px;
-    font-size: 12px;
-    outline: none
+    background-color: #444D56;
+    border: 1px solid rgba(245, 245, 245, 0.1);
+    color: #f5f5f5;
+    padding: 0 12px;
+    height: 28px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-family: 'Pretendard', sans-serif;
+    outline: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.dark-select option {
+    background-color: #444D56;
+    color: #f5f5f5;
+    padding: 10px;
 }
 
 .dark-select.plain {
     background: transparent;
-    border: none
+    border: none;
 }
 
 .table-responsive {
     width: 100%;
     overflow-x: auto;
-    flex: 1
+    flex: 1;
 }
 
 .dark-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px
+    font-size: 13px;
 }
 
 .dark-table th {
-    background: #1f1f23;
-    color: #a1a1aa;
+    background: transparent;
+    color: rgba(245, 245, 245, 0.6);
     font-weight: 600;
-    padding: 12px 10px;
+    padding: 17px 10px;
     text-align: center;
-    border-bottom: 1px solid #27272a;
-    white-space: nowrap
+    border-bottom: 1px solid rgba(245, 245, 245, 0.1);
+    white-space: nowrap;
 }
 
 .dark-table td {
-    padding: 12px 10px;
+    padding: 17px 10px;
     text-align: center;
-    border-bottom: 1px solid #27272a;
-    color: #e4e4e7;
-    white-space: nowrap
+    border-bottom: 1px solid rgba(245, 245, 245, 0.05);
+    color: #f5f5f5;
+    white-space: nowrap;
+    font-size: 14px;
 }
 
 .text-white {
     color: #fff;
-    font-weight: 600
+    font-weight: 600;
 }
 
 .text-blue {
-    color: #60a5fa;
-    font-weight: 600
+    color: #82c2e3;
+    font-weight: 600;
 }
 
 .empty-msg {
     padding: 40px !important;
-    color: #52525b !important
+    color: rgba(245, 245, 245, 0.6) !important;
+    font-weight: 400 !important;
 }
 
 .flag-icon {
@@ -1129,7 +1060,7 @@ onUnmounted(() => { if (durationChart) durationChart.destroy(); if (memberChart)
     height: 20px;
     object-fit: cover;
     border-radius: 3px;
-    vertical-align: middle
+    vertical-align: middle;
 }
 
 .status-dot {
@@ -1137,100 +1068,101 @@ onUnmounted(() => { if (durationChart) durationChart.destroy(); if (memberChart)
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    margin-right: 6px
+    margin-right: 6px;
 }
 
+/* 🎯 여유(정상) 컬러 확실한 초록색(22c55e) 복구 */
 .bg-green {
-    background: #22c55e
+    background: #22c55e;
 }
 
 .bg-yellow {
-    background: #eab308
+    background: #fbb900;
 }
 
 .bg-red {
-    background: #ef4444
+    background: #ff0000;
 }
 
 .text-green {
-    color: #22c55e
+    color: #22c55e;
 }
 
 .text-yellow {
-    color: #eab308
+    color: #fbb900;
 }
 
 .text-red {
-    color: #ef4444
+    color: #ff0000;
 }
 
 .action-cell {
     display: flex;
     gap: 6px;
-    justify-content: center
+    justify-content: center;
 }
 
 .action-btn {
     padding: 4px 12px;
-    border-radius: 4px;
+    border-radius: 5px;
     border: none;
     cursor: pointer;
     font-size: 12px;
-    font-weight: 600
+    font-weight: 600;
 }
 
 .edit-btn {
-    background: #3b82f6;
-    color: #fff
+    background: #fbb900;
+    color: #000;
 }
 
 .edit-btn:hover {
-    background: #2563eb
+    background: #eab308;
 }
 
 .del-btn {
     background: transparent;
-    border: 1px solid #ef4444;
-    color: #ef4444
+    border: 1px solid #ff0000;
+    color: #ff0000;
 }
 
 .del-btn:hover {
-    background: #ef4444;
-    color: #fff
+    background: #ff0000;
+    color: #fff;
 }
 
 .pagination {
     display: flex;
     justify-content: center;
     gap: 6px;
-    margin-top: 18px
+    margin-top: 17px;
 }
 
 .page-btn {
     background: transparent;
-    border: 1px solid #3f3f46;
-    color: #a1a1aa;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(245, 245, 245, 0.6);
     min-width: 32px;
     height: 32px;
-    border-radius: 6px;
+    border-radius: 5px;
     cursor: pointer;
-    transition: 0.2s
+    transition: 0.2s;
 }
 
 .page-btn:hover:not(:disabled) {
     border-color: #82c2e3;
-    color: #82c2e3
+    color: #82c2e3;
 }
 
 .page-btn.active {
     background: #82c2e3;
     border-color: #82c2e3;
-    color: #fff
+    color: #000;
 }
 
 .page-btn:disabled {
     opacity: 0.6;
-    cursor: not-allowed
+    cursor: not-allowed;
 }
 
 /* Carousel */
@@ -1238,28 +1170,29 @@ onUnmounted(() => { if (durationChart) durationChart.destroy(); if (memberChart)
     position: relative;
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 20px
+    gap: 17px;
 }
 
 .carousel-track {
     display: flex;
-    gap: 16px;
+    gap: 17px;
     overflow-x: hidden;
     scroll-behavior: smooth;
     flex: 1;
-    padding: 4px 0
+    padding: 4px 0;
 }
 
 .carousel-card {
-    min-width: calc((100% - 32px) / 3); 
-    max-width: calc((100% - 32px) / 3);
-    background: #18181b;
-    border: 1px solid #27272a;
-    border-radius: 12px;
+    min-width: calc((100% - 34px) / 3);
+    max-width: calc((100% - 34px) / 3);
+    background: rgba(68, 77, 86, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
     overflow: hidden;
     position: relative;
     flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .flag-overlay {
@@ -1271,19 +1204,19 @@ onUnmounted(() => { if (durationChart) durationChart.destroy(); if (memberChart)
     object-fit: cover;
     border-radius: 3px;
     z-index: 2;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5)
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
 .carousel-images {
     display: flex;
-    height: 160px
+    height: 160px;
 }
 
 .car-thumb,
 .plate-thumb {
     width: 50%;
     height: 100%;
-    object-fit: cover
+    object-fit: cover;
 }
 
 .no-thumb {
@@ -1292,36 +1225,52 @@ onUnmounted(() => { if (durationChart) durationChart.destroy(); if (memberChart)
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #27272a;
-    color: #52525b;
-    font-size: 12px
+    background: rgba(68, 77, 86, 0.3);
+    color: rgba(245, 245, 245, 0.6);
+    font-size: 12px;
 }
 
 .carousel-info {
-    padding: 10px 14px
+    display: flex;
+    flex-direction: column;
 }
 
 .cinfo-row {
     display: flex;
-    justify-content: space-between;
-    padding: 4px 0;
-    border-bottom: 1px solid #27272a;
-    font-size: 13px
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .cinfo-label {
-    color: #a1a1aa
+    width: 35%;
+    background: rgba(68, 77, 86, 0.5);
+    color: #f5f5f5;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 0;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .cinfo-value {
-    color: #e4e4e7;
-    font-weight: 600
+    width: 65%;
+    background: rgba(68, 77, 86, 0.1);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 10px 0;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-left: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .carousel-arrow {
-    background: rgba(0, 0, 0, 0.6);
-    border: 1px solid #3f3f46;
-    color: #d4d4d8;
+    background: rgba(68, 77, 86, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #f5f5f5;
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -1330,19 +1279,19 @@ onUnmounted(() => { if (durationChart) durationChart.destroy(); if (memberChart)
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0
+    flex-shrink: 0;
 }
 
 .carousel-arrow:hover {
-    background: #3b82f6;
-    border-color: #3b82f6;
-    color: #fff
+    background: #82c2e3;
+    border-color: #82c2e3;
+    color: #000;
 }
 
 /* Main row & sidebar */
 .main-row {
     display: flex;
-    gap: 20px;
+    gap: 17px;
 }
 
 .sidebar {
@@ -1350,36 +1299,36 @@ onUnmounted(() => { if (durationChart) durationChart.destroy(); if (memberChart)
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    gap: 20px
+    gap: 17px;
 }
 
 .sidebar-card {
-    background: #18181b;
-    border-radius: 12px;
-    padding: 20px;
-    border: 1px solid #27272a
+    background: rgba(68, 77, 86, 0.3);
+    border-radius: 10px;
+    padding: 17px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .sidebar-card canvas {
-    max-height: 220px
+    max-height: 220px;
 }
 
 .donut-wrap {
     display: flex;
     flex-direction: column;
-    align-items: center
+    align-items: center;
 }
 
 .donut-container {
     position: relative;
     width: 180px;
     height: 180px;
-    margin: 16px auto 12px
+    margin: 16px auto 12px;
 }
 
 .donut-container canvas {
     width: 100% !important;
-    height: 100% !important
+    height: 100% !important;
 }
 
 .donut-center {
@@ -1389,8 +1338,8 @@ onUnmounted(() => { if (durationChart) durationChart.destroy(); if (memberChart)
     transform: translate(-50%, -50%);
     font-size: 14px;
     font-weight: 700;
-    color: #e4e4e7;
-    text-align: center
+    color: #fff;
+    text-align: center;
 }
 
 .donut-legend {
@@ -1398,29 +1347,29 @@ onUnmounted(() => { if (durationChart) durationChart.destroy(); if (memberChart)
     flex-direction: column;
     gap: 8px;
     font-size: 13px;
-    width: 100%
+    width: 100%;
 }
 
 .legend-item {
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #d4d4d8
+    color: #f5f5f5;
 }
 
 .dot {
     display: inline-block;
     width: 12px;
     height: 12px;
-    border-radius: 3px
+    border-radius: 3px;
 }
 
 .dot.orange {
-    background: #fbb900
+    background: #fbb900;
 }
 
 .dot.blue {
-    background: #3b82f6
+    background: #82c2e3;
 }
 
 /* Modal */
@@ -1434,28 +1383,28 @@ onUnmounted(() => { if (durationChart) durationChart.destroy(); if (memberChart)
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000
+    z-index: 1000;
 }
 
 .modal-box {
     background: #1f1f23;
-    border: 1px solid #3f3f46;
-    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
     width: 560px;
     max-width: 90vw;
-    overflow: hidden
+    overflow: hidden;
 }
 
 .modal-images {
     display: flex;
-    height: 220px
+    height: 220px;
 }
 
 .modal-car-img,
 .modal-plate-img {
     width: 50%;
     height: 100%;
-    object-fit: cover
+    object-fit: cover;
 }
 
 .modal-no-img {
@@ -1463,86 +1412,86 @@ onUnmounted(() => { if (durationChart) durationChart.destroy(); if (memberChart)
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #27272a;
-    color: #52525b
+    background: rgba(68, 77, 86, 0.3);
+    color: rgba(245, 245, 245, 0.6);
 }
 
 .modal-form {
-    padding: 20px 28px
+    padding: 17px 28px;
 }
 
 .form-row {
     display: flex;
     align-items: center;
     margin-bottom: 14px;
-    gap: 14px
+    gap: 14px;
 }
 
 .form-row label {
     width: 70px;
     font-size: 14px;
-    color: #a1a1aa;
+    color: #f5f5f5;
     font-weight: 600;
-    flex-shrink: 0
+    flex-shrink: 0;
 }
 
 .form-input,
 .form-select {
     flex: 1;
-    background: #27272a;
-    border: 1px solid #3f3f46;
-    color: #e4e4e7;
+    background: rgba(68, 77, 86, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #fff;
     padding: 10px 14px;
-    border-radius: 8px;
+    border-radius: 5px;
     font-size: 14px;
-    outline: none
+    outline: none;
 }
 
 .form-select {
-    cursor: pointer
+    cursor: pointer;
 }
 
 .form-input:focus,
 .form-select:focus {
-    border-color: #3b82f6
+    border-color: #82c2e3;
 }
 
 .form-input::-webkit-calendar-picker-indicator {
     filter: invert(1);
-    opacity: 0.5
+    opacity: 0.5;
 }
 
 .modal-actions {
     display: flex;
     gap: 12px;
     padding: 0 28px 24px;
-    justify-content: center
+    justify-content: center;
 }
 
 .modal-btn {
     flex: 1;
     padding: 12px;
     border: none;
-    border-radius: 8px;
+    border-radius: 5px;
     font-size: 15px;
     font-weight: 700;
     cursor: pointer;
-    transition: 0.2s
+    transition: 0.2s;
 }
 
 .modal-btn.save {
-    background: #60a5fa;
-    color: #fff
+    background: #82c2e3;
+    color: #000;
 }
 
 .modal-btn.save:hover {
-    background: #3b82f6
+    background: #5aa8d9;
 }
 
 .modal-btn.cancel {
-    background: #27272a;
-    color: #d4d4d8;
-    border: 1px solid #3f3f46;
+    background: rgba(68, 77, 86, 0.3);
+    color: #f5f5f5;
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .modal-btn.cancel:hover {
