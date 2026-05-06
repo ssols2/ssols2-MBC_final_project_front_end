@@ -19,7 +19,7 @@
 
                     <!-- 공통 달력 컴포넌트 -->
                     <DatePopup :visible="isCalendarOpen" :start-date="startDate" :end-date="endDate"
-                        @close="isCalendarOpen = false" @apply="handleDateApply" />
+                        :max-date="maxAllowedDate" @close="isCalendarOpen = false" @apply="handleDateApply" />
                 </div>
 
                 <div class="info-wrapper">
@@ -114,7 +114,7 @@
                                 <td class="text-blue">{{ row.actual != null ? row.actual + '대' : '-' }}</td>
                                 <td>
                                     <span v-if="row.actual != null" :class="errorClass(row)">{{ errorLabel(row)
-                                        }}</span>
+                                    }}</span>
                                     <span v-else class="text-gray">-</span>
                                 </td>
                                 <td>
@@ -540,7 +540,6 @@ watch(activeTab, (newTab) => {
 .control-container {
     width: 100%;
     overflow-y: auto;
-    overflow-x: hidden;
     display: flex;
     flex-direction: column;
     gap: 17px;
@@ -571,10 +570,18 @@ watch(activeTab, (newTab) => {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 17px;
+    position: relative;
+    z-index: 9999;
 }
 
 .relative-box {
     position: relative;
+    z-index: 9999;
+}
+
+:deep(.date-popup-layer) {
+    left: 0 !important;
+    right: auto !important;
 }
 
 .date-trigger-box {
@@ -632,10 +639,11 @@ watch(activeTab, (newTab) => {
 
 /* 안내 박스 기본 스타일  */
 .info-tooltip {
-    position: absolute;;         
+    position: absolute;
+    ;
     right: 0;
-    width: 303px;          
-    background: #1f1f23;  
+    width: 303px;
+    background: #1f1f23;
     border: 1px solid rgba(245, 245, 245, 0.15);
     padding: 12px 16px;
     border-radius: 8px;
@@ -644,15 +652,16 @@ watch(activeTab, (newTab) => {
     line-height: 1.6;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
     z-index: 100;
-    opacity: 0;            
-    visibility: hidden;    
+    opacity: 0;
+    visibility: hidden;
     transition: all 0.3s ease;
-    pointer-events: none; 
+    pointer-events: none;
 }
 
 /* 강조 텍스트 (기상, 대기질 등) */
 .info-tooltip strong {
-    color: #82c2e3;        /* 메인 포인트 블루 컬러 */
+    color: #82c2e3;
+    /* 메인 포인트 블루 컬러 */
     font-weight: 600;
 }
 
@@ -660,7 +669,8 @@ watch(activeTab, (newTab) => {
 .info-wrapper:hover .info-tooltip {
     opacity: 1;
     visibility: visible;
-    transform: translateY(-5px); /* 살짝 위로 떠오르는 느낌 */
+    transform: translateY(-5px);
+    /* 살짝 위로 떠오르는 느낌 */
 }
 
 /* 툴팁 아래 꼬리 (말풍선 느낌) */

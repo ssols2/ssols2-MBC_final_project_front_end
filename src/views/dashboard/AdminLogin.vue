@@ -76,20 +76,23 @@
 
                     <div class="input-group mb-20">
                         <label class="row-label">이름</label>
-                        <input type="text" v-model="findForm.name" placeholder="홍길동" class="glass-input" @keyup.enter="isFindReady && executeFindId()"/>
+                        <input type="text" v-model="findForm.name" placeholder="홍길동" class="glass-input"
+                            @keyup.enter="isFindReady && executeFindId()" />
                         <p v-if="findForm.name && findIdErrors.name" class="error-msg-small">{{ findIdErrors.name }}</p>
                     </div>
 
                     <div class="input-group mb-20">
                         <label class="row-label">아이디</label>
-                        <input type="text" v-model="findForm.userId" placeholder="hong123" class="glass-input" @keyup.enter="isFindReady && executeFindId()"/>
+                        <input type="text" v-model="findForm.userId" placeholder="hong123" class="glass-input"
+                            @keyup.enter="isFindReady && executeFindId()" />
                         <p v-if="findForm.userId && findIdErrors.userId" class="error-msg-small">{{ findIdErrors.userId
-                        }}</p>
+                            }}</p>
                     </div>
 
                     <div class="input-group mb-10">
                         <label class="row-label">이메일</label>
-                        <input type="email" v-model="findForm.email" placeholder="hong@naver.com" class="glass-input" @keyup.enter="isFindReady && executeFindId()"/>
+                        <input type="email" v-model="findForm.email" placeholder="hong@naver.com" class="glass-input"
+                            @keyup.enter="isFindReady && executeFindId()" />
                         <p v-if="findForm.email && findIdErrors.email" class="error-msg-small">{{ findIdErrors.email }}
                         </p>
                     </div>
@@ -259,13 +262,13 @@ const findIdErrors = computed(() => {
     if (!findForm.value.dept) errors.dept = '부서를 선택해주세요'
 
     // 2. 이름 체크 (2자 이상 + 영어 포함 불가)
-    const nameRegex = /[a-zA-Z]/ // 영어 포함 여부 체크
+    const nameRegex = /^[가-힣a-zA-Z\s]+$/
     if (!findForm.value.name) {
         errors.name = '이름을 입력해주세요'
     } else if (findForm.value.name.length < 2) {
         errors.name = '이름은 2자 이상 입력해주세요'
-    } else if (nameRegex.test(findForm.value.name)) {
-        errors.name = '이름에 영어는 입력할 수 없습니다'
+    } else if (!nameRegex.test(findForm.value.name)) {
+        errors.name = '이름은 한글과 영문만 입력 가능합니다'
     }
 
     // 3. 아이디 체크 (6자 이상 + 한글 포함 불가)
@@ -327,9 +330,9 @@ const resetFindModal = () => {
 
 // 관리자 등록
 const goToAdminRegi = () => {
-    router.push({ 
-        path: '/regi', 
-        query: { type: 'hospital', role: 'admin' } 
+    router.push({
+        path: '/regi',
+        query: { type: 'hospital', role: 'admin' }
     });
 }
 
@@ -551,9 +554,9 @@ const handleEmpIdInput = (e) => {
 }
 
 .find-modal {
-    width: 460px;  
-    height: auto !important; 
-    min-height: 580px;   
+    width: 460px;
+    height: auto !important;
+    min-height: 580px;
     padding: 50px 45px;
     display: flex;
     flex-direction: column;
@@ -561,7 +564,8 @@ const handleEmpIdInput = (e) => {
 }
 
 .find-modal.is-result {
-    min-height: 400px;  /* 결과창일 때만 짧게 */
+    min-height: 400px;
+    /* 결과창일 때만 짧게 */
 }
 
 .input-group.mb-20 {
@@ -573,13 +577,13 @@ const handleEmpIdInput = (e) => {
     margin-bottom: 12px;
     font-size: 16px;
     font-weight: 700;
-    color: rgba(255, 255, 255, 0.9); 
+    color: rgba(255, 255, 255, 0.9);
 }
 
 /* 입력창 내부 텍스트 및 높이 */
 .find-modal .glass-input {
     padding: 16px 20px;
-    font-size: 16px;    
+    font-size: 16px;
 }
 
 .btn-text {
@@ -631,15 +635,31 @@ const handleEmpIdInput = (e) => {
 }
 
 /* 유틸리티 */
-.mt-10 { 
-    margin-top: 10px; 
+.mt-10 {
+    margin-top: 10px;
 }
-.mt-20 { margin-top: 20px; }
-.mt-30 { margin-top: 30px; }
-.mb-20 { margin-bottom: 20cpx; }
-.mb-30 { margin-bottom: 10px; }
-.mb-40 { margin-bottom: 40px; }
-.mb-50 { 
+
+.mt-20 {
+    margin-top: 20px;
+}
+
+.mt-30 {
+    margin-top: 30px;
+}
+
+.mb-20 {
+    margin-bottom: 20cpx;
+}
+
+.mb-30 {
+    margin-bottom: 10px;
+}
+
+.mb-40 {
+    margin-bottom: 40px;
+}
+
+.mb-50 {
     margin-bottom: 27px;
     margin-top: -10px;
 }
@@ -660,8 +680,15 @@ const handleEmpIdInput = (e) => {
 
 /* 애니메이션 */
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .glass-modal {

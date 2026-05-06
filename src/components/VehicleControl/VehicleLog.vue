@@ -765,22 +765,39 @@ onUnmounted(() => { if (durationChart) durationChart.destroy(); if (memberChart)
     border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.filter-bar {
+    margin-bottom: 17px;
+    display: flex;
+    height: auto;
+}
+
 /* Search Mode */
 .search-result-area {
     display: flex;
-    gap: 17px;
-    min-height: 280px;
+    gap: 15px;
+    height: 320px !important;
+    align-items: stretch;
 }
 
+/* 좌측 검색 리스트 영역 대폭 확대 */
 .search-list-panel {
-    width: 380px;
+    width: 480px !important;
     flex-shrink: 0;
     background: rgba(68, 77, 86, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 10px;
     padding: 17px;
     overflow-y: auto;
-    max-height: 340px;
+    height: 100%; 
+}
+
+.search-detail-panel {
+    flex: 1;
+    display: flex;
+    background: rgba(31, 31, 35, 0.4);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #f5f5f529;
 }
 
 .panel-title {
@@ -854,57 +871,52 @@ onUnmounted(() => { if (durationChart) durationChart.destroy(); if (memberChart)
     padding: 30px 0;
 }
 
-.search-detail-panel {
-    flex: 1;
-    background: rgba(68, 77, 86, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    display: flex;
-    overflow: hidden;
-}
-
+/* 이미지 가로 배치 복구 */
 .detail-images {
     display: flex;
-    width: 55%;
+    flex-direction: row; 
+    width: 60%; 
+    background: #000;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.detail-car-img,
-.detail-plate-img {
-    width: 50%;
+/* 차량 사진 (좌측) */
+.detail-car-img {
     height: 100%;
+    width: 30%; 
     object-fit: cover;
-    min-height: 240px;
+    border-bottom: none;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.no-detail-img {
-    width: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(68, 77, 86, 0.3);
-    color: rgba(245, 245, 245, 0.6);
+/* 번호판 사진 (우측) */
+.detail-plate-img {
+    height: 100%;
+    width: 70%;
+    object-fit: cover;
+    background: #ffffff !important;
 }
 
 .detail-info-table {
-    width: 45%;
+    width: 40% !important;
     border-collapse: collapse;
+    background: rgba(68, 77, 86, 0.1);
 }
 
 .detail-info-table th {
-    text-align: left;
-    padding: 17px 14px;
+    width: 140px;
+    font-size: 16px;
+    padding: 15px 30px !important;
     color: rgba(245, 245, 245, 0.6);
-    font-size: 13px;
-    font-weight: 600;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    width: 80px;
+    text-align: left;
 }
 
 .detail-info-table td {
-    padding: 17px 14px;
-    color: #f5f5f5;
-    font-size: 14px;
-    font-weight: 600;
+    padding: 15px 10px !important;
+    font-size: 18px;
+    font-weight: 700;
+    color: #82c2e3;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 

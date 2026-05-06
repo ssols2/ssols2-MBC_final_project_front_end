@@ -1,50 +1,132 @@
-/* Pretendard 웹 폰트 불러오기 */
+/* Pretendard 웹 폰트 불러오기 및 기본 설정 */
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
 
-/* 시스템 전체 요소에 폰트 강제 적용 */
 * {
   font-family: 'Pretendard', sans-serif !important;
+  box-sizing: border-box;
 }
 
-/* 기본 여백 초기화 */
 body {
   margin: 0;
   padding: 0;
+  transition: background-color 0.3s, color 0.3s;
 }
 
 /* ==========================================
-   전역 다크/라이트 모드 테마 변수
+   전역 테마 시스템 (Dark / Light)
    ========================================== */
 :root {
+    /* [Dark Mode - 기본] */
     --bg-main: #09090b;
     --bg-sidebar: #000000;
     --bg-header: #000000;
-    --bg-card: #18181b;
+    --bg-card: rgba(68, 77, 86, 0.3);
     
     --text-primary: #f5f5f5;
-    --text-secondary: #a1a1aa;
-    --border-color: #373737;
+    --text-secondary: rgba(245, 245, 245, 0.6);
+    --border-color: rgba(245, 245, 245, 0.08);
     
-    --glass-bg: rgba(30, 30, 45, 0.95);
-    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-bg: #444d5571;
+    --glass-border: rgba(255, 255, 255, 0.15);
+    --glass-shadow: 0 16px 40px rgba(0, 0, 0, 0.437);
     
     --accent-blue: #82c2e3;
-    --hover-bg: rgba(130, 194, 227, 0.2);
+    --hover-bg: rgba(130, 194, 227, 0.15);
+
+    /* 상태 포인트 컬러 (Dark) */
+    --color-green: #22c55e;
+    --color-yellow: #fbb900;
+    --color-red: #ff0000;
+    --color-orange: #fa8c16;
 }
 
 [data-theme="light"] {
-    --bg-main: #f4f4f5;
-    --bg-sidebar: #ffffff;
+    /* [Light Mode] */
+    --bg-main: #f8fafc;           /* 시원하고 깔끔한 연회색 배경 */
+    --bg-sidebar: #ffffff;        /* 순백색 사이드바 */
     --bg-header: #ffffff;
-    --bg-card: #ffffff;
+    --bg-card: #ffffff;           /* 카드 배경은 불투명한 흰색으로 입체감 부여 */
     
-    --text-primary: #18181b;
-    --text-secondary: #52525b;
-    --border-color: #e4e4e7;
+    --text-primary: #1e293b;      /* 짙은 남색 계열 텍스트 */
+    --text-secondary: #64748b;    /* 보조 텍스트 */
+    --border-color: #e2e8f0;      /* 연한 그레이 테두리 */
     
-    --glass-bg: rgba(255, 255, 255, 0.95);
-    --glass-border: rgba(0, 0, 0, 0.1);
+    --glass-bg: rgba(255, 255, 255, 0.9);
+    --glass-border: rgba(0, 91, 170, 0.1);
+    --glass-shadow: 0 10px 25px rgba(0, 0, 0, 0.05); /* 라이트 모드는 부드러운 그림자가 생명임 */
     
-    --accent-blue: #0284c7;
-    --hover-bg: rgba(2, 132, 199, 0.1);
+    --accent-blue: #005baa;       /* 병원 로고와 일치하는 신뢰감 있는 블루 */
+    --hover-bg: #f1f5f9;
+    
+    /* 상태 포인트 컬러 (Dark) */
+    --color-green: #22c55e;
+    --color-yellow: #fbb900;
+    --color-red: #ff0000;
+    --color-orange: #fa8c16;
 }
+
+/* ==========================================
+   라이트 모드 전용 세부 보정
+   ========================================== */
+[data-theme="light"] .glass-card,
+[data-theme="light"] .layout-card,
+[data-theme="light"] .table-card,
+[data-theme="light"] .summary-card,
+[data-theme="light"] .sidebar-card,
+[data-theme="light"] .device-card {
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: var(--glass-shadow) !important;
+}
+
+/* 사이드바 위젯 보정 */
+[data-theme="light"] .weather-card,
+[data-theme="light"] .reservation-box {
+    background: #f1f5f9 !important;
+    border: 1px solid #e2e8f0 !important;
+}
+
+/* 테이블 헤더 및 텍스트 보정 */
+[data-theme="light"] .dark-table th,
+[data-theme="light"] .admin-table th,
+[data-theme="light"] .history-table th {
+    background: #f8fafc !important;
+    color: var(--text-secondary) !important;
+}
+
+[data-theme="light"] .dark-table td,
+[data-theme="light"] .admin-table td,
+[data-theme="light"] .history-table td {
+    color: var(--text-primary) !important;
+}
+
+/* 입력창 및 셀렉트박스 */
+[data-theme="light"] .dark-select,
+[data-theme="light"] .admin-select,
+[data-theme="light"] .search-box,
+[data-theme="light"] .search-wrapper {
+    background-color: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="light"] .search-box input,
+[data-theme="light"] .search-input {
+    color: var(--text-primary) !important;
+}
+
+/* 텍스트 컬러 유틸리티 */
+.text-blue { color: var(--accent-blue) !important; }
+.text-green { color: var(--color-green) !important; }
+.text-yellow { color: var(--color-yellow) !important; }
+.text-red { color: var(--color-red) !important; }
+.text-orange { color: var(--color-orange) !important; }
+
+/* 상태 도트 및 배경 유틸리티 */
+.bg-green { background-color: var(--color-green) !important; }
+.bg-yellow { background-color: var(--color-yellow) !important; }
+.bg-red { background-color: var(--color-red) !important; }
+
+.status-dot.green { background-color: var(--color-green); box-shadow: 0 0 8px var(--color-green); }
+.status-dot.yellow { background-color: var(--color-yellow); box-shadow: 0 0 8px var(--color-yellow); }
+.status-dot.red { background-color: var(--color-red); box-shadow: 0 0 8px var(--color-red); }
