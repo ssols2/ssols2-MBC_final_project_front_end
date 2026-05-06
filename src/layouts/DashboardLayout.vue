@@ -31,25 +31,48 @@
                     </svg>
                     주차 모니터링
                 </li> -->
+                <li class="tab-item" :class="{ active: isActiveMenu('/dashboard/parking-map') }"
+                    @click="goToPage('/dashboard/parking-map')">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+                        <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+                        <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+                        <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+                        <rect x="7" y="7" width="10" height="10" rx="1"></rect>
+                        <path d="M12 7v10"></path>
+                        <path d="M7 12h10"></path>
+                    </svg>
+                    주차장 현황 맵
+                </li>
                 <li class="tab-item" :class="{ active: isActiveMenu('/dashboard/vehicle-control') }"
                     @click="goToPage('/dashboard/vehicle-control')">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round" />
-                        <line x1="3" y1="9" x2="21" y2="9" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                            stroke-linejoin="round" />
-                        <line x1="9" y1="21" x2="9" y2="9" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                            stroke-linejoin="round" />
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path
+                            d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-1.1 0-2 .9-2 2v7c0 .6.4 1 1 1h2">
+                        </path>
+                        <circle cx="7" cy="17" r="2"></circle>
+                        <circle cx="17" cy="17" r="2"></circle>
+                        <path d="M13 10V8"></path>
+                        <path d="M9 10V8"></path>
+                        <path d="M12 2v4"></path>
+                        <path d="M15 3l-1 1"></path>
+                        <path d="M9 3l1 1"></path>
                     </svg>
                     출입 차량 관제
                 </li>
                 <li class="tab-item" :class="{ active: isActiveMenu('/dashboard/payment') }"
                     @click="goToPage('/dashboard/payment')">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
-                        <rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round" />
-                        <line x1="2" y1="10" x2="22" y2="10" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round" />
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                        <circle cx="12" cy="12" r="2"></circle>
+                        <path d="M6 12h.01M18 12h.01"></path>
+                        <path d="M2 10V8a2 2 0 0 1 2-2h2"></path>
+                        <path d="M18 6h2a2 2 0 0 1 2 2v2"></path>
+                        <path d="M22 14v2a2 2 0 0 1-2 2h-2"></path>
+                        <path d="M6 18H4a2 2 0 0 1-2-2v-2"></path>
                     </svg>
                     요금 정산 관리
                 </li>
@@ -119,9 +142,9 @@
 
                     <div class="weather-details">
                         <div class="weather-item"><span class="label">강수</span><span class="value">{{ weather.rainfallMm
-                        }}mm</span></div>
+                                }}mm</span></div>
                         <div class="weather-item"><span class="label">습도</span><span class="value">{{ weather.humidity
-                        }}%</span></div>
+                                }}%</span></div>
                         <div class="weather-item wide">
                             <span class="label">미세먼지</span>
                             <span class="value" :class="pm10Class">{{ weather.pm10 }}㎍ ({{ pm10Label }})</span>
@@ -578,7 +601,7 @@ const fetchEvNotifications = async () => {
                 if (log.ocrAccuracy <= 0 || log.ocrAccuracy >= 85) return false
                 // 이미 클릭해서 이동한 기록이 있는지 조건
                 if (readOcrAlerts.value.has(`ocr-${log.parkingLogId}`)) return false
-                
+
                 // 시간 조건 (하루 지나면 자동 삭제)
                 const logTime = log.entryTime ? new Date(log.entryTime).getTime() : now
                 if (now - logTime > ONE_DAY_MS) return false
@@ -620,9 +643,9 @@ const handleAlertAction = (item) => {
         // [추가] OCR 알림 읽음 처리 후 로컬 스토리지에 영구 저장
         readOcrAlerts.value.add(item.id)
         localStorage.setItem('readOcrAlerts', JSON.stringify([...readOcrAlerts.value]))
-        
+
         fetchEvNotifications() // 알림 목록 바로 새로고침
-        
+
         // [추가] 출입 차량 관제 페이지로 쿼리 담아서 이동
         router.push({
             path: '/dashboard/vehicle-control',
@@ -715,10 +738,10 @@ const pm25Class = computed(() => {
 // 시설관리팀 전용 알림 로직
 // ===========================
 const isFacilityTeam = computed(() => {
-  try {
-    const loginData = JSON.parse(sessionStorage.getItem('loginId')) || {}
-    return loginData.adminDeptName === '시설관리팀'
-  } catch(e) { return false }
+    try {
+        const loginData = JSON.parse(sessionStorage.getItem('loginId')) || {}
+        return loginData.adminDeptName === '시설관리팀'
+    } catch (e) { return false }
 })
 
 const facilityPopupVisible = ref(false)
@@ -726,13 +749,13 @@ const pendingInspectionList = ref([])
 const pendingCount = computed(() => pendingInspectionList.value.length)
 
 const fetchPendingInspections = async () => {
-  if (!isFacilityTeam.value) return
-  try {
-    const res = await axios.get('http://localhost:8003/inspection/pending')
-    pendingInspectionList.value = res.data || []
+    if (!isFacilityTeam.value) return
+    try {
+        const res = await axios.get('http://localhost:8003/inspection/pending')
+        pendingInspectionList.value = res.data || []
 
-    fetchEvNotifications()
-  } catch(e) { console.error('점검 목록 로드 실패', e) }
+        fetchEvNotifications()
+    } catch (e) { console.error('점검 목록 로드 실패', e) }
 }
 
 // 자식 페이지(EvInfraManage 등)에서 이 새로고침 함수를 쓸 수 있도록 제공
@@ -740,17 +763,17 @@ provide('refreshPendingCount', fetchPendingInspections)
 
 // 플로팅 버튼 클릭 시
 const openFacilityPopup = async () => {
-  await fetchPendingInspections()
-  facilityPopupVisible.value = true
+    await fetchPendingInspections()
+    facilityPopupVisible.value = true
 }
 
 // 모달에서 특정 기기의 '점검하기' 버튼 클릭 시
 const handleFacilityPopupConfirm = (item) => {
-  facilityPopupVisible.value = false
-  router.push({
-    path: '/dashboard/ev-infra',
-    query: { tab: 'predictive', chargerId: item.ev_charger_id }
-  })
+    facilityPopupVisible.value = false
+    router.push({
+        path: '/dashboard/ev-infra',
+        query: { tab: 'predictive', chargerId: item.ev_charger_id }
+    })
 }
 
 // ==========================================
@@ -789,10 +812,10 @@ onMounted(() => {
 
     fetchEvNotifications()
 
-    if(isFacilityTeam.value) {
-       fetchPendingInspections() // 처음 화면 켤 때 숫자 가져오기
-    //    facilityTimer = setInterval(fetchPendingInspections, 15000) // 15초마다 뱃지 갱신
-   }
+    if (isFacilityTeam.value) {
+        fetchPendingInspections() // 처음 화면 켤 때 숫자 가져오기
+        //    facilityTimer = setInterval(fetchPendingInspections, 15000) // 15초마다 뱃지 갱신
+    }
 })
 
 onUnmounted(() => {
@@ -909,7 +932,7 @@ onUnmounted(() => {
 }
 
 .nav-icon {
-    width: 25px;
+    width: 26px;
     height: 20px;
 }
 
@@ -1586,6 +1609,7 @@ onUnmounted(() => {
     right: 40px;
     z-index: 9999;
 }
+
 .fab-btn {
     width: 65px;
     height: 65px;
@@ -1601,9 +1625,11 @@ onUnmounted(() => {
     transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
 }
+
 .fab-btn:hover {
     transform: scale(1.1) translateY(-5px);
 }
+
 .fab-badge {
     position: absolute;
     top: -4px;
@@ -1618,6 +1644,6 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 </style>

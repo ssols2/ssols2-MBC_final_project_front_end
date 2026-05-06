@@ -297,8 +297,8 @@ const fetchRevenue = async () => {
             borderWidth: 0,
             cutout: '55%',           // 도넛 차트 두께 조절
             borderRadius: 10,        // 끝부분을 둥글게
-            spacing: 4,              // 세그먼트 사이 간격 추가
-            hoverOffset: 4
+            spacing: 2,              // 세그먼트 사이 간격 추가
+            // hoverOffset: 4
           }]
         },
         options: {
@@ -309,19 +309,19 @@ const fetchRevenue = async () => {
           },
           plugins: {
             legend: { display: false },
-            tooltip: {
-              backgroundColor: 'rgba(26, 29, 33, 0.95)',
-              titleColor: '#ffffff',
-              bodyColor: '#ffffff',
-              bodyFont: { size: 13, family: 'Pretendard' },
-              padding: 10,
-              cornerRadius: 6,
-              displayColors: true,
-              boxPadding: 4,
-              callbacks: {
-                label: (context) => ` ${context.label}: ${context.raw}건`
-              }
-            }
+            // tooltip: {
+            //   backgroundColor: 'rgba(26, 29, 33, 0.95)',
+            //   titleColor: '#ffffff',
+            //   bodyColor: '#ffffff',
+            //   bodyFont: { size: 13, family: 'Pretendard' },
+            //   padding: 10,
+            //   cornerRadius: 6,
+            //   displayColors: true,
+            //   boxPadding: 4,
+            //   callbacks: {
+            //     label: (context) => ` ${context.label}: ${context.raw}건`
+            //   }
+            // }
           }
         }
       })
@@ -354,32 +354,22 @@ const fetchLogs = async () => {
           data: isLogEmpty ? [1] : [logData.memberCount, logData.nonMemberCount],
           backgroundColor: isLogEmpty ? ['rgba(255, 255, 255, 0.05)'] : ['#fbb900', '#3a4349'],
           borderWidth: 0,
-          borderRadius: (isLogEmpty || hasOnlyOneType) ? 0 : 8,
-          spacing: (isLogEmpty || hasOnlyOneType) ? 0 : 5,
-          hoverOffset: isLogEmpty ? 0 : 8
+          offset: [20, 0], 
+          hoverOffset: 25,
+          borderRadius: 2,
+          spacing: 0 // 조각 사이 틈을 줄여 꽉 차 보이게 함
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        layout: { padding: 15 },
+        layout: { padding: 10 },
         plugins: {
           legend: { display: false },
           tooltip: {
             enabled: true,
             backgroundColor: 'rgba(26, 29, 33, 0.95)',
-            titleColor: '#ffffff',
-            bodyColor: '#ffffff',
             bodyFont: { size: 14, family: 'Pretendard' },
-            padding: 15, cornerRadius: 6, displayColors: true, boxPadding: 4,
-            xAlign: 'center',
-            yAlign: 'bottom',
-            callbacks: {
-              label: (context) => {
-                if (isLogEmpty) return ' 방문 기록이 없습니다'
-                return ` ${context.label}: ${context.raw}명`
-              }
-            }
           }
         }
       }

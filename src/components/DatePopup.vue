@@ -1,5 +1,5 @@
 <template>
-    <div v-if="visible" class="date-popup-layer" @click.stop>
+    <div v-if="visible" class="date-popup-layer">
         <div class="date-popup">
             <div class="date-popup-header">
                 <div class="date-popup-title-wrap">
@@ -102,7 +102,16 @@ const props = defineProps({
         type: [String, Date, null],
         default: null,
     },
+    maxDate: { type: [String, Date, null], default: null }
 })
+
+// 최대 허용 날짜 계산 함수 새로 추가
+function getMaxDateAllowed() {
+    if (props.maxDate) {
+        return toDateOnly(props.maxDate)
+    }
+    return getToday() // maxDate가 안 넘어오면 원래대로 '오늘'까지만 허용
+}
 
 // 부모한테 신호보내기
 const emit = defineEmits([
@@ -246,7 +255,7 @@ function moveLeftMonth(diff) {
         // 시작일이 있는 좌측 달력은 놔두고, 우측 달력만 이동할 수 있게 '언링크' 상태로 처리 가능
         const current = leftCalendar.value
         const moved = new Date(current.year, current.month - 1 + diff, 1)
-        
+
         leftCalendar.value = {
             year: moved.getFullYear(),
             month: moved.getMonth() + 1
@@ -264,7 +273,7 @@ function moveRightMonth(diff) {
         // 왼쪽 달력(시작일)은 고정, 오른쪽 달력만 탐색
         const current = rightCalendar.value
         const moved = new Date(current.year, current.month - 1 + diff, 1)
-        
+
         rightCalendar.value = {
             year: moved.getFullYear(),
             month: moved.getMonth() + 1
@@ -312,11 +321,17 @@ function handleDateClick(dayObj) {
     const picked = toDateOnly(dayObj.date)
     if (!picked) return
 
-    // 미래 날짜 차단 로직
-    const today = getToday()
-    if (picked.getTime() > today.getTime()) {
-        return // 클릭한 날짜가 오늘보다 크면 무시하고 함수 종료
+    // 기준을 '오늘'에서 '최대 허용 날짜'로 변경
+    const maxAllowed = getMaxDateAllowed()
+    if (picked.getTime() > maxAllowed.getTime()) {
+        return 
     }
+
+    // 미래 날짜 차단 로직
+    // const today = getToday()
+    // if (picked.getTime() > today.getTime()) {
+    //     return // 클릭한 날짜가 오늘보다 크면 무시하고 함수 종료
+    // }
 
     selectedQuickRange.value = ''
 
@@ -339,9 +354,9 @@ function handleDateClick(dayObj) {
 function getDateCellClass(dayObj) {
     const date = dayObj.date
 
-    // 오늘보다 미래인지 판별
-    const today = getToday()
-    const isFuture = date.getTime() > today.getTime()
+    // 달력 숫자 흐리게 만드는 기준도 '최대 허용 날짜'로 변경
+    const maxAllowed = getMaxDateAllowed()
+    const isFuture = date.getTime() > maxAllowed.getTime()
 
     return {
         'is-future': isFuture, // 미래면 회색으로 흐려짐
@@ -565,7 +580,7 @@ function handleApply() {
 
 /* 주(Week)마다 상하 간격 6px 띄우기 */
 .date-grid {
-  gap: 8px 0; 
+    gap: 8px 0;
 }
 
 .weekday-cell {
@@ -578,15 +593,16 @@ function handleApply() {
 
 /* 기본 셀 모양 설정 (가짜 요소를 띄우기 위해 relative 추가) */
 .date-cell {
-  position: relative;
-  z-index: 1;
-  height: 32.5px;
-  padding: 0;
-  background: transparent;
-  color: #e2e8f0;
-  font-size: 13px;
-  font-weight: 500;
-  border-radius: 0; /* 테두리 둥글기를 아예 없애서 선이 끊기지 않게 함 */
+    position: relative;
+    z-index: 1;
+    height: 32.5px;
+    padding: 0;
+    background: transparent;
+    color: #e2e8f0;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 0;
+    /* 테두리 둥글기를 아예 없애서 선이 끊기지 않게 함 */
 }
 
 /* 마우스 올렸을 때 은은하게 빛나는 효과 */
@@ -601,8 +617,8 @@ function handleApply() {
 
 /* 핵심 2: 선택된 날짜 범위 색상 */
 .date-cell.is-in-range {
-  background: rgba(130, 194, 227, 0.25) !important;
-  color: #fff;
+    background: rgba(130, 194, 227, 0.25) !important;
+    color: #fff;
 }
 
 /* 시작일, 종료일, 단일 선택일 확실하게 강조 */
@@ -615,45 +631,56 @@ function handleApply() {
 }
 
 /* 일요일(시작)과 토요일(끝)은 라인을 타원형으로 깎아줌 */
-.date-cell.is-in-range:nth-child(7n+1) { border-radius: 999px 0 0 999px !important; }
-.date-cell.is-in-range:nth-child(7n) { border-radius: 0 999px 999px 0 !important; }
+.date-cell.is-in-range:nth-child(7n+1) {
+    border-radius: 999px 0 0 999px !important;
+}
+
+.date-cell.is-in-range:nth-child(7n) {
+    border-radius: 0 999px 999px 0 !important;
+}
 
 /* 시작일/종료일 배경 반갈죽 트릭 (타원과 선을 자연스럽게 이어줌) */
 .date-cell.is-start {
-  background: linear-gradient(to right, transparent 50%, rgba(130, 194, 227, 0.25) 50%) !important;
-  color: #222 !important;
-  font-weight: 700;
+    background: linear-gradient(to right, transparent 50%, rgba(130, 194, 227, 0.25) 50%) !important;
+    color: #222 !important;
+    font-weight: 700;
 }
 
 .date-cell.is-end {
-  background: linear-gradient(to left, transparent 50%, rgba(130, 194, 227, 0.25) 50%) !important;
-  color: #222 !important;
-  font-weight: 700;
+    background: linear-gradient(to left, transparent 50%, rgba(130, 194, 227, 0.25) 50%) !important;
+    color: #222 !important;
+    font-weight: 700;
 }
 
 .date-cell.is-single {
-  background: transparent !important;
-  color: #222 !important;
-  font-weight: 700;
+    background: transparent !important;
+    color: #222 !important;
+    font-weight: 700;
 }
 
 /* (예외처리) 토요일 시작 / 일요일 종료 시 배경 삐져나옴 컷하기 */
-.date-cell.is-start:nth-child(7n) { background: transparent !important; }
-.date-cell.is-end:nth-child(7n+1) { background: transparent !important; }
+.date-cell.is-start:nth-child(7n) {
+    background: transparent !important;
+}
+
+.date-cell.is-end:nth-child(7n+1) {
+    background: transparent !important;
+}
 
 /* 진짜 타원(Oval) 모형 띄우기 */
 .date-cell.is-start::before,
 .date-cell.is-end::before,
 .date-cell.is-single::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: #82c2e3;
-  border-radius: 999px;
-  z-index: -1; /* 글자 뒤로 밀어넣기 */
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #82c2e3;
+    border-radius: 999px;
+    z-index: -1;
+    /* 글자 뒤로 밀어넣기 */
 }
 
 /* 미래 날짜 차단 스타일 */
@@ -736,5 +763,4 @@ function handleApply() {
 .footer-btn.primary:hover {
     filter: brightness(1.1);
 }
-
 </style>

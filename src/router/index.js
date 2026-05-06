@@ -41,8 +41,8 @@ import KioskLayout from "@/layouts/KioskLayout.vue"
 import AdminLogin from '@/views/dashboard/AdminLogin.vue'
 // 1. 대시보드 메인화면
 import MainView from '@/views/dashboard/MainView.vue'
-// 2. 주차 모니터링 화면
-import ParkingMonitoring from '@/views/dashboard/ParkingMonitoring.vue'
+// 2. 주차장 현황 맵 화면
+import ParkingMapView from '@/views/dashboard/ParkingMapView.vue'
 // 3. 출입 차량 관제
 import VehicleControlManage from '@/views/dashboard/VehicleControlManage.vue'
 // 4. 요금 정산 관리
@@ -165,11 +165,11 @@ const router = createRouter({
                     component: MainView,
                     meta: { requiresAuth: true, role: 'ADMIN' } // 보안 딱지
                 },
-                // 주차 모니터링 관제 화면
+                // 주차장 현황 맵 화면
                 {
-                    path: 'monitoring', // 주소: /dashboard/monitoring
-                    name: 'monitoring',
-                    component: ParkingMonitoring,
+                    path: 'parking-map', // 주소: /dashboard/parking-map
+                    name: 'parking-map',
+                    component: ParkingMapView,
                     meta: { requiresAuth: true, role: 'ADMIN' }
                 },
                 // 출입 차량 관제 화면
